@@ -10,14 +10,29 @@ use App\Models\Service;
 
 class DisplayController extends Controller
 {
-    public function index()
+  public function index()
+{
+    return view('display.index'); // pastikan Blade ini ada
+}
+
+public function queues()
     {
-        // Ambil semua antrean dengan relasi mahasiswa, dosen, dan service
-        $queues = Queue::with(['mahasiswa', 'dosen', 'service'])->get();
+        $queues = Queue::with(['dosen','mahasiswa','service'])->get()->map(function($q){
+            return [
+                'id' => $q->id,
+                'status' => $q->status,
+                'dosen' => $q->dosen ? ['id'=>$q->dosen->id, 'name'=>$q->dosen->name] : null,
+                'mahasiswa' => $q->mahasiswa ? ['id'=>$q->mahasiswa->id, 'name'=>$q->mahasiswa->nama] : null,
+                'service' => $q->service ? ['id'=>$q->service->id,'nama_layanan'=>$q->service->nama_layanan] : null,
+            ];
+        });
 
-        // Ambil semua dosen
-        $dosens = Dosen::all();
-
-        return view('display.index', compact('queues', 'dosens'));
+        return response()->json($queues);
     }
+public function refresh()
+{
+    $queues = Queue::with('service', 'mahasiswa', 'dosen')->get();
+    return response()->json($queues);
+}
+
 }

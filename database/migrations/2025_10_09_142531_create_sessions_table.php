@@ -13,11 +13,18 @@ return new class extends Migration
     {
         Schema::create('sessions', function (Blueprint $table) {
             $table->string('id')->primary();
-            $table->foreignId('user_id')->nullable()->index();
+            
+            // ✅ Ubah dari foreignId ke string
+            // karena user_id di sini akan menyimpan 'kode' user (string)
+            $table->string('user_id', 20)->nullable()->index();
+
             $table->string('ip_address', 45)->nullable();
             $table->text('user_agent')->nullable();
             $table->longText('payload');
             $table->integer('last_activity')->index();
+
+            // ✅ Opsional: relasi ke users.kode biar rapi
+            $table->foreign('user_id')->references('kode')->on('users')->onDelete('cascade');
         });
     }
 

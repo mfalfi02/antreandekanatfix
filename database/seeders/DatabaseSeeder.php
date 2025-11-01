@@ -4,91 +4,49 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
-use App\Models\Mahasiswa;
-use App\Models\Dosen;
-use App\Models\Admin;
-use App\Models\Service;
-use App\Models\Queue;
+use App\Models\User;
 
-class DatabaseSeeder extends Seeder
+class databaseSeeder extends Seeder
 {
     public function run()
     {
-        // Admin
-        $admin1 = Admin::create([
-            'name' => 'Admin Utama',
-            'email' => 'admin@uwdp.ac.id',
+        User::create([
+            'kode' => 'ADM001',
+            'name' => 'Admin Dekanat',
+            'email' => 'admin@dekanat.com',
             'password' => Hash::make('admin123'),
-            
+            'role' => 'admin',
+            'jabatan' => 'Admin Utama',
+            'status' => 'aktif',
         ]);
-        // Mahasiswa
-        $mahasiswa1 = Mahasiswa::create([
-            'nim' => 22412890,
-            'name' => 'Muhammad Alfi',
-            'email' => 'alfi@student.uwdp.ac.id',
-            'password' => Hash::make('1234'),
-            'status' => 'Aktif'
-        ]);
-
-        $mahasiswa2 = Mahasiswa::create([
-            'nim' => 22412852,
-            'name' => 'Lya',
-            'email' => 'lya@student.untan.ac.id',
-            'password' => Hash::make('cantik'),
-            'status' => 'Aktif'
+        User::create([
+            'kode' => 'DSN001',
+            'name' => 'Dosen Dekanat',
+            'email' => 'dosen@dekanat.com',
+            'password' => Hash::make('dosen123'),
+            'role' => 'Pejabat',
+            'jabatan' => 'Kepala Dekanat',
+            'status' => 'aktif',
         ]);
 
-        // Dosen
-        $dosen1 = Dosen::create([
-            'kode_dosen' => 'D001',
-            'name' => 'Dr. Sari Indah',
-            'email' => 'sari@untan.ac.id',
+        User::create([
+            'kode' => 'MHS001',
+            'name' => 'Mahasiswa A',
+            'email' => 'mhs1@kampus.ac.id',
             'password' => Hash::make('password'),
-            'status' => 'Aktif',
-            'role' => 'Wakil Dekan I',
-            'room' => 'Ruang WD I',
-            'phone' => '081234567890'
+            'role' => 'mahasiswa',
+            'jabatan' => 'Mahasiswa',
+            'status' => 'aktif',
         ]);
 
-        $dosen2 = Dosen::create([
-            'kode_dosen' => 'D002',
-            'name' => 'Prof. Budi Santoso',
-            'email' => 'budi@untan.ac.id',
+        User::create([
+            'kode' => 'DSN002',
+            'name' => 'Dosen',
+            'email' => 'mhs2@kampus.ac.id',
             'password' => Hash::make('password'),
-            'status' => 'Aktif',
-            'role' => 'Dekan',
-            'room' => 'Ruang Dekan',
-            'phone' => '081987654321'
-        ]);
-
-        
-
-        // Services
-        $service1 = Service::create([
-            'name' => 'Legalisir Dokumen',
-            'description' => 'Legalisir ijazah dan transkrip',
-            'est_time' => '15 menit'
-        ]);
-
-        $service2 = Service::create([
-            'name' => 'Surat Aktif Kuliah',
-            'description' => 'Surat keterangan aktif kuliah',
-            'est_time' => '10 menit'
-        ]);
-
-        // Queues
-        Queue::create([
-            'nim' => $mahasiswa1->nim,
-            'dosen_id' => $dosen1->kode_dosen,
-            'service_id' => $service1->id,
-            'status' => 'Menunggu'
-        ]);
-
-        Queue::create([
-            'nim' => $mahasiswa2->nim,
-            'dosen_id' => $dosen2->kode_dosen,
-            'service_id' => $service2->id,
-            'status' => 'Sedang Dilayani'
+            'role' => 'dosen',
+            'jabatan' => 'dosen',
+            'status' => 'aktif',
         ]);
     }
 }

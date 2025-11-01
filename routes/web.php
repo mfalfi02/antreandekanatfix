@@ -1,122 +1,105 @@
 <?php
+use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DisplayController;
-use App\Http\Controllers\LoginController;
-use App\Http\Controllers\AdminController;
-use App\Http\Controllers\DosenController;
-use App\Http\Controllers\MahasiswaController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ServiceController;
-use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\QueueController;
 
+use App\Models\User;
+use App\Models\Queue;
+use App\Models\Service;
 
-
-// use App\Http\Controllers\AuthController;
 
 Route::get('/', function () {
     return view('auth.welcome');
-});
+})->name('welcome');
 
 
-Route::get('/login', [LoginController::class,'showLoginForm'])->name('login');
-Route::post('/login', [LoginController::class,'login'])->name('login.submit');
-Route::post('/logout', [LoginController::class,'logout'])->name('logout');
-
-
-
-Route::post('/login', [LoginController::class, 'login'])->name('login.submit');
-
-
-// Admin dashboard
-Route::middleware(['auth:admin'])->group(function () {
-    Route::get('/admin/dashboard', [AdminController::class, 'index'])->name('admin.dashboard');
-});
-
-// ===== Dosen =====
-Route::middleware(['auth:dosen'])->group(function () {
-    Route::get('/dosen/dashboard', [DosenController::class, 'index'])->name('dosen.dashboard');
-});
-
-// ===== Mahasiswa =====
-Route::middleware(['auth:mahasiswa'])->group(function () {
-    Route::get('/mahasiswa/dashboard', [MahasiswaController::class, 'index'])->name('mahasiswa.dashboard');
-});
-
-
-
-
-
-
+// Route::get('/display',function() {
+//     return view ('display.index');})->name('display');
+// Route::get('/display/queues', [DisplayController::class, 'queues'])->name('display.queues');
+// Route::get('/api/display/active-pejabat', [DisplayController::class, 'activePejabat']);
+// Route::get('/api/display/queues', [DisplayController::class, 'queues']);
 Route::get('/display', [DisplayController::class, 'index'])->name('display');
+Route::get('/display/refresh', [DisplayController::class, 'refresh'])->name('display.refresh');
+Route::get('/display/queues', [DisplayController::class, 'queues'])->name('display.queues');
 
-// Route::resource('admin', AdminController::class);
-// Route::resource('dosen', DosenController::class);
-// Route::resource('mahasiswa', MahasiswaController::class);
-
-
-// routes/web.php
-
-
-// Dashboard Dosen
-// Route::middleware(['auth:dosen'])->group(function () {
-//     Route::get('/dosen/dashboard', [DashboardController::class, 'dosen'])
-//         ->name('dashboard.dosen'); // <-- sesuaikan dengan redirect
-// });
-
-// Route::middleware(['auth:mahasiswa'])->group(function () {
-//     Route::get('/mahasiswa/dashboard', [DashboardController::class, 'mahasiswa'])
-//         ->name('dashboard.mahasiswa');
-// });
+Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
+Route::post('/login', [AuthController::class, 'login'])->name('login.submit');
+Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 
-// Halaman dashboard
-Route::get('/admin/dashboard', [DashboardController::class, 'admin'])->name('dashboard.admin');
+Route::get('/admin',function() {
+    $data =[
+                'totalUsers' => User::count(),
+                'activeQueues' => Queue::where('status', 'aktif')->count(),
+                'totalServices' => Service::count(),
+                'completedQueues' => Queue::where('status', 'selesai')->count(),
+                'users' => User::all(),
+                'service' => Service::all(),
+            ];
+    return view ('admin.dashboard', compact('data'));})->name('adm');
 
-// CRUD User (Admin, Dosen, Mahasiswa) lewat UserController
-Route::prefix('admin/users')->group(function() {
-    // Tampilkan semua pengguna
-    Route::get('/', [UserController::class, 'index'])->name('users.index');
+// Route::get('/dosen',function() {
+//     return view ('dosen.dashboard');})->name('dsn');
+Route::middleware(['ceklogin'])->group(function () {
+    Route::get('/dashboard', [AuthController::class, 'dosen'])->name('dsn');
+    Route::get('/mahasiswa',[AuthController::class, 'mahasiswa'])->name('mhs');
 
-    // Form tambah pengguna
-    Route::get('/create', [UserController::class, 'create'])->name('users.create');
-
-    // Simpan pengguna baru
-    Route::post('/', [UserController::class, 'store'])->name('users.store');
-
-    // Form edit pengguna
-    Route::get('/{role}/{id}/edit', [UserController::class, 'edit'])->name('users.edit');
-
-    // Update pengguna
-    Route::put('/{role}/{id}', [UserController::class, 'update'])->name('users.update');
-
-    // Hapus pengguna
- 
-    Route::delete('/{role}/{id}', [UserController::class, 'destroy'])->name('users.destroy');
-
-    Route::get('/admin/users/{role}/{id}/edit', [UserController::class, 'edit'])->name('users.edit');
-Route::delete('/admin/users/{role}/{id}', [UserController::class, 'destroy'])->name('users.destroy');
 });
+Route::post('/queue/toggle', [QueueController::class, 'toggleQueue'])->name('queue.toggle');
 
 
 
-
-
-Route::middleware(['auth:admin'])->group(function(){
-    Route::get('/admin/dashboard',[DashboardController::class,'admin'])->name('dashboard.admin');
     
-    Route::get('/admin/services/create',[ServiceController::class,'create'])->name('auth.admin.services.create');
-    Route::post('/admin/services',[ServiceController::class,'store'])->name('services.store');
-    Route::get('/admin/services/{service}/edit',[ServiceController::class,'edit'])->name('services.edit');
-    Route::put('/admin/services/{service}',[ServiceController::class,'update'])->name('services.update');
-    Route::delete('/admin/services/{service}',[ServiceController::class,'destroy'])->name('services.destroy');
-});
 
-Route::resource('services', ServiceController::class);
+Route::post('/queue/join', [DashboardController::class, 'joinQueue'])->name('queue.join');
+Route::post('/queue/toggle', [DashboardController::class, 'toggleQueue'])->name('queue.toggle');
 
 
 
+
+Route::get('/users', [UserController::class, 'index'])->name('users.index');
+Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
+Route::post('/users', [UserController::class, 'store'])->name('users.store');
+
+// Edit (tampilkan form) -> GET
+Route::get('/users/{kode}/edit', [UserController::class, 'edit'])->name('users.edit');
+
+// Update (simpan perubahan) -> PUT
+Route::put('/users/{kode}', [UserController::class, 'update'])->name('users.update');
+
+// Hapus -> DELETE
+Route::delete('/users/{kode}', [UserController::class, 'destroy'])->name('users.destroy');
+
+
+
+
+
+
+
+// CRUD Service
+Route::get('/services', [ServiceController::class, 'index'])->name('services.index');
+Route::get('/services/create', [ServiceController::class, 'create'])->name('services.create');
+Route::post('/services', [ServiceController::class, 'store'])->name('services.store');
+Route::get('/services/{service}/edit', [ServiceController::class, 'edit'])->name('services.edit');
+Route::put('/services/{service}', [ServiceController::class, 'update'])->name('services.update');
+Route::delete('/services/{service}', [ServiceController::class, 'destroy'])->name('services.destroy');
+
+// Laporan Statistik Service
+Route::get('/reports/services', [ServiceController::class, 'serviceStats'])->name('services.stats');
 
 // Reports
-Route::get('/admin/reports/daily', [AdminController::class, 'dailyReport'])->name('reports.daily');
-Route::get('/admin/reports/services', [AdminController::class, 'serviceStats'])->name('reports.services');
-Route::get('/admin/reports/rekap', [AdminController::class, 'rekapReport'])->name('reports.rekap');
+Route::get('/admin/reports/daily', [ServiceController::class, 'dailyReport'])->name('reports.daily');
+Route::get('/admin/reports/services', [ServiceController::class, 'serviceStats'])->name('reports.services');
+Route::get('/admin/reports/rekap', [ServiceController::class, 'rekapReport'])->name('reports.rekap');
+
+
+
+
+
+
+
+
+

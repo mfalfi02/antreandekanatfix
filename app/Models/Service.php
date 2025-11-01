@@ -2,23 +2,22 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Service extends Model
 {
     use HasFactory;
-    protected $fillable = ['name','description','est_time'];
 
+    protected $fillable = [
+        'nama_layanan',
+        'deskripsi',
+        'status',
+    ];
+
+    // Relasi: satu layanan bisa punya banyak antrean
     public function queues()
     {
-        return $this->hasMany(Queue::class);
-    
-        // jika foreign key berbeda, sesuaikan argumen kedua
-        return $this->hasMany(\App\Models\Queue::class, 'service_id');
-    
+        return $this->hasMany(Queue::class, 'service_id');
     }
-    
 }
-
-

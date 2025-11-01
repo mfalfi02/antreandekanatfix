@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Service;
+use App\Models\Queue;
+use App\Models\User;
 
 class ServiceController extends Controller
 {
@@ -24,12 +26,12 @@ class ServiceController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
+            'nama_layanan' => 'string|max:255',
+            'deskripsi' => 'nullable|string',
             'est_time' => 'required|string|max:50',
         ]);
 
-        Service::create($request->only('name', 'description', 'est_time'));
+        Service::create($request->only('nama_layanan', 'deskripsi', 'est_time'));
 
         return redirect()->route('services.index')->with('success', 'Service berhasil ditambahkan!');
     }
@@ -44,12 +46,12 @@ class ServiceController extends Controller
     public function update(Request $request, Service $service)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
+            'nama_layanan' => 'string|max:255',
+            'deskripsi' => 'nullable|string',
             'est_time' => 'required|string|max:50',
         ]);
 
-        $service->update($request->only('name', 'description', 'est_time'));
+        $service->update($request->only('nama_layanan', 'deskripsi', 'est_time'));
 
         return redirect()->route('services.index')->with('success', 'Service berhasil diperbarui!');
     }
@@ -71,4 +73,23 @@ class ServiceController extends Controller
     return view('admin.reports.services', compact('services', 'labels', 'data'));
 }
 
+public function rekapReport() {
+    $totalUsers = User::count();
+    $serviceCategories = Service::count();
+    $completedToday = Queue::whereDate('updated_at', today())->where('status', 'Selesai')->count();
+    return view('admin.reports.rekap', compact('totalUsers', 'serviceCategories', 'completedToday'));
+}
+
+    public function dailyReport()
+    {
+        // Ambil antrean hari ini
+        $today = now()->toDateString();
+        $queues = Queue::whereDate('created_at', $today)->get();
+
+        return view('admin.reports.daily', [
+            'title' => 'Laporan Harian',
+            'date' => $today,
+            'queues' => $queues
+        ]);
+    }
 }

@@ -3,77 +3,87 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Mahasiswa;
-use App\Models\Dosen;
-use App\Models\Service;
-use App\Models\Queue;
-use App\Models\Admin;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Queue;
+use App\Models\User;
+use App\Events\QueueStatusUpdated;
+use App\Models\Service;
 
 class DashboardController extends Controller
 {
-    // Dashboard Admin
-    public function admin()
+    public function index()
     {
-        $totalUsers = Admin::count() + Mahasiswa::count() + Dosen::count();
-        $activeQueues = Queue::where('status', 'Menunggu')->count();
-        $completedToday = Queue::whereDate('created_at', now())->where('status','Selesai')->count();
-        $serviceCategories = Service::count();
+        $user = Auth::user();
 
-        $admins = Admin::all();
-        $mahasiswas = Mahasiswa::all();
-        $dosens = Dosen::all();
-        $services = Service::all();
+        // Logika redirect berdasarkan role
+        switch ($user->role) {
+            case 'admin':
+                return view('admin.dashboard', compact('user'));
+            case 'pejabat':
+                // pejabat diarahkan ke dashboard dosen
+                return view('dosen.dashboard', compact('user'));
+            case 'dosen':
+            case 'mahasiswa':
+                // dosen dan mahasiswa ke dashboard mahasiswa
+                return view('mahasiswa.dashboard', compact('user'));
+            default:
+                abort(403, 'Role tidak dikenali');
+        }
 
-        return view('admin.dashboard', compact(
-            'totalUsers',
-            'activeQueues',
-            'completedToday',
-            'serviceCategories',
-            'admins',
-            'mahasiswas',
-            'dosens',
-            'services'
-        ));
+       
+    }
+    public function joinQueue(Request $request)
+    {
+        $student = User::where('role','mahasiswa')->first();
+
+        $request->validate([
+            'dean_id'=>'required|exists:users,id',
+            'service_id'=>'required'
+        ]);
+
+        $lastQueue = Queue::where('dosen_id',$request->dean_id)->latest('nomor_antrian')->first();
+        $nomor = $lastQueue ? $lastQueue->nomor_antrian+1 : 1;
+
+        $queue = Queue::create([
+            'kode_user'=>$student->kode,
+            'dosen_id'=>$request->dean_id,
+            'service_id'=>$request->service_id,
+            'nomor_antrian'=>$nomor,
+            'status'=>'menunggu'
+        ]);
+
+        $queue->load(['dosen','service','mahasiswa']);
+
+        broadcast(new QueueStatusUpdated($queue))->toOthers();
+
+        return response()->json(['status'=>'ok','queue'=>$queue]);
     }
 
-    // Dashboard Mahasiswa
-    public function mahasiswa($id)
+    // Dosen buka/tutup antrean
+    public function toggleQueue(Request $request)
     {
-        $mahasiswa = Mahasiswa::findOrFail($id);
+        // contoh pejabat default
+        $user = User::where('role','dekan')->first();
 
-        // Queue milik mahasiswa
-        $myQueues = Queue::where('nim', $mahasiswa->nim)->get();
-        $activeQueues = $myQueues->where('status', 'Menunggu')->count();
-        $completedQueues = $myQueues->where('status', 'Selesai')->count();
+        // reset semua active queue
+        User::where('is_active_queue',true)->update(['is_active_queue'=>false]);
 
-        $services = Service::all(); // bisa dipakai untuk pilihan service
+        $user->is_active_queue = !$user->is_active_queue;
+        $user->save();
 
-        return view('mahasiswa.dashboard', compact(
-            'mahasiswa',
-            'myQueues',
-            'activeQueues',
-            'completedQueues',
-            'services'
-        ));
+        $activePejabat = User::where('is_active_queue',true)->first();
+        $queues = Queue::with(['dosen','mahasiswa','service'])->get()->map(function($q){
+            return [
+                'id'=>$q->id,
+                'status'=>$q->status,
+                'dosen'=>$q->dosen?['id'=>$q->dosen->id,'name'=>$q->dosen->name]:null,
+                'mahasiswa'=>$q->mahasiswa?['id'=>$q->mahasiswa->id,'name'=>$q->mahasiswa->name]:null,
+                'service'=>$q->service?['id'=>$q->service->id,'name'=>$q->service->nama_layanan]:null
+            ];
+        });
+
+        broadcast(new QueueStatusUpdated($activePejabat,$queues))->toOthers();
+
+        return response()->json(['status'=>'ok','activePejabat'=>$activePejabat,'queues'=>$queues]);
     }
-
-    // Dashboard Dosen
-    public function dosen()
-{
-    $dosen = Auth::guard('dosen')->user(); // pakai guard dosen jika ada
-    $myQueues = Queue::where('kode_dosen', $dosen->id)->get();
-    $activeQueues = $myQueues->where('status', 'Menunggu')->count();
-    $completedQueues = $myQueues->where('status', 'Selesai')->count();
-    $services = Service::all();
-
-    return view('dosen.dashboard', compact(
-        'dosen',
-        'myQueues',
-        'activeQueues',
-        'completedQueues',
-        'services'
-    ));
-}
 }

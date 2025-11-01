@@ -1,30 +1,47 @@
 <?php
+
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class User extends Authenticatable
 {
-    use HasFactory;
+    use HasFactory, Notifiable;
 
-    protected $fillable = ['name','email','password','role'];
+    protected $primaryKey = 'kode'; // karena primary key-nya string
+    public $incrementing = false; // non-integer PK
+    protected $keyType = 'string'; // tipe data string
 
-    // Relasi ke Mahasiswa
-    public function mahasiswa()
+    protected $fillable = [
+        'kode',
+        'name',
+        'email',
+        'password',
+        'role',
+        'jabatan',
+        'status',
+    ];
+
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
+    public function getAuthIdentifierName()
+{
+    return 'kode';
+}
+public function username()
+{
+    return 'kode';
+}
+
+
+    // Relasi: satu user bisa punya banyak antrean
+    public function queues()
     {
-        return $this->hasOne(Mahasiswa::class);
-    }
-
-    // Relasi ke Dosen
-    public function dosen()
-    {
-        return $this->hasOne(Dosen::class);
-    }
-
-    // Relasi ke Admin
-    public function admin()
-    {
-        return $this->hasOne(Admin::class);
+        return $this->hasMany(Queue::class, 'kode_user', 'kode');
     }
 }
