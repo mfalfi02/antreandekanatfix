@@ -73,7 +73,7 @@
                 class="mx-auto mb-4 w-24 h-24 object-contain">
             <h1 class="text-4xl font-extrabold text-white drop-shadow-lg">Sistem Antrean Dekanat</h1>
             <p class="text-purple-light mt-2">Universitas Widya Dharma Pontianak</p>
-            <p class="text-white/80 mt-4">Layanan antrean untuk kampus.</p>
+            <p class="text-white/80 mt-4">Layanan antrean Fakultas Teknologi Informasi.</p>
         </div>
 
         {{-- Display Card --}}

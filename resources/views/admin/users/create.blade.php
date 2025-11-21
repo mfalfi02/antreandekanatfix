@@ -90,6 +90,13 @@
                     class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
             </div>
 
+            {{-- Ruangan --}}
+            <div id="ruangan-fields" class="hidden">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Ruangan</label>
+                <input type="text" name="ruangan" value="{{ old('ruangan') }}"
+                    class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+            </div>
+
             {{-- Status --}}
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
@@ -114,10 +121,14 @@
 <script>
 document.getElementById('role').addEventListener('change', function() {
     const jabatan = document.getElementById('jabatan-fields');
-    if(this.value === 'dosen' || this.value === 'pejabat') {
+    const ruangan = document.getElementById('ruangan-fields');
+
+    if (this.value === 'dosen' || this.value === 'pejabat') {
         jabatan.classList.remove('hidden');
+        ruangan.classList.remove('hidden');
     } else {
         jabatan.classList.add('hidden');
+        ruangan.classList.add('hidden');
     }
 });
 </script>

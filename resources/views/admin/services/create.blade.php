@@ -41,7 +41,7 @@
             <label for="est_time" class="block text-sm font-medium text-gray-700">Estimasi Waktu (menit)</label>
             <input type="number" name="est_time" id="est_time" min="1"
                 class="w-full mt-1 border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                value="{{ old('est_time') }}" required>
+                value="{{ old('est') }}" required>
         </div>
 
         {{-- Status --}}

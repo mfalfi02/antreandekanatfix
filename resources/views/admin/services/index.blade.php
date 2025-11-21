@@ -41,7 +41,7 @@
                         <tr class="hover:bg-gray-50">
                             <td class="px-6 py-4">{{ $service->nama_layanan }}</td>
                             <td class="px-6 py-4 text-gray-600">{{ $service->deskripsi }}</td>
-                            <td class="px-6 py-4">{{ $service->est_time }}</td>
+                            <td class="px-6 py-4">{{ $service->est }} Menit</td>
                             <td class="px-6 py-4 flex justify-center gap-2">
                                 <a href="{{ route('services.edit', $service->id) }}"
                                     class="px-3 py-1 rounded-md bg-yellow-500 text-white hover:bg-yellow-600 transition">

@@ -15,14 +15,15 @@ class User extends Authenticatable
     protected $keyType = 'string'; // tipe data string
 
     protected $fillable = [
-        'kode',
-        'name',
-        'email',
-        'password',
-        'role',
-        'jabatan',
-        'status',
-    ];
+    'kode',
+    'name',
+    'email',
+    'role',
+    'password',
+    'jabatan',
+    'ruangan',
+];
+
 
     protected $hidden = [
         'password',

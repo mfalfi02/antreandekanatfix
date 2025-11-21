@@ -21,25 +21,29 @@ class UserController extends Controller
     public function store(Request $request)
     {
         // validasi input
-        $request->validate([
-            'kode' => 'required|unique:users,kode',
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'role' => 'required|in:admin,dosen,mahasiswa,pejabat',
-            'password' => 'required|string|min:6',
-        ]);
+       $request->validate([
+        'kode' => 'required|unique:users,kode',
+        'name' => 'required|string|max:255',
+        'email' => 'required|email|unique:users,email',
+        'role' => 'required|in:admin,dosen,mahasiswa,pejabat',
+        'password' => 'required|string|min:6',
+        'jabatan' => 'nullable|string|max:255',
+        'ruangan' => 'nullable|string|max:255',
+    ]);
 
         // simpan user baru
         User::create([
-            'kode' => $request->kode,
-            'name' => $request->name,
-            'email' => $request->email,
-            'role' => $request->role,
-            'password' => bcrypt($request->password),
-        ]);
+        'kode' => $request->kode,
+        'name' => $request->name,
+        'email' => $request->email,
+        'role' => $request->role,
+        'password' => bcrypt($request->password),
+        'jabatan' => $request->jabatan,
+        'ruangan' => $request->ruangan,
+    ]);
 
-        return redirect()->route('users.index')->with('success', 'User berhasil ditambahkan!');
-    }
+    return redirect()->route('users.index')->with('success', 'User berhasil ditambahkan!');
+}
 
    public function edit($kode)
     {

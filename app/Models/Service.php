@@ -13,6 +13,7 @@ class Service extends Model
         'nama_layanan',
         'deskripsi',
         'status',
+        'est'
     ];
 
     // Relasi: satu layanan bisa punya banyak antrean

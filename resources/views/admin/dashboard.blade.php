@@ -80,12 +80,16 @@
             </div>
 
             {{-- Users Section --}}
-            <div class="flex justify-between items-center">
-                <h2 class="text-xl font-semibold text-gray-900 mb-4">Pengguna</h2>
-                <button onclick="window.location='{{ route('users.create') }}'"
-                    class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex items-center gap-2">
-                    <i class="fa-solid fa-plus"></i> Tambah Pengguna
-                </button>
+            <div class="flex flex-col sm:flex-row justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold text-gray-900 mb-2 sm:mb-0">Pengguna</h2>
+                <div class="flex items-center gap-2">
+                    <input type="text" id="searchUser" placeholder="Cari nama atau kode..."
+                        class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition w-60">
+                    <button onclick="window.location='{{ route('users.create') }}'"
+                        class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex items-center gap-2">
+                        <i class="fa-solid fa-plus"></i> Tambah Pengguna
+                    </button>
+                </div>
             </div>
 
             {{-- Tabs Navigation --}}
@@ -109,7 +113,8 @@
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 user-item">
                             @foreach ($data['users'] as $user)
                                 @if ($user->role === $tabId)
-                                    <div class="p-4 border border-gray-200 rounded-lg flex flex-col justify-between">
+                                    <div
+                                        class="p-4 border border-gray-200 rounded-lg flex flex-col justify-between user-card">
                                         <div>
                                             <p class="font-semibold text-gray-900 user-name">{{ $user->name }}</p>
                                             <p class="text-sm text-gray-500">{{ $user->kode }}</p>
@@ -123,7 +128,6 @@
                                                 class="p-2 rounded hover:bg-blue-100 transition-colors">
                                                 <i class="fa-solid fa-pen text-blue-600"></i>
                                             </a>
-
                                             <form action="{{ route('users.destroy', $user->kode) }}" method="POST"
                                                 onsubmit="return confirm('Yakin hapus {{ ucfirst($tabId) }} ini?')">
                                                 @csrf
@@ -142,21 +146,27 @@
             </div>
 
             {{-- Service Categories --}}
-            <div class="flex justify-between items-center mt-8 mb-4">
-                <h2 class="text-xl font-semibold text-gray-900">Kategori Layanan</h2>
-                <button onclick="window.location='{{ route('services.create') }}'"
-                    class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex items-center gap-2">
-                    <i class="fa-solid fa-plus"></i> Tambah Service
-                </button>
+            <div class="flex flex-col sm:flex-row justify-between items-center mt-8 mb-4">
+                <h2 class="text-xl font-semibold text-gray-900 mb-2 sm:mb-0">Kategori Layanan</h2>
+                <div class="flex items-center gap-2">
+                    <input type="text" id="searchService" placeholder="Cari layanan..."
+                        class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition w-60">
+                    <button onclick="window.location='{{ route('services.create') }}'"
+                        class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex items-center gap-2">
+                        <i class="fa-solid fa-plus"></i> Tambah Service
+                    </button>
+                </div>
             </div>
 
-            <div class="space-y-4">
+            <div class="space-y-4" id="serviceList">
                 @foreach ($data['service'] as $service)
-                    <div class="flex justify-between items-center p-4 border border-gray-200 rounded-lg">
+                    <div class="flex justify-between items-center p-4 border border-gray-200 rounded-lg service-card">
                         <div class="flex-1">
-                            <p class="font-semibold text-gray-900">{{ $service->nama_layanan }}</p>
+                            <p class="font-semibold text-gray-900 service-name">{{ $service->nama_layanan }}</p>
                             <p class="text-sm text-gray-500">{{ $service->deskripsi }}</p>
-                            <p class="text-xs text-gray-500">Est: {{ $service->est_time }}</p>
+                            <p class="text-xs text-gray-500">
+                                ⏱️ Est: {{ $service->est }} menit
+                            </p>
                         </div>
                         <div class="flex items-center space-x-2">
                             <a href="{{ route('services.edit', $service->id) }}"
@@ -175,6 +185,7 @@
                     </div>
                 @endforeach
             </div>
+
 
             {{-- Reports & Analytics --}}
             <div class="bg-white p-6 rounded-xl shadow-md mt-8">
@@ -205,6 +216,7 @@
 
     {{-- Script: Tabs --}}
     <script>
+        // === Tab Navigation ===
         const tabs = document.querySelectorAll('.tab-btn');
         const contents = document.querySelectorAll('.tab-content');
 
@@ -217,7 +229,28 @@
                 document.getElementById(tab.dataset.tab).classList.remove('hidden');
             });
         });
+
+        // === Search Users ===
+        document.getElementById('searchUser').addEventListener('input', function() {
+            const query = this.value.toLowerCase();
+            document.querySelectorAll('.user-card').forEach(card => {
+                const name = card.querySelector('.user-name').textContent.toLowerCase();
+                const kode = card.querySelector('p.text-sm').textContent.toLowerCase();
+                card.style.display = (name.includes(query) || kode.includes(query)) ? '' : 'none';
+            });
+        });
+
+        // === Search Services ===
+        document.getElementById('searchService').addEventListener('input', function() {
+            const query = this.value.toLowerCase();
+            document.querySelectorAll('.service-card').forEach(card => {
+                const name = card.querySelector('.service-name').textContent.toLowerCase();
+                const desc = card.querySelector('p.text-sm').textContent.toLowerCase();
+                card.style.display = (name.includes(query) || desc.includes(query)) ? '' : 'none';
+            });
+        });
     </script>
+
 
 </body>
 

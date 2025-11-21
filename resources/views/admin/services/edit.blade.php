@@ -56,10 +56,10 @@
                     <div>
                         <label class="block font-medium text-gray-700">Estimasi Waktu <span
                                 class="text-red-500">*</span></label>
-                        <input type="text" name="est_time"
+                        <input type="text" name="est"
                             class="mt-1 w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 @error('est_time') border-red-500 @enderror"
-                            value="{{ old('est_time', $service->est_time) }}" placeholder="Contoh: 30 menit">
-                        @error('est_time')
+                            value="{{ old('est', $service->est) }}" placeholder="Contoh: 30 menit">
+                        @error('est')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
                     </div>

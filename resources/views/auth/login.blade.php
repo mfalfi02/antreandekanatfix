@@ -128,11 +128,6 @@
                     ← Kembali
                 </a>
             </form>
-
-            <p class="text-white/70 mt-6 text-sm">
-                Lupa password? <a href="#" class="text-white underline">Klik di sini</a>
-            </p>
-
         </div>
     </div>
 
