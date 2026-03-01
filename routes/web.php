@@ -1,14 +1,17 @@
 <?php
+
+use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DisplayController;
-use App\Http\Controllers\UserController;
-use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\QueueController;
+use App\Http\Controllers\ServiceController;
+use App\Http\Controllers\UserController;
 
-use App\Models\User;
 use App\Models\Queue;
 use App\Models\Service;
+use App\Models\SystemSetting;
+use App\Models\User;
 
 
 Route::get('/', function () {
@@ -31,6 +34,11 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 
 Route::get('/admin',function() {
+    $setting = SystemSetting::firstOrCreate(
+        ['id' => 1],
+        ['queue_status' => 'closed']
+    );
+
     $data =[
                 'totalUsers' => User::count(),
                 'activeQueues' => Queue::where('status', 'aktif')->count(),
@@ -38,6 +46,7 @@ Route::get('/admin',function() {
                 'completedQueues' => Queue::where('status', 'selesai')->count(),
                 'users' => User::all(),
                 'service' => Service::all(),
+                'queue_status' => $setting->queue_status,
             ];
     return view ('admin.dashboard', compact('data'));})->name('adm');
 
@@ -46,19 +55,13 @@ Route::get('/admin',function() {
 Route::middleware(['ceklogin'])->group(function () {
     Route::get('/dashboard', [AuthController::class, 'dosen'])->name('dsn');
     Route::get('/mahasiswa',[AuthController::class, 'mahasiswa'])->name('mhs');
-
 });
-Route::post('/queue/toggle', [QueueController::class, 'toggleQueue'])->name('queue.toggle');
-
-
-
-    
-
 Route::post('/queue/join', [DashboardController::class, 'joinQueue'])->name('queue.join');
-Route::post('/queue/toggle', [DashboardController::class, 'toggleQueue'])->name('queue.toggle');
-
-
-
+Route::post('/queue/toggle', [QueueController::class, 'toggleQueue'])->name('queue.toggle');
+Route::post('/queue/{queue}/call', [QueueController::class, 'callQueue'])->name('queue.call');
+Route::post('/queue/{queue}/complete', [QueueController::class, 'completeQueue'])->name('queue.complete');
+Route::get('/queue/status', [QueueController::class, 'status'])->name('queue.status');
+Route::get('/queue/my', [QueueController::class, 'myQueues'])->name('queue.my');
 
 Route::get('/users', [UserController::class, 'index'])->name('users.index');
 Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
@@ -72,12 +75,6 @@ Route::put('/users/{kode}', [UserController::class, 'update'])->name('users.upda
 
 // Hapus -> DELETE
 Route::delete('/users/{kode}', [UserController::class, 'destroy'])->name('users.destroy');
-
-
-
-
-
-
 
 // CRUD Service
 Route::get('/services', [ServiceController::class, 'index'])->name('services.index');
@@ -94,12 +91,3 @@ Route::get('/reports/services', [ServiceController::class, 'serviceStats'])->nam
 Route::get('/admin/reports/daily', [ServiceController::class, 'dailyReport'])->name('reports.daily');
 Route::get('/admin/reports/services', [ServiceController::class, 'serviceStats'])->name('reports.services');
 Route::get('/admin/reports/rekap', [ServiceController::class, 'rekapReport'])->name('reports.rekap');
-
-
-
-
-
-
-
-
-

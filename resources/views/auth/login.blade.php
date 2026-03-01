@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 
 <head>
     <meta charset="UTF-8">
@@ -8,147 +8,136 @@
     @vite('resources/css/app.css')
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
         crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <style>
         body {
-            background: linear-gradient(135deg, #8B5CF6, #A78BFA, #E9D5FF);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background:
+                radial-gradient(circle at 10% -8%, rgba(76, 29, 149, .35), transparent 36%),
+                radial-gradient(circle at 90% -10%, rgba(14, 165, 233, .22), transparent 34%),
+                linear-gradient(135deg, #1e1b4b 0%, #4338ca 44%, #0ea5e9 100%);
             min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: 'Inter', sans-serif;
         }
 
-        .login-card {
-            perspective: 1000px;
+        .glass-panel {
+            background: rgba(255, 255, 255, .16);
+            border: 1px solid rgba(255, 255, 255, .32);
+            box-shadow: 0 24px 45px -30px rgba(15, 23, 42, .65);
+            backdrop-filter: blur(14px);
+            border-radius: 1.35rem;
         }
 
-        .login-inner {
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(15px);
-            border-radius: 2rem;
-            padding: 3rem 2rem;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-            transition: transform 0.4s ease, box-shadow 0.4s ease;
-            text-align: center;
+        .soft-input {
+            width: 100%;
+            border: 1px solid rgba(255, 255, 255, .42);
+            border-radius: .8rem;
+            background: rgba(255, 255, 255, .2);
+            padding: .75rem .95rem .75rem 2.55rem;
+            color: #ffffff;
+            font-weight: 500;
+            transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease;
         }
 
-        .login-inner:hover {
-            transform: rotateY(10deg) rotateX(5deg) scale(1.05);
-            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
+        .soft-input::placeholder {
+            color: rgba(255, 255, 255, .7);
         }
 
-        input:focus {
+        .soft-input:focus {
             outline: none;
-            border-color: #7C3AED;
-            box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.3);
-            background: rgba(255, 255, 255, 0.4);
-        }
-
-        .placeholder-white {
-            color: rgba(255, 255, 255, 0.7);
-        }
-
-        .btn-gradient {
-            background: linear-gradient(to right, #7C3AED, #EC4899, #6366F1);
-            color: #fff;
-        }
-
-        .btn-gradient:hover {
-            transform: scale(1.05);
-        }
-
-        .btn-back {
-            background: rgba(255, 255, 255, 0.3);
-            color: #fff;
-        }
-
-        .btn-back:hover {
-            background: rgba(255, 255, 255, 0.4);
-            transform: scale(1.05);
+            border-color: rgba(191, 219, 254, .95);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, .2);
+            background: rgba(255, 255, 255, .26);
         }
     </style>
 </head>
 
-<body>
-    <div class="login-card w-full max-w-md">
-        <div class="login-inner">
+<body class="p-4 md:p-8">
+    <div class="min-h-[calc(100vh-2rem)] grid place-items-center">
+        <div class="w-full max-w-md glass-panel p-6 md:p-8 text-white">
+            <div class="text-center mb-6">
+                <img src="{{ asset('images/logokampus.png') }}" alt="Logo Universitas"
+                    class="mx-auto mb-3 w-16 h-16 object-contain">
+                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-100">Login Sistem</p>
+                <h1 class="mt-2 text-2xl md:text-3xl font-extrabold">Sistem Antrean Dekanat</h1>
+                <p class="mt-1 text-sm text-cyan-50/90">Masuk untuk mengelola antrean sesuai role Anda.</p>
+            </div>
 
-            {{-- Judul --}}
-            <h1 class="text-3xl font-extrabold text-white mb-2 drop-shadow-lg">Sistem Antrean Dekanat</h1>
-            <p class="text-white/80 mb-8">Universitas Widya Dharma Pontianak</p>
-
-            {{-- Form Login --}}
-            <form action="{{ route('login.submit') }}" method="POST" class="space-y-6">
+            <form action="{{ route('login.submit') }}" method="POST" class="space-y-4">
                 @csrf
 
-                <!-- Kode -->
-                <div class="relative">
-                    <input type="text" name="kode" id="kode" value="{{ old('kode') }}"
-                        placeholder="Masukkan Kode Anda" required autocomplete="off"
-                        class="w-full p-4 rounded-xl bg-white/30 placeholder-white/70 text-white font-semibold 
-                        border border-white/30 focus:border-white focus:bg-white/40 transition outline-none pr-12">
-                    <i class="fa-solid fa-id-card absolute right-4 top-4 text-white/80"></i>
+                <div class="space-y-1.5">
+                    <label for="kode" class="text-sm font-medium text-cyan-50">Kode Pengguna</label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-white/80">
+                            <i class="fa-solid fa-id-card"></i>
+                        </span>
+                        <input type="text" name="kode" id="kode" value="{{ old('kode') }}" placeholder="Contoh: DSN001"
+                            required autocomplete="off" class="soft-input">
+                    </div>
                 </div>
 
-                <!-- Password dengan Show/Hide -->
-                <div class="relative">
-                    <input type="password" name="password" id="password" placeholder="Masukkan Password" required
-                        autocomplete="off"
-                        class="w-full p-4 rounded-xl bg-white/30 placeholder-white/70 text-white font-semibold 
-                        border border-white/30 focus:border-white focus:bg-white/40 transition outline-none pr-12">
-                    <i class="fa-solid fa-lock absolute right-12 top-4 text-white/80"></i>
-                    <button type="button" id="togglePassword"
-                        class="absolute right-4 top-4 text-white/80 focus:outline-none">
-                        <i class="fa-solid fa-eye" id="eyeIcon"></i>
-                    </button>
+                <div class="space-y-1.5">
+                    <label for="password" class="text-sm font-medium text-cyan-50">Password</label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-white/80">
+                            <i class="fa-solid fa-lock"></i>
+                        </span>
+                        <input type="password" name="password" id="password" placeholder="Masukkan password" required
+                            autocomplete="off" class="soft-input pr-11">
+                        <button type="button" id="togglePassword"
+                            class="absolute right-3 top-1/2 -translate-y-1/2 text-white/90 hover:text-cyan-100">
+                            <i class="fa-solid fa-eye" id="eyeIcon"></i>
+                        </button>
+                    </div>
                 </div>
 
-                <!-- Error Messages -->
                 @if (session('error'))
-                    <div class="text-red-400 text-sm font-medium text-center">
+                    <div class="rounded-lg border border-rose-200/70 bg-rose-100/90 px-3 py-2 text-sm text-rose-700">
                         {{ session('error') }}
                     </div>
                 @endif
 
                 @if ($errors->any())
-                    <div class="text-red-400 text-sm font-medium text-center">
+                    <div class="rounded-lg border border-rose-200/70 bg-rose-100/90 px-3 py-2 text-sm text-rose-700">
                         {{ $errors->first() }}
                     </div>
                 @endif
 
-                <!-- Submit Button -->
                 <button type="submit"
-                    class="w-full py-3 btn-gradient font-bold rounded-2xl shadow-lg transform transition-all duration-300 focus:outline-none">
+                    class="w-full py-2.5 rounded-xl bg-white text-indigo-700 font-bold hover:bg-indigo-50 transition">
                     Masuk
                 </button>
 
-                <!-- Back Button -->
                 <a href="{{ url('/') }}"
-                    class="block w-full mt-3 py-3 btn-back font-semibold rounded-2xl shadow transform transition-all duration-300 text-center">
-                    ← Kembali
+                    class="block w-full py-2.5 rounded-xl border border-white/35 bg-white/15 text-white text-center font-semibold hover:bg-white/25 transition">
+                    Kembali
                 </a>
             </form>
         </div>
     </div>
 
-    {{-- Script Show/Hide Password --}}
     <script>
         const togglePassword = document.getElementById('togglePassword');
         const passwordInput = document.getElementById('password');
         const eyeIcon = document.getElementById('eyeIcon');
 
-        togglePassword.addEventListener('click', function () {
-            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-            passwordInput.setAttribute('type', type);
+        if (togglePassword && passwordInput && eyeIcon) {
+            togglePassword.addEventListener('click', function() {
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
 
-            if (type === 'password') {
-                eyeIcon.classList.remove('fa-eye-slash');
-                eyeIcon.classList.add('fa-eye');
-            } else {
-                eyeIcon.classList.remove('fa-eye');
-                eyeIcon.classList.add('fa-eye-slash');
-            }
-        });
+                if (type === 'password') {
+                    eyeIcon.classList.remove('fa-eye-slash');
+                    eyeIcon.classList.add('fa-eye');
+                } else {
+                    eyeIcon.classList.remove('fa-eye');
+                    eyeIcon.classList.add('fa-eye-slash');
+                }
+            });
+        }
     </script>
 </body>
 

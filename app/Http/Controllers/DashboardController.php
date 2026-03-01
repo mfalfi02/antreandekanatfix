@@ -2,88 +2,79 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\QueueStatusUpdated;
+use App\Models\Queue;
+use App\Models\RuangAntri;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Models\Queue;
-use App\Models\User;
-use App\Events\QueueStatusUpdated;
-use App\Models\Service;
+use Illuminate\Support\Carbon;
 
 class DashboardController extends Controller
 {
-    public function index()
-    {
-        $user = Auth::user();
-
-        // Logika redirect berdasarkan role
-        switch ($user->role) {
-            case 'admin':
-                return view('admin.dashboard', compact('user'));
-            case 'pejabat':
-                // pejabat diarahkan ke dashboard dosen
-                return view('dosen.dashboard', compact('user'));
-            case 'dosen':
-            case 'mahasiswa':
-                // dosen dan mahasiswa ke dashboard mahasiswa
-                return view('mahasiswa.dashboard', compact('user'));
-            default:
-                abort(403, 'Role tidak dikenali');
-        }
-
-       
-    }
     public function joinQueue(Request $request)
     {
-        $student = User::where('role','mahasiswa')->first();
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Unauthorized',
+            ], 401);
+        }
 
         $request->validate([
-            'dean_id'=>'required|exists:users,id',
-            'service_id'=>'required'
+            'dean_id' => 'required|exists:users,kode',
+            'service_id' => 'required|exists:services,id',
         ]);
 
-        $lastQueue = Queue::where('dosen_id',$request->dean_id)->latest('nomor_antrian')->first();
-        $nomor = $lastQueue ? $lastQueue->nomor_antrian+1 : 1;
+        $todayJakarta = Carbon::now('Asia/Jakarta')->toDateString();
+        $deanRoom = RuangAntri::query()
+            ->where('kode_dosen', $request->dean_id)
+            ->whereDate('tanggal_buka_ruang_antri', $todayJakarta)
+            ->latest('updated_at')
+            ->first();
+        $deanRoomStatus = $deanRoom?->status_ruang;
+
+        // Default dianggap tutup kalau belum pernah buka antrean hari ini.
+        if (!in_array($deanRoomStatus, ['open', 'occupied'], true)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Ruangan dosen yang dipilih sedang tutup. Silakan pilih dosen lain.',
+            ], 422);
+        }
+
+        if ($deanRoom?->service_id && (int) $deanRoom->service_id !== (int) $request->service_id) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Jenis layanan tidak sesuai dengan layanan yang sedang dibuka dosen tersebut.',
+            ], 422);
+        }
+
+        // Nomor antrean dihitung per dosen untuk hari berjalan.
+        $lastQueue = Queue::query()
+            ->where('kode_dosen', $request->dean_id)
+            ->whereDate('created_at', $todayJakarta)
+            ->max('nomor_antrian');
 
         $queue = Queue::create([
-            'kode_user'=>$student->kode,
-            'dosen_id'=>$request->dean_id,
-            'service_id'=>$request->service_id,
-            'nomor_antrian'=>$nomor,
-            'status'=>'menunggu'
+            'kode_user' => $user->kode,
+            'kode_dosen' => $request->dean_id,
+            'service_id' => $request->service_id,
+            'nomor_antrian' => ($lastQueue ?? 0) + 1,
+            'status' => 'menunggu',
         ]);
 
-        $queue->load(['dosen','service','mahasiswa']);
+        try {
+            event(new QueueStatusUpdated($request->dean_id, $deanRoomStatus ?? 'open', [
+                'event' => 'queue_joined',
+                'queue_id' => $queue->id,
+            ]));
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
-        broadcast(new QueueStatusUpdated($queue))->toOthers();
-
-        return response()->json(['status'=>'ok','queue'=>$queue]);
-    }
-
-    // Dosen buka/tutup antrean
-    public function toggleQueue(Request $request)
-    {
-        // contoh pejabat default
-        $user = User::where('role','dekan')->first();
-
-        // reset semua active queue
-        User::where('is_active_queue',true)->update(['is_active_queue'=>false]);
-
-        $user->is_active_queue = !$user->is_active_queue;
-        $user->save();
-
-        $activePejabat = User::where('is_active_queue',true)->first();
-        $queues = Queue::with(['dosen','mahasiswa','service'])->get()->map(function($q){
-            return [
-                'id'=>$q->id,
-                'status'=>$q->status,
-                'dosen'=>$q->dosen?['id'=>$q->dosen->id,'name'=>$q->dosen->name]:null,
-                'mahasiswa'=>$q->mahasiswa?['id'=>$q->mahasiswa->id,'name'=>$q->mahasiswa->name]:null,
-                'service'=>$q->service?['id'=>$q->service->id,'name'=>$q->service->nama_layanan]:null
-            ];
-        });
-
-        broadcast(new QueueStatusUpdated($activePejabat,$queues))->toOthers();
-
-        return response()->json(['status'=>'ok','activePejabat'=>$activePejabat,'queues'=>$queues]);
+        return response()->json([
+            'status' => 'ok',
+            'queue' => $queue->load(['user', 'service', 'dosen']),
+        ]);
     }
 }

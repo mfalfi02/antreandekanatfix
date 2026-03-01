@@ -1,235 +1,411 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Layanan Dekanat - Display Antrean</title>
-    @vite('resources/css/app.css')
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
         crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap"
+        rel="stylesheet">
     <style>
-        body {
-            background-color: #f0f4f8;
+        :root {
+            --bg-1: #f7fbff;
+            --bg-2: #eef5ff;
+            --panel: #ffffff;
+            --line: #dbe6f6;
+            --text: #0f172a;
+            --muted: #5f6c80;
+            --brand: #0f60f0;
+            --brand-soft: #dbe9ff;
+            --ok: #15803d;
+            --ok-soft: #dcfce7;
+            --warn: #b45309;
+            --warn-soft: #fef3c7;
+            --danger: #b91c1c;
+            --danger-soft: #fee2e2;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
         }
 
-        .queue-status {
-            padding: 0.25rem 0.5rem;
-            font-size: 0.75rem;
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at 12% -8%, rgba(15, 96, 240, .15), transparent 36%),
+                radial-gradient(circle at 88% -12%, rgba(56, 189, 248, .14), transparent 34%),
+                linear-gradient(180deg, var(--bg-2), var(--bg-1));
+            min-height: 100vh;
+        }
+
+        .display-title {
+            font-family: 'Space Grotesk', sans-serif;
+            letter-spacing: .02em;
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 1rem;
+            box-shadow: 0 14px 30px -20px rgba(15, 23, 42, .35);
+        }
+
+        .status-pill {
+            font-size: .75rem;
+            line-height: 1;
+            font-weight: 700;
+            padding: .5rem .65rem;
+            border-radius: .65rem;
+            display: inline-flex;
+            align-items: center;
+            gap: .4rem;
+        }
+
+        .status-open {
+            color: var(--ok);
+            background: var(--ok-soft);
+            border: 1px solid #bbf7d0;
+        }
+
+        .status-occupied {
+            color: var(--warn);
+            background: var(--warn-soft);
+            border: 1px solid #fde68a;
+        }
+
+        .status-closed {
+            color: var(--danger);
+            background: var(--danger-soft);
+            border: 1px solid #fecaca;
+        }
+
+        .metric-card {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            width: 96px;
+            height: 96px;
+            border-radius: 999px;
+            right: -26px;
+            top: -26px;
+            opacity: .15;
+        }
+
+        .metric-blue::before {
+            background: #0f60f0;
+        }
+
+        .metric-green::before {
+            background: #15803d;
+        }
+
+        .metric-orange::before {
+            background: #b45309;
+        }
+
+        .metric-slate::before {
+            background: #334155;
+        }
+
+        .queue-card,
+        .staff-card,
+        .summary-card {
+            border: 1px solid var(--line);
+            border-radius: .9rem;
+            background: #fff;
+        }
+
+        .queue-card {
+            padding: .9rem;
+        }
+
+        .queue-label {
+            font-size: .72rem;
+            font-weight: 700;
+            padding: .28rem .6rem;
+            border-radius: 999px;
+        }
+
+        .label-wait {
+            color: #92400e;
+            background: #ffedd5;
+        }
+
+        .label-process {
+            color: #1d4ed8;
+            background: #dbeafe;
+        }
+
+        .label-done {
+            color: #166534;
+            background: #dcfce7;
+        }
+
+        .custom-scroll {
+            scrollbar-width: thin;
+            scrollbar-color: #c5d4eb #f6f9ff;
+        }
+
+        .custom-scroll::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #c5d4eb;
+            border-radius: 12px;
+        }
+
+        .custom-scroll::-webkit-scrollbar-track {
+            background: #f6f9ff;
+        }
+
+        .btn-brand {
+            background: var(--primary);
+            color: #fff;
+            border-radius: .65rem;
             font-weight: 600;
-            border-radius: 0.5rem;
+            transition: background-color .18s ease, transform .12s ease;
+        }
+
+        .btn-brand:hover {
+            background: var(--primary-hover);
         }
     </style>
 </head>
 
-<body class="p-8">
-    <div class="max-w-7xl mx-auto">
-        <header class="flex justify-between items-center mb-8">
+<body class="p-4 md:p-7">
+    <div class="max-w-7xl mx-auto space-y-6">
+        <header class="panel px-5 py-5 md:px-7 md:py-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-                <h1 class="text-3xl font-bold text-gray-900">LAYANAN DEKANAT</h1>
-                <p class="text-md text-gray-600">Universitas Widya Dharma Pontianak</p>
+                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-blue-600">Layanan Antrean Dekanat</p>
+                <h1 class="display-title text-2xl md:text-4xl font-bold text-slate-900 mt-1">Fakultas Teknologi Informasi</h1>
+                <p class="text-sm md:text-base text-slate-600 mt-1">Universitas Widya Dharma Pontianak</p>
             </div>
-            <div class="flex items-center space-x-4 text-sm text-gray-500">
-                <div class="text-right">
-                    <p id="current-date">Jumat, 19 September 2025</p>
-                    <p id="current-time">01:20:49</p>
+
+            <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
+                <div class="text-sm text-slate-600 sm:text-right">
+                    <p id="current-date" class="font-semibold">-</p>
+                    <p id="current-time" class="text-xl font-bold text-slate-800">-</p>
                 </div>
 
-                <!-- Tombol Kembali -->
                 <a href="{{ route('welcome') }}"
-                    class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition duration-200 shadow">
+                    class="btn-brand inline-flex items-center justify-center gap-2 px-4 py-2">
                     <i class="fa-solid fa-arrow-left"></i>
                     <span>Kembali</span>
                 </a>
             </div>
         </header>
-        <!-- Stats Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div class="bg-white rounded-xl shadow p-6 text-center">
-                <p id="total-queues" class="text-3xl font-bold text-blue-600">0</p>
-                <p class="text-sm text-gray-500">Antrean Saat Ini</p>
-            </div>
-            <div class="bg-white rounded-xl shadow p-6 text-center">
-                <p id="available-staff" class="text-3xl font-bold text-green-600">0</p>
-                <p class="text-sm text-gray-500">Dosen Tersedia</p>
-            </div>
-            <div class="bg-white rounded-xl shadow p-6 text-center">
-                <p id="serving-queues" class="text-3xl font-bold text-orange-600">0</p>
-                <p class="text-sm text-gray-500">Sedang Melayani</p>
-            </div>
-            <div class="bg-white rounded-xl shadow p-6 text-center">
-                <p id="waiting-queues" class="text-3xl font-bold text-gray-600">0</p>
-                <p class="text-sm text-gray-500">Menunggu</p>
-            </div>
-        </div>
 
-        <!-- Main Content -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- Dosen Aktif -->
-            <div class="bg-white p-6 rounded-xl shadow">
-                <h2 class="text-xl font-semibold text-gray-900 flex items-center mb-4">
-                    <i class="fa-solid fa-users text-gray-500 mr-2"></i> Dosen Aktif Membuka Antrean
+        <section class="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
+            <div class="panel metric-card metric-blue p-4 md:p-5">
+                <p class="text-xs text-slate-500">Total Antrean Hari Ini</p>
+                <p id="total-queues" class="text-3xl font-extrabold text-blue-700 mt-2">0</p>
+            </div>
+            <div class="panel metric-card metric-green p-4 md:p-5">
+                <p class="text-xs text-slate-500">Dosen Sedang Buka</p>
+                <p id="available-staff" class="text-3xl font-extrabold text-emerald-700 mt-2">0</p>
+            </div>
+            <div class="panel metric-card metric-orange p-4 md:p-5">
+                <p class="text-xs text-slate-500">Sedang Diproses</p>
+                <p id="serving-queues" class="text-3xl font-extrabold text-amber-700 mt-2">0</p>
+            </div>
+            <div class="panel metric-card metric-slate p-4 md:p-5">
+                <p class="text-xs text-slate-500">Sedang Menunggu</p>
+                <p id="waiting-queues" class="text-3xl font-extrabold text-slate-700 mt-2">0</p>
+            </div>
+        </section>
+
+        <section class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <div class="panel p-5 md:p-6">
+                <h2 class="text-lg font-bold text-slate-900 flex items-center mb-4">
+                    <i class="fa-solid fa-users mr-2 text-slate-500"></i>
+                    Dosen Aktif & Ringkasan Antrean
                 </h2>
-                <ul id="staff-status" class="space-y-4">
-                    <li class="text-gray-500 text-sm">Memuat data...</li>
+                <ul id="staff-status" class="space-y-3 max-h-[620px] overflow-y-auto pr-1 custom-scroll">
+                    <li class="text-slate-500 text-sm">Memuat data...</li>
                 </ul>
             </div>
 
-            <!-- Status Antrean -->
-            <div class="bg-white p-6 rounded-xl shadow">
-                <h2 class="text-xl font-semibold text-gray-900 flex items-center mb-4">
-                    <i class="fa-solid fa-list-check text-gray-500 mr-2"></i> Status Antrean Hari Ini
+            <div class="panel p-5 md:p-6">
+                <h2 class="text-lg font-bold text-slate-900 flex items-center mb-4">
+                    <i class="fa-solid fa-list-check mr-2 text-slate-500"></i>
+                    Status Antrean Hari Ini
                 </h2>
-                <ul id="queue-list" class="space-y-4">
-                    <li class="text-gray-500 text-sm">Memuat data...</li>
+                <ul id="queue-list" class="space-y-3 max-h-[620px] overflow-y-auto pr-1 custom-scroll">
+                    <li class="text-slate-500 text-sm">Memuat data...</li>
                 </ul>
             </div>
-        </div>
+        </section>
     </div>
 
     <script>
-        // Waktu realtime
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#039;');
+        }
+
         function updateClock() {
             const now = new Date();
-            const options = {
+            const dateOptions = {
                 weekday: 'long',
-                day: 'numeric',
+                day: '2-digit',
                 month: 'long',
-                year: 'numeric'
+                year: 'numeric',
+                timeZone: 'Asia/Jakarta'
             };
-            document.getElementById('current-date').textContent = now.toLocaleDateString('id-ID', options);
-            document.getElementById('current-time').textContent = now.toLocaleTimeString('id-ID');
+
+            document.getElementById('current-date').textContent = now.toLocaleDateString('id-ID', dateOptions);
+            document.getElementById('current-time').textContent = now.toLocaleTimeString('id-ID', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false,
+                timeZone: 'Asia/Jakarta'
+            }) + ' WIB';
         }
-        setInterval(updateClock, 1000);
-        updateClock();
 
-        // Fetch antrean dan dosen aktif
-        async function fetchDisplayData() {
-            try {
-                const res = await fetch("{{ route('display.queues') }}"); // endpoint JSON
-                const data = await res.json();
+        function renderQueueItems(queues) {
+            const ulQueue = document.getElementById('queue-list');
+            if (!ulQueue) return;
 
-                // Stats
-                const totalQueues = data.length;
-                const serving = data.filter(q => q.status === 'Sedang Dilayani').length;
-                const waiting = data.filter(q => q.status === 'Menunggu').length;
+            if (!Array.isArray(queues) || queues.length === 0) {
+                ulQueue.innerHTML = '<li class="text-slate-500 text-sm">Belum ada antrean hari ini.</li>';
+                return;
+            }
 
-                document.getElementById('total-queues').textContent = totalQueues;
-                document.getElementById('serving-queues').textContent = serving;
-                document.getElementById('waiting-queues').textContent = waiting;
-                document.getElementById('available-staff').textContent = [...new Set(data.filter(q => q.dosen).map(q =>
-                    q.dosen.name))].length;
+            ulQueue.innerHTML = queues.map((q) => {
+                const statusValue = (q.status || '').toLowerCase();
+                let labelClass = 'queue-label label-wait';
+                let labelText = 'Menunggu';
 
-                // Update antrean
-                const ulQueue = document.getElementById('queue-list');
-                ulQueue.innerHTML = '';
-                data.forEach(q => {
-                    let statusColor = 'bg-gray-200 text-gray-600';
-                    if (q.status === 'Selesai') statusColor = 'bg-green-100 text-green-600';
-                    else if (q.status === 'Sedang Dilayani') statusColor = 'bg-blue-100 text-blue-600';
-                    else if (q.status === 'Menunggu') statusColor = 'bg-yellow-100 text-yellow-600';
-
-                    const li = document.createElement('li');
-                    li.className = 'flex justify-between items-center border border-gray-200 p-4 rounded-lg';
-                    li.innerHTML = `
-                        <div>
-                            <p class="font-medium text-gray-900">${q.user?.name ?? q.nama ?? '-'}</p>
-                            <p class="text-sm text-gray-500">${q.service?.nama_layanan ?? '-'}</p>
-                            <p class="text-xs text-gray-400">Dosen: ${q.dosen?.name ?? '-'}</p>
-                        </div>
-                        <span class="queue-status ${statusColor}">${q.status}</span>
-                    `;
-                    ulQueue.appendChild(li);
-                });
-
-                // Update dosen aktif
-                const activeDosen = [...new Set(data.filter(q => q.status === 'Sedang Dilayani').map(q => q.dosen))]
-                    .filter(Boolean);
-                const ulStaff = document.getElementById('staff-status');
-                ulStaff.innerHTML = '';
-                if (activeDosen.length === 0) {
-                    ulStaff.innerHTML = '<li class="text-gray-500 text-sm">Tidak ada dosen aktif</li>';
-                } else {
-                    activeDosen.forEach(d => {
-                        const li = document.createElement('li');
-                        li.className = 'flex justify-between items-start border border-gray-200 p-4 rounded-lg';
-                        li.innerHTML = `
-                            <div class="flex items-start space-x-3">
-                                <i class="fa-solid fa-user-circle text-2xl text-gray-400"></i>
-                                <div>
-                                    <p class="font-medium text-gray-900">${d.name}</p>
-                                    <p class="text-sm text-gray-500">${d.title ?? 'Dosen'}</p>
-                                    <p class="text-xs text-gray-400">${d.room ?? '-'}</p>
-                                </div>
-                            </div>
-                            <span class="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full font-semibold">Sedang Melayani</span>
-                        `;
-                        ulStaff.appendChild(li);
-                    });
+                if (statusValue === 'diproses') {
+                    labelClass = 'queue-label label-process';
+                    labelText = 'Diproses';
+                } else if (statusValue === 'selesai') {
+                    labelClass = 'queue-label label-done';
+                    labelText = 'Selesai';
                 }
 
+                return `
+                    <li class="queue-card flex items-center justify-between gap-3">
+                        <div>
+                            <p class="font-semibold text-slate-900">${escapeHtml(q.user?.name ?? q.nama ?? '-')}</p>
+                            <p class="text-sm text-slate-600">${escapeHtml(q.service?.nama_layanan ?? '-')}</p>
+                            <p class="text-xs text-slate-500">Dosen: ${escapeHtml(q.dosen?.name ?? '-')}</p>
+                        </div>
+                        <span class="${labelClass}">${labelText}</span>
+                    </li>
+                `;
+            }).join('');
+        }
+
+        function renderStaffItems(activeStaff, summaryMap = {}) {
+            const ulStaff = document.getElementById('staff-status');
+            if (!ulStaff) return;
+
+            if (!Array.isArray(activeStaff) || activeStaff.length === 0) {
+                ulStaff.innerHTML = '<li class="text-slate-500 text-sm">Tidak ada dosen aktif membuka antrean.</li>';
+                return;
+            }
+
+            ulStaff.innerHTML = activeStaff.map((d) => {
+                const statusClass = d.queue_status === 'occupied' ? 'status-pill status-occupied' : 'status-pill status-open';
+                const statusIcon = d.queue_status === 'occupied' ? 'fa-hourglass-half' : 'fa-door-open';
+                const summary = summaryMap[d.kode] ?? {};
+
+                return `
+                    <li class="summary-card p-4 bg-gradient-to-br from-white to-slate-50">
+                        <div class="flex items-start justify-between gap-3">
+                            <div>
+                                <p class="font-semibold text-slate-900">${escapeHtml(d.name ?? '-')}</p>
+                                <p class="text-xs text-slate-500">${escapeHtml(d.jabatan ?? '-')} • ${escapeHtml(d.ruangan ?? '-')}</p>
+                            </div>
+                            <span class="${statusClass}">
+                                <i class="fa-solid ${statusIcon}"></i>
+                                ${escapeHtml(d.queue_status_label ?? 'Aktif')}
+                            </span>
+                        </div>
+
+                        <div class="mt-2 space-y-1">
+                            <p class="text-xs text-blue-700">Jenis Layanan: ${escapeHtml(d.service?.nama_layanan ?? '-')}</p>
+                            <p class="text-xs text-indigo-700">Expected Tutup: ${escapeHtml(d.waktu?.expected_jam_tutup ?? '-')}</p>
+                        </div>
+
+                        <div class="grid grid-cols-4 gap-2 mt-3 text-center">
+                            <div class="rounded-md bg-indigo-50 px-2 py-2">
+                                <p class="text-[11px] text-slate-500">Saat Ini</p>
+                                <p class="text-sm font-extrabold text-indigo-700">${summary.nomor_saat_ini ? '#' + summary.nomor_saat_ini : '-'}</p>
+                            </div>
+                            <div class="rounded-md bg-blue-50 px-2 py-2">
+                                <p class="text-[11px] text-slate-500">Terakhir</p>
+                                <p class="text-sm font-extrabold text-blue-700">${summary.nomor_terakhir ? '#' + summary.nomor_terakhir : '-'}</p>
+                            </div>
+                            <div class="rounded-md bg-amber-50 px-2 py-2">
+                                <p class="text-[11px] text-slate-500">Menunggu</p>
+                                <p class="text-sm font-extrabold text-amber-700">${summary.menunggu ?? 0}</p>
+                            </div>
+                            <div class="rounded-md bg-emerald-50 px-2 py-2">
+                                <p class="text-[11px] text-slate-500">Total</p>
+                                <p class="text-sm font-extrabold text-emerald-700">${summary.total_hari_ini ?? 0}</p>
+                            </div>
+                        </div>
+                    </li>
+                `;
+            }).join('');
+        }
+
+        async function fetchDisplayData() {
+            try {
+                const res = await fetch("{{ route('display.queues') }}");
+                const payload = await res.json();
+
+                const queues = Array.isArray(payload) ? payload : (payload.queues || []);
+                const activeStaff = Array.isArray(payload?.active_staff) ? payload.active_staff : [];
+                const dosenSummary = Array.isArray(payload?.dosen_queue_summary) ? payload.dosen_queue_summary : [];
+                const summaryMap = Object.fromEntries(dosenSummary.map((item) => [item.kode, item]));
+
+                const serving = queues.filter(q => (q.status || '').toLowerCase() === 'diproses').length;
+                const waiting = queues.filter(q => (q.status || '').toLowerCase() === 'menunggu').length;
+
+                document.getElementById('total-queues').textContent = queues.length;
+                document.getElementById('available-staff').textContent = activeStaff.length;
+                document.getElementById('serving-queues').textContent = serving;
+                document.getElementById('waiting-queues').textContent = waiting;
+
+                renderQueueItems(queues);
+                renderStaffItems(activeStaff, summaryMap);
             } catch (error) {
                 console.error(error);
             }
         }
 
-        fetchDisplayData();
-        setInterval(fetchDisplayData, 5000); // refresh tiap 5 detik
-    </script>
-    <script src="https://js.pusher.com/8.0/pusher.min.js"></script>
-    <script src="{{ asset('js/app.js') }}"></script>
+        async function refreshDisplayRealtime() {
+            await fetchDisplayData();
+        }
 
-    <script>
-        window.Echo.channel('display')
-            .listen('QueueStatusUpdated', (e) => {
-                const pejabat = e.activePejabat;
-                if (pejabat) {
-                    document.getElementById('active-pejabat-name').textContent = pejabat.name;
-                    document.getElementById('active-pejabat-role').textContent = pejabat.role.charAt(0).toUpperCase() +
-                        pejabat.role.slice(1);
-                } else {
-                    document.getElementById('active-pejabat-name').textContent = 'Belum ada yang membuka antrean';
-                    document.getElementById('active-pejabat-role').textContent = '';
-                }
+        setInterval(updateClock, 1000);
+        updateClock();
+        refreshDisplayRealtime();
 
-                const ul = document.getElementById('queue-list');
-                ul.innerHTML = '';
-                let total = 0,
-                    serving = 0,
-                    waiting = 0,
-                    completed = 0;
-                e.queues.forEach(q => {
-                    total++;
-                    let statusClass = '';
-                    if (q.status === 'Menunggu') {
-                        statusClass = 'bg-gray-200 text-gray-600';
-                        waiting++;
-                    } else if (q.status === 'Sedang Dilayani') {
-                        statusClass = 'bg-blue-100 text-blue-600';
-                        serving++;
-                    } else if (q.status === 'Selesai') {
-                        statusClass = 'bg-green-100 text-green-600';
-                        completed++;
-                    }
-
-                    const li = document.createElement('li');
-                    li.className =
-                        `flex justify-between items-center border border-gray-200 p-4 rounded-lg ${statusClass}`;
-                    li.innerHTML = `<div>
-            <p class="font-medium text-gray-900">${q.mahasiswa?.nama || '-'}</p>
-            <p class="text-sm text-gray-500">${q.service?.nama_service || '-'}</p>
-        </div>
-        <span class="text-xs px-2 py-1 rounded-full font-semibold">${q.status}</span>`;
-                    ul.appendChild(li);
+        if (window.Echo) {
+            window.Echo.channel('queue-status')
+                .listen('.queue.status.updated', () => {
+                    refreshDisplayRealtime();
                 });
-
-                document.getElementById('total-queues').textContent = total;
-                document.getElementById('serving-count').textContent = serving;
-                document.getElementById('waiting-count').textContent = waiting;
-                document.getElementById('completed-count').textContent = completed;
-            });
+        }
     </script>
-
 </body>
 
 </html>

@@ -11,6 +11,7 @@ class Queue extends Model
 
     protected $fillable = [
         'kode_user',
+        'kode_dosen',
         'service_id',
         'nomor_antrian',
         'status',
@@ -26,5 +27,11 @@ class Queue extends Model
     public function service()
     {
         return $this->belongsTo(Service::class, 'service_id');
+    }
+
+    // Dosen/pejabat tujuan yang dipilih saat ambil antrean
+    public function dosen()
+    {
+        return $this->belongsTo(User::class, 'kode_dosen', 'kode');
     }
 }
