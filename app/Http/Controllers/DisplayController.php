@@ -72,7 +72,7 @@ class DisplayController extends Controller
             });
 
         $dosenQueueSummary = User::query()
-            ->whereIn('role', ['pejabat', 'dosen'])
+            ->where('role', 'pejabat')
             ->where('status', 'aktif')
             ->get(['kode', 'name', 'jabatan', 'ruangan'])
             ->map(function ($dosen) use ($todayJakarta) {

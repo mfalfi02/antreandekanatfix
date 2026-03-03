@@ -22,6 +22,13 @@ class DashboardController extends Controller
             ], 401);
         }
 
+        if (!in_array($user->role, ['mahasiswa', 'dosen'], true)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Hanya pengantre yang dapat mengambil nomor antrean.',
+            ], 403);
+        }
+
         $request->validate([
             'dean_id' => 'required|exists:users,kode',
             'service_id' => 'required|exists:services,id',

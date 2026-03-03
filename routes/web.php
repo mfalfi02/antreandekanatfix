@@ -55,13 +55,14 @@ Route::get('/admin',function() {
 Route::middleware(['ceklogin'])->group(function () {
     Route::get('/dashboard', [AuthController::class, 'dosen'])->name('dsn');
     Route::get('/mahasiswa',[AuthController::class, 'mahasiswa'])->name('mhs');
+
+    Route::post('/queue/join', [DashboardController::class, 'joinQueue'])->name('queue.join');
+    Route::post('/queue/toggle', [QueueController::class, 'toggleQueue'])->name('queue.toggle');
+    Route::post('/queue/{queue}/call', [QueueController::class, 'callQueue'])->name('queue.call');
+    Route::post('/queue/{queue}/complete', [QueueController::class, 'completeQueue'])->name('queue.complete');
+    Route::get('/queue/status', [QueueController::class, 'status'])->name('queue.status');
+    Route::get('/queue/my', [QueueController::class, 'myQueues'])->name('queue.my');
 });
-Route::post('/queue/join', [DashboardController::class, 'joinQueue'])->name('queue.join');
-Route::post('/queue/toggle', [QueueController::class, 'toggleQueue'])->name('queue.toggle');
-Route::post('/queue/{queue}/call', [QueueController::class, 'callQueue'])->name('queue.call');
-Route::post('/queue/{queue}/complete', [QueueController::class, 'completeQueue'])->name('queue.complete');
-Route::get('/queue/status', [QueueController::class, 'status'])->name('queue.status');
-Route::get('/queue/my', [QueueController::class, 'myQueues'])->name('queue.my');
 
 Route::get('/users', [UserController::class, 'index'])->name('users.index');
 Route::get('/users/create', [UserController::class, 'create'])->name('users.create');

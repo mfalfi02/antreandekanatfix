@@ -141,6 +141,49 @@
         .btn-danger:active {
             transform: translateY(1px);
         }
+
+        @media (max-width: 768px) {
+            body {
+                padding: .9rem;
+            }
+
+            .panel {
+                border-radius: .85rem;
+            }
+
+            .mhs-header-actions {
+                width: 100%;
+                justify-content: space-between;
+                gap: .6rem;
+                flex-wrap: wrap;
+            }
+
+            .mhs-header-actions form {
+                width: 100%;
+            }
+
+            .mhs-header-actions .btn-danger {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .staff-status-card {
+                padding: .85rem;
+            }
+
+            #my-queue-list > div {
+                align-items: flex-start;
+            }
+
+            #queue-call-toast-container {
+                left: .75rem;
+                right: .75rem;
+            }
+
+            #queue-call-toast-container > div {
+                width: 100%;
+            }
+        }
     </style>
 </head>
 
@@ -157,7 +200,7 @@
                     Selamat datang, {{ $data['user']->name }}
                 </p>
             </div>
-            <div class="flex items-center gap-4">
+            <div class="mhs-header-actions flex items-center gap-4">
                 <div class="text-right">
                     <p id="current-date-mahasiswa" class="text-xs text-gray-500">-</p>
                     <p id="current-time-mahasiswa" class="text-sm font-semibold text-gray-800">- WIB</p>
@@ -192,12 +235,18 @@
                                     class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 flex-shrink-0">
                                     <i class="fa fa-user"></i>
                                 </div>
-                                <div class="min-w-0">
+                                <div class="min-w-0 space-y-1.5">
                                     <p class="font-semibold text-gray-900 truncate">{{ $pejabat->name }}</p>
-                                    <p class="text-xs text-blue-700 font-semibold">Kode: {{ $pejabat->kode }}</p>
-                                    <p class="text-sm text-gray-500">{{ ucfirst($pejabat->jabatan) }}</p>
-                                    <p class="text-xs text-gray-400">
-                                        <i class="fa fa-map-marker-alt"></i> {{ $pejabat->ruangan ?? '-' }}
+                                    <p class="text-xs text-slate-600 font-semibold flex items-center gap-1.5 leading-relaxed">
+                                        <i class="fa-solid fa-id-card text-slate-400"></i>
+                                        {{ $pejabat->kode }}
+                                    </p>
+                                    <p class="text-sm text-slate-600 flex items-center gap-1.5 leading-relaxed">
+                                        <i class="fa-solid fa-briefcase text-slate-400"></i>
+                                        {{ ucfirst($pejabat->jabatan ?? '-') }}
+                                    </p>
+                                    <p class="text-xs text-slate-600 flex items-center gap-1.5 leading-relaxed">
+                                        <i class="fa fa-map-marker-alt text-slate-400"></i> {{ $pejabat->ruangan ?? '-' }}
                                     </p>
                                 </div>
                             </div>
@@ -223,12 +272,14 @@
                                 @endif
                             </div>
                         </div>
-                        <div class="mt-3 space-y-1">
-                            <p id="service-pejabat-{{ $pejabat->kode }}" class="text-xs text-blue-700">
-                                Jenis Layanan: {{ $servicePejabat ?: '-' }}
+                        <div class="mt-3 space-y-1.5">
+                            <p id="service-pejabat-{{ $pejabat->kode }}" class="text-xs text-slate-600 flex items-center gap-1.5 leading-relaxed">
+                                <i class="fa-solid fa-screwdriver-wrench text-slate-400"></i>
+                                {{ $servicePejabat ?: '-' }}
                             </p>
-                            <p id="expected-close-pejabat-{{ $pejabat->kode }}" class="text-xs text-indigo-700">
-                                Perkiraan Tutup: {{ $expectedClosePejabat ?: '-' }}
+                            <p id="expected-close-pejabat-{{ $pejabat->kode }}" class="text-xs text-slate-600 flex items-center gap-1.5 leading-relaxed">
+                                <i class="fa-solid fa-clock text-slate-400"></i>
+                                {{ $expectedClosePejabat ?: '-' }}
                             </p>
                         </div>
                     </div>
@@ -374,7 +425,12 @@
 
                 {{-- Status Antrean --}}
                 <div class="panel p-6">
-                    <h2 class="text-xl font-semibold text-gray-900 mb-4">Riwayat Antrean Anda</h2>
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-xl font-semibold text-gray-900">Antrean Hari Ini</h2>
+                        <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                            Mulai ulang setiap hari
+                        </span>
+                    </div>
                     <div id="my-queue-list" class="space-y-3 max-h-96 overflow-y-auto">
                         @forelse($data['myQueues'] as $queue)
                             <div class="p-3 border rounded-lg flex justify-between items-center">
@@ -392,6 +448,44 @@
                         @empty
                             <p class="text-gray-500">Belum ada antrean.</p>
                         @endforelse
+                    </div>
+
+                    <div class="mt-5 border-t pt-4">
+                        <button type="button" id="previous-queue-toggle"
+                            class="w-full inline-flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+                            <span>Riwayat Hari Sebelumnya</span>
+                            <span id="previous-queue-count" class="text-xs text-gray-500">
+                                {{ count($data['historyQueues'] ?? []) }} data
+                            </span>
+                        </button>
+                        <div id="previous-queue-panel" class="mt-3 hidden">
+                            <div class="flex flex-col md:flex-row gap-2 md:items-center mb-3">
+                                <input type="date" id="previous-queue-date-filter"
+                                    class="w-full md:w-auto rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200">
+                                <button type="button" id="previous-queue-date-reset"
+                                    class="rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+                                    Reset Filter
+                                </button>
+                            </div>
+                            <div id="previous-queue-list" class="space-y-3 max-h-72 overflow-y-auto">
+                                @forelse($data['historyQueues'] ?? [] as $queue)
+                                    <div class="p-3 border rounded-lg flex justify-between items-center bg-slate-50/60">
+                                        <div>
+                                            <p class="font-semibold text-gray-900">#{{ $queue->nomor_antrian }} -
+                                                {{ $queue->service->nama_layanan ?? '-' }}</p>
+                                            <p class="text-sm text-gray-500">{{ ucfirst($queue->status) }}</p>
+                                            <p class="text-xs text-gray-500">Dosen: {{ $queue->dosen->name ?? '-' }}</p>
+                                            <p class="text-xs text-gray-400">
+                                                Tanggal: {{ optional($queue->created_at)->format('d-m-Y') ?? '-' }} |
+                                                Jam: {{ optional($queue->created_at)->format('H:i') ?? '-' }} WIB
+                                            </p>
+                                        </div>
+                                    </div>
+                                @empty
+                                    <p class="text-gray-500">Belum ada riwayat hari sebelumnya.</p>
+                                @endforelse
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -434,6 +528,12 @@
         const serviceSelect = document.getElementById('service-select');
         const joinQueueBtn = document.getElementById('join-queue-btn');
         const myQueueList = document.getElementById('my-queue-list');
+        const previousQueueToggle = document.getElementById('previous-queue-toggle');
+        const previousQueuePanel = document.getElementById('previous-queue-panel');
+        const previousQueueList = document.getElementById('previous-queue-list');
+        const previousQueueCount = document.getElementById('previous-queue-count');
+        const previousQueueDateFilter = document.getElementById('previous-queue-date-filter');
+        const previousQueueDateReset = document.getElementById('previous-queue-date-reset');
         const serviceFilterHint = document.getElementById('service-filter-hint');
         const currentQueueNumberEl = document.getElementById('current-queue-number');
         const currentQueueStatusEl = document.getElementById('current-queue-status');
@@ -452,6 +552,7 @@
         let queueStatusById = new Map();
         let queuePollingInitialized = false;
         const notifiedQueueIds = new Set();
+        let previousQueueCache = @json($data['historyQueues'] ?? []);
 
         async function syncQueueStatus() {
             try {
@@ -481,10 +582,12 @@
                         deanStatusMap[item.kode] = item.queue_status;
                         deanServiceMap[item.kode] = item.service?.id ?? null;
                         if (serviceLine) {
-                            serviceLine.textContent = `Jenis Layanan: ${item.service?.nama_layanan ?? '-'}`;
+                            serviceLine.innerHTML =
+                                `<i class="fa-solid fa-screwdriver-wrench text-slate-400"></i> ${escapeHtml(item.service?.nama_layanan ?? '-')}`;
                         }
                         if (expectedCloseLine) {
-                            expectedCloseLine.textContent = `Perkiraan Tutup: ${item.waktu?.expected_jam_tutup ?? '-'}`;
+                            expectedCloseLine.innerHTML =
+                                `<i class="fa-solid fa-clock text-slate-400"></i> ${escapeHtml(item.waktu?.expected_jam_tutup ?? '-')}`;
                         }
                     });
                     syncServiceOptionsForSelectedDean();
@@ -685,6 +788,58 @@
             }).join('');
         }
 
+        function renderPreviousQueueList(rows = []) {
+            if (!previousQueueList || !previousQueueCount) return;
+            previousQueueCache = Array.isArray(rows) ? rows : [];
+            const selectedDate = previousQueueDateFilter?.value ?? '';
+            const filteredRows = selectedDate ?
+                previousQueueCache.filter((queue) => {
+                    const createdAt = queue?.created_at ? new Date(queue.created_at) : null;
+                    if (!createdAt) return false;
+                    return createdAt.toLocaleDateString('en-CA', {
+                        timeZone: 'Asia/Jakarta'
+                    }) === selectedDate;
+                }) :
+                previousQueueCache;
+
+            previousQueueCount.textContent = `${filteredRows.length} data`;
+            if (filteredRows.length === 0) {
+                previousQueueList.innerHTML = '<p class="text-gray-500">Belum ada riwayat hari sebelumnya.</p>';
+                return;
+            }
+
+            previousQueueList.innerHTML = filteredRows.map((queue) => {
+                const createdAt = queue.created_at ? new Date(queue.created_at) : null;
+                const tanggal = createdAt ?
+                    createdAt.toLocaleDateString('id-ID', {
+                        timeZone: 'Asia/Jakarta',
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric'
+                    }) :
+                    '-';
+                const jam = createdAt ?
+                    createdAt.toLocaleTimeString('id-ID', {
+                        timeZone: 'Asia/Jakarta',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: false
+                    }) :
+                    '-';
+
+                return `
+                    <div class="p-3 border rounded-lg flex justify-between items-center bg-slate-50/60">
+                        <div>
+                            <p class="font-semibold text-gray-900">#${queue.nomor_antrian ?? '-'} - ${escapeHtml(queue.service?.nama_layanan ?? '-')}</p>
+                            <p class="text-sm text-gray-500">${escapeHtml((queue.status ?? '').charAt(0).toUpperCase() + (queue.status ?? '').slice(1))}</p>
+                            <p class="text-xs text-gray-500">Dosen: ${escapeHtml(queue.dosen?.name ?? '-')}</p>
+                            <p class="text-xs text-gray-400">Tanggal: ${tanggal} | Jam: ${jam} WIB</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
         function renderCurrentQueueInfo(rows = []) {
             if (!currentQueueNumberEl || !currentQueueStatusEl || !currentQueueServiceEl || !currentQueueDosenEl || !currentQueueEstimateEl) return;
 
@@ -747,7 +902,9 @@
                 const data = await res.json();
                 if (!['mahasiswa', 'dosen'].includes(data?.role)) return;
                 const rows = Array.isArray(data.queues) ? data.queues : [];
+                const historyRows = Array.isArray(data.history_queues) ? data.history_queues : [];
                 renderMyQueueList(rows);
+                renderPreviousQueueList(historyRows);
                 renderCurrentQueueInfo(rows);
                 detectQueueCalledFromPolling(rows);
                 queuePollingInitialized = true;
@@ -862,6 +1019,23 @@
 
         if (joinQueueBtn) {
             joinQueueBtn.addEventListener('click', joinQueue);
+        }
+
+        if (previousQueueToggle && previousQueuePanel) {
+            previousQueueToggle.addEventListener('click', () => {
+                previousQueuePanel.classList.toggle('hidden');
+            });
+        }
+
+        if (previousQueueDateFilter) {
+            previousQueueDateFilter.addEventListener('change', () => renderPreviousQueueList(previousQueueCache));
+        }
+
+        if (previousQueueDateReset && previousQueueDateFilter) {
+            previousQueueDateReset.addEventListener('click', () => {
+                previousQueueDateFilter.value = '';
+                renderPreviousQueueList(previousQueueCache);
+            });
         }
     </script>
 </body>

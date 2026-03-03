@@ -31,12 +31,14 @@ class ServiceController extends Controller
             'nama_layanan' => 'required|string|max:255',
             'deskripsi' => 'nullable|string',
             'est' => 'required|integer|min:1', // estimasi waktu dalam menit
+            'status' => 'required|in:aktif,nonaktif',
         ]);
 
         Service::create([
             'nama_layanan' => $request->nama_layanan,
             'deskripsi' => $request->deskripsi,
             'est' => $request->est,
+            'status' => $request->status,
         ]);
 
         return redirect()->route('services.index')->with('success', 'Layanan berhasil ditambahkan!');
@@ -55,12 +57,14 @@ class ServiceController extends Controller
             'nama_layanan' => 'required|string|max:255',
             'deskripsi' => 'nullable|string',
             'est' => 'required|integer|min:1',
+            'status' => 'required|in:aktif,nonaktif',
         ]);
 
         $service->update([
             'nama_layanan' => $request->nama_layanan,
             'deskripsi' => $request->deskripsi,
             'est' => $request->est,
+            'status' => $request->status,
         ]);
 
         return redirect()->route('services.index')->with('success', 'Layanan berhasil diperbarui!');

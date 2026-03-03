@@ -328,10 +328,25 @@
                 return `
                     <li class="summary-card p-4 bg-gradient-to-br from-white to-slate-50">
                         <div class="flex items-start justify-between gap-3">
-                            <div>
-                                <p class="font-semibold text-slate-900">${escapeHtml(d.name ?? '-')}</p>
-                                <p class="text-xs text-blue-700 font-semibold">Kode: ${escapeHtml(d.kode ?? '-')}</p>
-                                <p class="text-xs text-slate-500">${escapeHtml(d.jabatan ?? '-')} • ${escapeHtml(d.ruangan ?? '-')}</p>
+                            <div class="flex items-center gap-3 min-w-0">
+                                <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 flex-shrink-0">
+                                    <i class="fa-solid fa-user"></i>
+                                </div>
+                                <div class="min-w-0 space-y-1.5">
+                                    <p class="font-semibold text-slate-900 truncate">${escapeHtml(d.name ?? '-')}</p>
+                                    <p class="text-xs text-slate-600 font-semibold flex items-center gap-1.5 leading-relaxed">
+                                        <i class="fa-solid fa-id-card text-slate-400"></i>
+                                        ${escapeHtml(d.kode ?? '-')}
+                                    </p>
+                                    <p class="text-xs text-slate-600 flex items-center gap-1.5 leading-relaxed">
+                                        <i class="fa-solid fa-briefcase text-slate-400"></i>
+                                        ${escapeHtml(d.jabatan ?? '-')}
+                                    </p>
+                                    <p class="text-xs text-slate-600 flex items-center gap-1.5 leading-relaxed">
+                                        <i class="fa-solid fa-location-dot text-slate-400"></i>
+                                        ${escapeHtml(d.ruangan ?? '-')}
+                                    </p>
+                                </div>
                             </div>
                             <span class="${statusClass}">
                                 <i class="fa-solid ${statusIcon}"></i>
@@ -339,12 +354,18 @@
                             </span>
                         </div>
 
-                        <div class="mt-2 space-y-1">
-                            <p class="text-xs text-blue-700">Jenis Layanan: ${escapeHtml(d.service?.nama_layanan ?? '-')}</p>
-                            <p class="text-xs text-indigo-700">Perkiraan Tutup: ${escapeHtml(d.waktu?.expected_jam_tutup ?? '-')}</p>
+                        <div class="mt-3 space-y-1.5">
+                            <p class="text-xs text-slate-600 flex items-center gap-1.5 leading-relaxed">
+                                <i class="fa-solid fa-screwdriver-wrench text-slate-400"></i>
+                                ${escapeHtml(d.service?.nama_layanan ?? '-')}
+                            </p>
+                            <p class="text-xs text-slate-600 flex items-center gap-1.5 leading-relaxed">
+                                <i class="fa-solid fa-clock text-slate-400"></i>
+                                ${escapeHtml(d.waktu?.expected_jam_tutup ?? '-')}
+                            </p>
                         </div>
 
-                        <div class="grid grid-cols-4 gap-2 mt-3 text-center">
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5 mt-4 text-center">
                             <div class="rounded-md bg-indigo-50 px-2 py-2">
                                 <p class="text-[11px] text-slate-500">Saat Ini</p>
                                 <p class="text-sm font-extrabold text-indigo-700">${summary.nomor_saat_ini ? '#' + summary.nomor_saat_ini : '-'}</p>
@@ -354,14 +375,16 @@
                                 <p class="text-sm font-extrabold text-blue-700">${summary.nomor_terakhir ? '#' + summary.nomor_terakhir : '-'}</p>
                             </div>
                             <div class="rounded-md bg-amber-50 px-2 py-2">
-                                <p class="text-[11px] text-slate-500">Menunggu (User)</p>
+                                <p class="text-[11px] text-slate-500 flex items-center justify-center gap-1">
+                                    <i class="fa-solid fa-hourglass-half"></i> Menunggu
+                                </p>
                                 <p class="text-sm font-extrabold text-amber-700">${summary.menunggu ?? 0}</p>
-                                <p class="text-[10px] text-amber-700/80">Mhs: ${summary.menunggu_mahasiswa ?? 0}</p>
                             </div>
                             <div class="rounded-md bg-emerald-50 px-2 py-2">
-                                <p class="text-[11px] text-slate-500">Total (User)</p>
+                                <p class="text-[11px] text-slate-500 flex items-center justify-center gap-1">
+                                    <i class="fa-solid fa-users"></i> Total Hari Ini
+                                </p>
                                 <p class="text-sm font-extrabold text-emerald-700">${summary.total_hari_ini ?? 0}</p>
-                                <p class="text-[10px] text-emerald-700/80">Mhs: ${summary.total_hari_ini_mahasiswa ?? 0}</p>
                             </div>
                         </div>
                     </li>

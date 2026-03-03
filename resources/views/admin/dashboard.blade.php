@@ -88,6 +88,35 @@
             box-shadow: 0 16px 26px -22px rgba(37, 99, 235, .35);
         }
 
+        .tab-btn {
+            border: 1px solid transparent;
+            border-radius: .75rem .75rem 0 0;
+            transition: color .15s ease, border-color .15s ease, background-color .15s ease;
+        }
+
+        .tab-btn.is-active {
+            color: #1d4ed8;
+            border-color: #bfdbfe;
+            border-bottom-color: #ffffff;
+            background: linear-gradient(180deg, #eff6ff 0%, #ffffff 85%);
+        }
+
+        .user-action-btn {
+            min-width: 2.25rem;
+            height: 2.25rem;
+            border-radius: .65rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color .15s ease, color .15s ease, border-color .15s ease;
+        }
+
+        .user-empty-state {
+            border: 1px dashed #bfdbfe;
+            border-radius: .9rem;
+            background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+        }
+
         .service-card {
             border: 1px solid #dbe6f6;
             border-radius: 1rem;
@@ -125,6 +154,68 @@
         .btn-danger:hover {
             background: var(--danger-hover);
         }
+
+        @media (max-width: 768px) {
+            body {
+                padding: .9rem;
+            }
+
+            .panel {
+                border-radius: .85rem;
+            }
+
+            .admin-header-actions {
+                width: 100%;
+                justify-content: space-between;
+                gap: .6rem;
+                flex-wrap: wrap;
+            }
+
+            .admin-toolbar {
+                width: 100%;
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .admin-toolbar .soft-input {
+                width: 100% !important;
+            }
+
+            .admin-toolbar .btn-brand {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .admin-room-table-wrap {
+                margin-left: -.5rem;
+                margin-right: -.5rem;
+                border-radius: .75rem;
+            }
+
+            .room-sync-table {
+                font-size: .75rem;
+            }
+
+            .tab-btn {
+                flex: 1 1 calc(50% - .5rem);
+                text-align: center;
+                justify-content: center;
+            }
+
+            .user-card {
+                padding: .85rem;
+            }
+
+            .service-card {
+                align-items: flex-start;
+                flex-direction: column;
+                gap: .75rem;
+            }
+
+            .service-card > div:last-child {
+                margin-left: 0;
+            }
+        }
     </style>
 </head>
 
@@ -137,7 +228,7 @@
             <p class="text-gray-600">Kelola sistem antrean dekanat</p>
         </div>
 
-        <div class="flex items-center gap-4">
+        <div class="admin-header-actions flex items-center gap-4">
             <div class="text-right">
                 <p id="current-date-admin" class="text-xs text-gray-500">-</p>
                 <p id="current-time-admin" class="text-sm font-semibold text-gray-800">- WIB</p>
@@ -203,7 +294,7 @@
                     </div>
                     <span class="text-xs px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 font-semibold">Auto Sync</span>
                 </div>
-                <div class="overflow-x-auto rounded-xl border border-blue-100">
+                <div class="admin-room-table-wrap overflow-x-auto rounded-xl border border-blue-100">
                     <table class="room-sync-table min-w-full text-sm">
                         <thead>
                             <tr>
@@ -234,27 +325,32 @@
                         <h2 class="text-xl font-semibold text-gray-900">Pengguna</h2>
                         <p class="text-sm text-gray-500">Kelola akun admin, dosen, mahasiswa, dan pejabat.</p>
                     </div>
-                    <div class="flex items-center gap-2">
+                    <div class="admin-toolbar flex items-center gap-2">
                         <input type="text" id="searchUser" placeholder="Cari nama atau kode..."
                             class="soft-input px-3 py-2 text-sm w-60">
-                        <button onclick="window.location='{{ route('users.create') }}'"
+                        <a href="{{ route('users.create') }}"
                             class="btn-brand px-4 py-2 text-sm flex items-center gap-2">
                             <i class="fa-solid fa-plus"></i> Tambah Pengguna
-                        </button>
+                        </a>
                     </div>
                 </div>
+
+                @php
+                    $roleCounts = collect($data['users'])->groupBy('role')->map->count();
+                @endphp
 
                 {{-- Tabs Navigation --}}
                 <div class="mb-4 border-b border-gray-200">
                     <nav class="-mb-px flex flex-wrap gap-2">
-                        <button class="tab-btn py-2 px-4 text-sm font-medium text-blue-600 border-b-2 border-blue-600"
-                            data-tab="admin">Admin</button>
-                        <button class="tab-btn py-2 px-4 text-sm font-medium text-gray-600 hover:text-blue-600"
-                            data-tab="dosen">Dosen</button>
-                        <button class="tab-btn py-2 px-4 text-sm font-medium text-gray-600 hover:text-blue-600"
-                            data-tab="mahasiswa">Mahasiswa</button>
-                        <button class="tab-btn py-2 px-4 text-sm font-medium text-gray-600 hover:text-blue-600"
-                            data-tab="pejabat">Pejabat</button>
+                        @foreach (['admin', 'dosen', 'mahasiswa', 'pejabat'] as $roleTab)
+                            <button class="tab-btn py-2 px-4 text-sm font-medium text-gray-600 hover:text-blue-600 {{ $loop->first ? 'is-active' : '' }}"
+                                data-tab="{{ $roleTab }}">
+                                {{ ucfirst($roleTab) }}
+                                <span class="ml-1.5 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700">
+                                    {{ $roleCounts[$roleTab] ?? 0 }}
+                                </span>
+                            </button>
+                        @endforeach
                     </nav>
                 </div>
 
@@ -275,27 +371,51 @@
                                                         </span>
                                                         <div>
                                                             <p class="font-semibold text-gray-900 user-name">{{ $user->name }}</p>
-                                                            <p class="text-sm text-gray-500">{{ $user->kode }}</p>
+                                                            <p class="text-sm text-gray-500 user-kode">{{ $user->kode }}</p>
+                                                            <p class="text-xs text-gray-500">{{ $user->email }}</p>
+                                                            @if (in_array($user->role, ['dosen', 'pejabat'], true) && $user->jabatan)
+                                                                <p class="text-xs text-slate-600 inline-flex items-center gap-1 mt-0.5">
+                                                                    <i class="fa-solid fa-id-badge text-slate-400"></i>
+                                                                    {{ $user->jabatan }}
+                                                                </p>
+                                                            @endif
+                                                            @if ($user->role === 'pejabat' && $user->ruangan)
+                                                                <p class="text-xs text-slate-600 inline-flex items-center gap-1 mt-0.5">
+                                                                    <i class="fa-solid fa-door-open text-slate-400"></i>
+                                                                    {{ $user->ruangan }}
+                                                                </p>
+                                                            @endif
+                                                            @if ($user->role === 'mahasiswa')
+                                                                <p class="text-xs text-slate-600 inline-flex items-center gap-1 mt-0.5">
+                                                                    <i class="fa-solid fa-user-graduate text-slate-400"></i>
+                                                                    {{ $user->jabatan ?? 'Mahasiswa' }}
+                                                                </p>
+                                                            @endif
                                                         </div>
                                                     </div>
                                                 </div>
+                                                @php
+                                                    $isAktif = $user->status === 'aktif';
+                                                @endphp
                                                 <span
-                                                    class="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 mt-3 inline-flex items-center gap-1">
-                                                    <i class="fa-solid fa-circle-check"></i>
-                                                    {{ ucfirst($tabId) }} - Aktif
+                                                    class="text-xs font-semibold px-2.5 py-1 rounded-full mt-3 inline-flex items-center gap-1 {{ $isAktif ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700' }}">
+                                                    <i class="fa-solid {{ $isAktif ? 'fa-circle-check' : 'fa-circle-xmark' }}"></i>
+                                                    {{ ucfirst($tabId) }} - {{ $isAktif ? 'Aktif' : 'Nonaktif' }}
                                                 </span>
                                             </div>
                                             <div class="flex justify-end mt-4 space-x-2">
                                                 <a href="{{ route('users.edit', $user->kode) }}"
-                                                    class="h-9 w-9 rounded-lg border border-blue-200 text-blue-600 hover:bg-blue-50 transition-colors inline-flex items-center justify-center">
+                                                    title="Edit {{ $user->name }}"
+                                                    class="user-action-btn border border-blue-200 text-blue-600 hover:bg-blue-50">
                                                     <i class="fa-solid fa-pen"></i>
                                                 </a>
                                                 <form action="{{ route('users.destroy', $user->kode) }}" method="POST"
-                                                    onsubmit="return confirm('Yakin hapus {{ ucfirst($tabId) }} ini?')">
+                                                    onsubmit="return confirm('Yakin hapus pengguna {{ $user->name }} ({{ $user->kode }})?')">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <button type="submit"
-                                                        class="h-9 w-9 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 transition-colors inline-flex items-center justify-center">
+                                                    <button type="submit" title="Hapus {{ $user->name }}"
+                                                        {{ auth()->check() && auth()->user()->kode === $user->kode ? 'disabled' : '' }}
+                                                        class="user-action-btn border border-rose-200 text-rose-600 {{ auth()->check() && auth()->user()->kode === $user->kode ? 'opacity-50 cursor-not-allowed' : 'hover:bg-rose-50' }}">
                                                         <i class="fa-solid fa-trash-alt"></i>
                                                     </button>
                                                 </form>
@@ -303,6 +423,12 @@
                                         </div>
                                     @endif
                                 @endforeach
+                                @if (($roleCounts[$tabId] ?? 0) === 0)
+                                    <div class="user-empty-state p-8 text-center text-gray-500 col-span-full">
+                                        <i class="fa-regular fa-folder-open text-2xl mb-2 text-blue-400"></i>
+                                        <p>Belum ada pengguna dengan role {{ ucfirst($tabId) }}.</p>
+                                    </div>
+                                @endif
                             </div>
                         </div>
                     @endforeach
@@ -316,7 +442,7 @@
                         <h2 class="text-xl font-semibold text-gray-900 mb-1 sm:mb-0">Kategori Layanan</h2>
                         <p class="text-sm text-gray-500">Atur layanan dan estimasi waktu pelayanan.</p>
                     </div>
-                    <div class="flex items-center gap-2">
+                    <div class="admin-toolbar flex items-center gap-2">
                         <input type="text" id="searchService" placeholder="Cari layanan..."
                             class="soft-input px-3 py-2 text-sm w-60">
                         <button onclick="window.location='{{ route('services.create') }}'"
@@ -488,10 +614,10 @@
 
         tabs.forEach(tab => {
             tab.addEventListener('click', () => {
-                tabs.forEach(t => t.classList.remove('border-b-2', 'border-blue-600', 'text-blue-600'));
+                tabs.forEach(t => t.classList.remove('is-active', 'text-blue-600'));
                 contents.forEach(c => c.classList.add('hidden'));
 
-                tab.classList.add('border-b-2', 'border-blue-600', 'text-blue-600');
+                tab.classList.add('is-active', 'text-blue-600');
                 document.getElementById(tab.dataset.tab).classList.remove('hidden');
             });
         });
@@ -501,7 +627,7 @@
             const query = this.value.toLowerCase();
             document.querySelectorAll('.user-card').forEach(card => {
                 const name = card.querySelector('.user-name').textContent.toLowerCase();
-                const kode = card.querySelector('p.text-sm').textContent.toLowerCase();
+                const kode = card.querySelector('.user-kode').textContent.toLowerCase();
                 card.style.display = (name.includes(query) || kode.includes(query)) ? '' : 'none';
             });
         });

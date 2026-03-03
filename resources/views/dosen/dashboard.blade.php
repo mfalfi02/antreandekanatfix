@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Antrean Dekanat - Dashboard Dosen</title>
+    <title>Sistem Antrean Dekanat - Dashboard Pejabat</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
         crossorigin="anonymous" referrerpolicy="no-referrer" />
@@ -141,6 +141,53 @@
         .btn-danger:active {
             transform: translateY(1px);
         }
+
+        @media (max-width: 768px) {
+            body {
+                padding: .9rem;
+            }
+
+            .panel {
+                border-radius: .85rem;
+            }
+
+            .dosen-header-actions {
+                width: 100%;
+                justify-content: space-between;
+                gap: .6rem;
+                flex-wrap: wrap;
+            }
+
+            .dosen-header-actions form {
+                width: 100%;
+            }
+
+            .dosen-header-actions .btn-danger {
+                width: 100%;
+                justify-content: center;
+            }
+
+            #active-queue-list > div > div {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: .75rem;
+            }
+
+            #active-queue-list .flex.flex-col.gap-1 {
+                width: 100%;
+            }
+
+            #active-queue-list .call-btn,
+            #active-queue-list .complete-btn {
+                width: 100%;
+            }
+
+            #completed-queue-list > div {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: .75rem;
+            }
+        }
     </style>
 </head>
 
@@ -151,10 +198,10 @@
         {{-- Header --}}
         <div class="panel p-5 md:p-6 flex flex-col gap-3 md:flex-row md:justify-between md:items-center">
             <div>
-                <h1 class="text-3xl font-bold text-gray-900">Dashboard Dosen</h1>
+                <h1 class="text-3xl font-bold text-gray-900">Dashboard Pejabat</h1>
                 <p class="text-gray-600">Selamat datang, {{ $data['user']->name }}</p>
             </div>
-            <div class="flex items-center gap-4">
+            <div class="dosen-header-actions flex items-center gap-4">
                 <div class="text-right">
                     <p id="current-date-dosen" class="text-xs text-gray-500">-</p>
                     <p id="current-time-dosen" class="text-sm font-semibold text-gray-800">- WIB</p>
@@ -274,8 +321,7 @@
                                             <p class="font-semibold text-gray-900">{{ $queue->user->name ?? '-' }}
                                             </p>
                                             <p class="text-sm text-gray-500 queue-service">
-                                                {{ $queue->service->nama_layanan ?? '-' }} • NPM:
-                                                {{ $queue->kode_user }}
+                                                {{ $queue->service->nama_layanan ?? '-' }}
                                             </p>
                                             <p class="text-xs text-gray-400">
                                                 Dosen: {{ $data['user']->name ?? '-' }}
@@ -316,7 +362,6 @@
                                     <div>
                                         <p class="font-semibold text-gray-900">#{{ $queue->nomor_antrian }} -
                                             {{ $queue->user->name ?? '-' }}</p>
-                                        <p class="text-[10px] text-gray-400">ID Data: {{ $queue->id }}</p>
                                         <p class="text-sm text-gray-500">{{ $queue->service->nama_layanan ?? '-' }}</p>
                                         <p class="text-xs text-gray-400">
                                             Dosen: {{ $data['user']->name ?? '-' }}
@@ -333,6 +378,44 @@
                         <p class="text-gray-500 text-sm">Belum ada antrean selesai.</p>
                     @endforelse
                 </div>
+            </div>
+        </div>
+
+        <div class="panel p-6 mt-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-semibold text-gray-900">Riwayat Hari Sebelumnya</h2>
+                <span id="history-queue-count"
+                    class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-700">
+                    {{ count($data['historyQueues'] ?? []) }} data
+                </span>
+            </div>
+            <div class="flex flex-col md:flex-row gap-2 md:items-center mb-3">
+                <input type="date" id="history-date-filter"
+                    class="w-full md:w-auto rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200">
+                <button type="button" id="history-date-reset"
+                    class="rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+                    Reset Filter
+                </button>
+            </div>
+            <div id="history-queue-list" class="space-y-3 max-h-96 overflow-y-auto">
+                @forelse ($data['historyQueues'] ?? [] as $queue)
+                    <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                        <div class="flex items-center gap-3">
+                            <i class="fa-solid fa-clock-rotate-left text-xl text-slate-500"></i>
+                            <div>
+                                <p class="font-semibold text-gray-900">#{{ $queue->nomor_antrian }} -
+                                    {{ $queue->user->name ?? '-' }}</p>
+                                <p class="text-sm text-gray-500">{{ $queue->service->nama_layanan ?? '-' }}</p>
+                                <p class="text-xs text-gray-400">
+                                    {{ ucfirst($queue->status ?? '-') }} •
+                                    {{ optional($queue->created_at)->format('d-m-Y H:i') ?? '-' }} WIB
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                @empty
+                    <p class="text-gray-500 text-sm">Belum ada riwayat hari sebelumnya.</p>
+                @endforelse
             </div>
         </div>
     </div>
@@ -356,10 +439,15 @@
         const myKode = "{{ $data['user']->kode }}";
         const activeQueueList = document.getElementById('active-queue-list');
         const completedQueueList = document.getElementById('completed-queue-list');
+        const historyQueueList = document.getElementById('history-queue-list');
+        const historyQueueCount = document.getElementById('history-queue-count');
+        const historyDateFilter = document.getElementById('history-date-filter');
+        const historyDateReset = document.getElementById('history-date-reset');
         const statActiveQueues = document.getElementById('stat-active-queues');
         const statCompletedQueues = document.getElementById('stat-completed-queues');
         const statCurrentQueue = document.getElementById('stat-current-queue');
         const statServiceEstimate = document.getElementById('stat-service-estimate');
+        let historyQueuesCache = @json($data['historyQueues'] ?? []);
         let currentStatus = "{{ $data['queue_status'] ?? 'closed' }}";
         let isSubmitting = false;
 
@@ -434,7 +522,7 @@
                                 <div>
                                     <p class="font-semibold text-gray-900">${escapeHtml(q.user?.name ?? '-')}</p>
                                     <p class="text-sm text-gray-500 queue-service">
-                                        ${escapeHtml(q.service?.nama_layanan ?? '-')} • NPM: ${escapeHtml(q.kode_user ?? '-')}
+                                        ${escapeHtml(q.service?.nama_layanan ?? '-')}
                                     </p>
                                     <p class="text-xs text-gray-400">
                                         Dosen: ${escapeHtml("{{ $data['user']->name }}")}
@@ -470,7 +558,6 @@
                                 <i class="fa-solid fa-check-circle text-2xl text-green-600"></i>
                                 <div>
                                     <p class="font-semibold text-gray-900">#${q.nomor_antrian ?? '-'} - ${escapeHtml(q.user?.name ?? '-')}</p>
-                                    <p class="text-[10px] text-gray-400">ID Data: ${q.id ?? '-'}</p>
                                     <p class="text-sm text-gray-500">${escapeHtml(q.service?.nama_layanan ?? '-')}</p>
                                     <p class="text-xs text-gray-400">Dosen: ${escapeHtml("{{ $data['user']->name }}")}</p>
                                 </div>
@@ -495,6 +582,53 @@
             if (statServiceEstimate) {
                 statServiceEstimate.textContent = stats.current_service_estimate ? `${stats.current_service_estimate} menit` : '-';
             }
+        }
+
+        function renderDosenHistoryQueues(queues = []) {
+            if (!historyQueueList || !historyQueueCount) return;
+            historyQueuesCache = Array.isArray(queues) ? queues : [];
+            const selectedDate = historyDateFilter?.value ?? '';
+            const filteredRows = selectedDate ?
+                historyQueuesCache.filter((q) => {
+                    const createdAt = q?.created_at ? new Date(q.created_at) : null;
+                    if (!createdAt) return false;
+                    return createdAt.toLocaleDateString('en-CA', {
+                        timeZone: 'Asia/Jakarta'
+                    }) === selectedDate;
+                }) :
+                historyQueuesCache;
+            historyQueueCount.textContent = `${filteredRows.length} data`;
+
+            if (filteredRows.length === 0) {
+                historyQueueList.innerHTML = '<p class="text-gray-500 text-sm">Belum ada riwayat hari sebelumnya.</p>';
+                return;
+            }
+
+            historyQueueList.innerHTML = filteredRows.map((q) => {
+                const createdAt = q.created_at ? new Date(q.created_at) : null;
+                const tanggalJam = createdAt ? createdAt.toLocaleString('id-ID', {
+                    timeZone: 'Asia/Jakarta',
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false,
+                }) : '-';
+
+                return `
+                    <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                        <div class="flex items-center gap-3">
+                            <i class="fa-solid fa-clock-rotate-left text-xl text-slate-500"></i>
+                            <div>
+                                <p class="font-semibold text-gray-900">#${q.nomor_antrian ?? '-'} - ${escapeHtml(q.user?.name ?? '-')}</p>
+                                <p class="text-sm text-gray-500">${escapeHtml(q.service?.nama_layanan ?? '-')}</p>
+                                <p class="text-xs text-gray-400">${escapeHtml((q.status ?? '').charAt(0).toUpperCase() + (q.status ?? '').slice(1))} • ${tanggalJam} WIB</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
         }
 
         function setSubmittingState(submitting) {
@@ -614,8 +748,9 @@
                 const res = await fetch("{{ route('queue.my') }}");
                 if (!res.ok) return;
                 const data = await res.json();
-                if (data?.role !== 'dosen') return;
+                if (data?.role !== 'pejabat') return;
                 renderDosenQueues(Array.isArray(data.queues) ? data.queues : []);
+                renderDosenHistoryQueues(Array.isArray(data.history_queues) ? data.history_queues : []);
                 renderDosenStats(data.stats ?? {});
             } catch (e) {
                 console.error(e);
@@ -671,6 +806,16 @@
 
         openBtns.forEach(b => b.addEventListener('click', () => toggleQueue('open')));
         closeBtns.forEach(b => b.addEventListener('click', () => toggleQueue('closed')));
+        if (historyDateFilter) {
+            historyDateFilter.addEventListener('change', () => renderDosenHistoryQueues(historyQueuesCache));
+        }
+        if (historyDateReset && historyDateFilter) {
+            historyDateReset.addEventListener('click', () => {
+                historyDateFilter.value = '';
+                renderDosenHistoryQueues(historyQueuesCache);
+            });
+        }
+        renderDosenHistoryQueues(historyQueuesCache);
         updateStatus("{{ $data['queue_status'] ?? 'closed' }}");
         syncOwnStatus();
         syncDosenQueues();

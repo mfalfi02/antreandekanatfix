@@ -13,10 +13,10 @@
                 <i class="fa fa-arrow-left mr-2"></i> Kembali
             </a>
 
-            <button id="addUserBtn" 
+            <a href="{{ route('users.create') }}"
                class="inline-flex items-center px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition">
                 <i class="fa fa-plus mr-2"></i> Tambah Pengguna
-            </button>
+            </a>
         </div>
     </div>
 
@@ -30,7 +30,7 @@
                 <tr class="bg-gray-100 text-left">
                     <th class="px-4 py-2">Role</th>
                     <th class="px-4 py-2">Nama</th>
-                    <th class="px-4 py-2">Email / Kode</th>
+                    <th class="px-4 py-2">Identitas</th>
                     <th class="px-4 py-2">Status</th>
                     <th class="px-4 py-2">Aksi</th>
                 </tr>
@@ -41,23 +41,48 @@
                         $role = ucfirst($user->role);
                         $status = $user->status == 'aktif' ? 'Aktif' : 'Tidak Aktif';
                         $badgeClass = $user->status == 'aktif' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+                        $roleBadgeClass = match ($user->role) {
+                            'admin' => 'bg-slate-100 text-slate-700',
+                            'pejabat' => 'bg-blue-100 text-blue-700',
+                            'dosen' => 'bg-indigo-100 text-indigo-700',
+                            default => 'bg-amber-100 text-amber-700',
+                        };
                     @endphp
                     <tr>
-                        <td class="px-4 py-2 font-semibold">{{ $role }}</td>
-                        <td class="px-4 py-2">{{ $user->name }}</td>
-                        <td class="px-4 py-2">{{ $user->email ?? $user->kode }}</td>
+                        <td class="px-4 py-2">
+                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold {{ $roleBadgeClass }}">
+                                <i class="fa-solid {{ $user->role === 'mahasiswa' ? 'fa-user-graduate' : 'fa-user' }}"></i>
+                                {{ $role }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-2 font-medium text-gray-800">{{ $user->name }}</td>
+                        <td class="px-4 py-2">
+                            <p class="text-sm text-gray-700">{{ $user->email ?? '-' }}</p>
+                            <p class="text-xs text-gray-500">Kode: {{ $user->kode }}</p>
+                            @if (in_array($user->role, ['dosen', 'pejabat'], true) && $user->jabatan)
+                                <p class="text-xs text-slate-600 inline-flex items-center gap-1 mt-0.5">
+                                    <i class="fa-solid fa-id-badge text-slate-400"></i> {{ $user->jabatan }}
+                                </p>
+                            @endif
+                            @if ($user->role === 'pejabat' && $user->ruangan)
+                                <p class="text-xs text-slate-600 inline-flex items-center gap-1 mt-0.5">
+                                    <i class="fa-solid fa-door-open text-slate-400"></i> {{ $user->ruangan }}
+                                </p>
+                            @endif
+                            @if ($user->role === 'mahasiswa')
+                                <p class="text-xs text-slate-600 inline-flex items-center gap-1 mt-0.5">
+                                    <i class="fa-solid fa-user-graduate text-slate-400"></i> {{ $user->jabatan ?? 'Mahasiswa' }}
+                                </p>
+                            @endif
+                        </td>
                         <td class="px-4 py-2">
                             <span class="px-2 py-1 rounded-full text-xs font-semibold {{ $badgeClass }}">{{ $status }}</span>
                         </td>
                         <td class="px-4 py-2 space-x-2">
-                            <button class="editBtn bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600"
-                                data-kode="{{ $user->kode }}"
-                                data-role="{{ $role }}"
-                                data-name="{{ $user->name }}"
-                                data-email="{{ $user->email ?? '' }}"
-                                data-status="{{ $status }}">
+                            <a href="{{ route('users.edit', $user->kode) }}"
+                                class="inline-flex items-center bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600">
                                 Edit
-                            </button>
+                            </a>
 
                             <form action="{{ route('users.destroy', $user->kode) }}" method="POST" class="inline">
                                 @csrf
@@ -73,79 +98,4 @@
     </div>
 </div>
 
-{{-- Modal Tambah/Edit --}}
-<div id="userModal" class="fixed inset-0 bg-black bg-opacity-50 hidden justify-center items-center z-50">
-    <div class="bg-white p-6 rounded-xl w-full max-w-lg relative shadow-xl">
-        <h3 id="modalTitle" class="text-2xl font-bold mb-4">Tambah Pengguna</h3>
-        <form id="userForm" method="POST">
-            @csrf
-            <input type="hidden" name="_method" id="formMethod" value="POST">
-
-            <label class="block mb-2">Role</label>
-            <select name="role" id="roleField" class="w-full border-gray-300 rounded-lg mb-4" required>
-                <option value="">Pilih Role</option>
-                <option value="Admin">Admin</option>
-                <option value="Dosen">Dosen</option>
-                <option value="Mahasiswa">Mahasiswa</option>
-            </select>
-
-            <label class="block mb-2">Nama</label>
-            <input type="text" name="name" id="nameField" class="w-full border-gray-300 rounded-lg mb-4" required>
-
-            <label class="block mb-2">Email</label>
-            <input type="email" name="email" id="emailField" class="w-full border-gray-300 rounded-lg mb-4">
-
-            <label class="block mb-2">Password</label>
-            <input type="password" name="password" id="passwordField" class="w-full border-gray-300 rounded-lg mb-4">
-
-            <div class="flex justify-end gap-2">
-                <button type="button" id="closeModal" class="px-4 py-2 rounded-lg bg-gray-300 hover:bg-gray-400">Batal</button>
-                <button type="submit" class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700">Simpan</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<script>
-const addUserBtn = document.getElementById('addUserBtn');
-const userModal = document.getElementById('userModal');
-const closeModal = document.getElementById('closeModal');
-const roleField = document.getElementById('roleField');
-
-// Buka modal Tambah
-addUserBtn.addEventListener('click', () => {
-    userModal.classList.remove('hidden');
-    document.getElementById('modalTitle').innerText = "Tambah Pengguna";
-    document.getElementById('userForm').action = "{{ route('users.store') }}";
-    document.getElementById('formMethod').value = "POST";
-    document.getElementById('userForm').reset();
-});
-
-// Tutup modal
-closeModal.addEventListener('click', () => {
-    userModal.classList.add('hidden');
-});
-
-// Edit User
-document.querySelectorAll('.editBtn').forEach(btn => {
-    btn.addEventListener('click', () => {
-        const kode = btn.dataset.kode;
-        const role = btn.dataset.role;
-        const name = btn.dataset.name;
-        const email = btn.dataset.email;
-        const status = btn.dataset.status;
-
-        document.getElementById('modalTitle').innerText = "Edit Pengguna";
-        document.getElementById('userForm').action = `/admin/users/${kode}`;
-        document.getElementById('formMethod').value = "PUT";
-
-        roleField.value = role;
-        document.getElementById('nameField').value = name;
-        document.getElementById('emailField').value = email;
-        document.getElementById('passwordField').value = "";
-
-        userModal.classList.remove('hidden');
-    });
-});
-</script>
 @endsection

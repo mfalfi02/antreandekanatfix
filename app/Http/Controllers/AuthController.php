@@ -47,12 +47,24 @@ class AuthController extends Controller
     public function mahasiswa()
     {
         $user = Auth::user();
-        $todayJakarta = Carbon::now('Asia/Jakarta')->toDateString();
+        if (!$user) {
+            return redirect()->route('login');
+        }
 
+        if ($user->role === 'admin') {
+            return redirect()->route('adm');
+        }
+
+        $today = Carbon::now('Asia/Jakarta')->toDateString();
         $myQueues = Queue::with(['user', 'service', 'dosen'])
                         ->where('kode_user', $user->kode)
-                        ->whereDate('created_at', $todayJakarta)
-                        ->orderBy('created_at', 'asc')
+                        ->whereDate('created_at', $today)
+                        ->latest('created_at')
+                        ->get();
+        $historyQueues = Queue::with(['user', 'service', 'dosen'])
+                        ->where('kode_user', $user->kode)
+                        ->whereDate('created_at', '<', $today)
+                        ->latest('created_at')
                         ->get();
 
         $pejabat = User::where('role', 'pejabat')->where('status', 'aktif')->get();
@@ -71,6 +83,7 @@ class AuthController extends Controller
             'allUsers' => User::all(),
             'services' => Service::all(),
             'myQueues' => $myQueues,
+            'historyQueues' => $historyQueues,
             'activeQueues' => $myQueues->where('status', 'menunggu')->count(),
             'completedQueues' => $myQueues->where('status', 'selesai')->count(),
             'pejabat' => $pejabat,
@@ -91,16 +104,24 @@ class AuthController extends Controller
             return redirect()->route('login');
         }
 
-        // Role dosen disamakan dengan mahasiswa, jadi selalu gunakan dashboard mahasiswa.
-        if ($user->role === 'dosen') {
+        if ($user->role === 'admin') {
+            return redirect()->route('adm');
+        }
+
+        // Selain pejabat diperlakukan sebagai pengantre.
+        if ($user->role !== 'pejabat') {
             return $this->mahasiswa();
         }
-        $todayJakarta = Carbon::now('Asia/Jakarta')->toDateString();
-
+        $today = Carbon::now('Asia/Jakarta')->toDateString();
         $myQueues = Queue::with(['user', 'service'])
             ->where('kode_dosen', $user->kode)
-            ->whereDate('created_at', $todayJakarta)
-            ->orderBy('created_at', 'asc')
+            ->whereDate('created_at', $today)
+            ->latest('created_at')
+            ->get();
+        $historyQueues = Queue::with(['user', 'service'])
+            ->where('kode_dosen', $user->kode)
+            ->whereDate('created_at', '<', $today)
+            ->latest('created_at')
             ->get();
 
         $currentServingQueue = $myQueues->firstWhere('status', 'diproses');
@@ -111,6 +132,7 @@ class AuthController extends Controller
             'user' => $user,
             'services' => Service::all(),
             'myQueues' => $myQueues,
+            'historyQueues' => $historyQueues,
             'activeQueues' => $myQueues->whereIn('status', ['menunggu', 'diproses'])->count(),
             'completedQueues' => $myQueues->where('status', 'selesai')->count(),
             'queue_status' => $this->statusDetailForUser($user->kode)['queue_status'],

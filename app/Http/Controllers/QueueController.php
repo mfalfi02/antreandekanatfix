@@ -29,7 +29,7 @@ class QueueController extends Controller
         ]);
 
         $user = Auth::user();
-        if (!$user || !in_array($user->role, ['pejabat', 'dosen'], true)) {
+        if (!$this->isPejabat($user)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized',
@@ -141,7 +141,7 @@ class QueueController extends Controller
     public function status()
     {
         $kode = request()->query('kode');
-        if (!$kode && Auth::check() && in_array(Auth::user()->role, ['pejabat', 'dosen'], true)) {
+        if (!$kode && Auth::check() && $this->isPejabat(Auth::user())) {
             $kode = Auth::user()->kode;
         }
 
@@ -172,7 +172,7 @@ class QueueController extends Controller
     public function callQueue(Queue $queue)
     {
         $user = Auth::user();
-        if (!$user || !in_array($user->role, ['pejabat', 'dosen'], true)) {
+        if (!$this->isPejabat($user)) {
             return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }
 
@@ -229,7 +229,7 @@ class QueueController extends Controller
     public function completeQueue(Queue $queue)
     {
         $user = Auth::user();
-        if (!$user || !in_array($user->role, ['pejabat', 'dosen'], true)) {
+        if (!$this->isPejabat($user)) {
             return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }
 
@@ -301,15 +301,22 @@ class QueueController extends Controller
                 ->with(['user', 'service'])
                 ->where('kode_dosen', $user->kode)
                 ->whereDate('created_at', $today)
-                ->orderBy('created_at', 'asc')
+                ->latest('created_at')
+                ->get();
+            $historyQueues = Queue::query()
+                ->with(['user', 'service'])
+                ->where('kode_dosen', $user->kode)
+                ->whereDate('created_at', '<', $today)
+                ->latest('created_at')
                 ->get();
 
             $currentServing = $queues->firstWhere('status', 'diproses');
 
             return response()->json([
                 'success' => true,
-                'role' => 'dosen',
+                'role' => 'pejabat',
                 'queues' => $queues,
+                'history_queues' => $historyQueues,
                 'stats' => [
                     'active' => $queues->whereIn('status', ['menunggu', 'diproses'])->count(),
                     'completed' => $queues->where('status', 'selesai')->count(),
@@ -324,6 +331,12 @@ class QueueController extends Controller
                 ->with(['service', 'dosen'])
                 ->where('kode_user', $user->kode)
                 ->whereDate('created_at', $today)
+                ->latest('created_at')
+                ->get();
+            $historyQueues = Queue::query()
+                ->with(['service', 'dosen'])
+                ->where('kode_user', $user->kode)
+                ->whereDate('created_at', '<', $today)
                 ->latest('created_at')
                 ->get();
 
@@ -355,6 +368,7 @@ class QueueController extends Controller
                 'success' => true,
                 'role' => $user->role,
                 'queues' => $queues,
+                'history_queues' => $historyQueues,
             ]);
         }
 
@@ -363,6 +377,11 @@ class QueueController extends Controller
             'role' => $user->role,
             'queues' => [],
         ]);
+    }
+
+    private function isPejabat(?User $user): bool
+    {
+        return $user && $user->role === 'pejabat';
     }
 
     private function statusDetailForUser(string $kode): array

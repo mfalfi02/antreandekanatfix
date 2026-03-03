@@ -62,9 +62,15 @@
             @enderror
         </div>
 
+        <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">Konfirmasi Password <span class="text-gray-400 text-xs">(Isi jika password diubah)</span></label>
+            <input type="password" name="password_confirmation"
+                class="w-full border border-blue-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+        </div>
+
         {{-- Role --}}
         <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-1">Role</label>
+            <label class="block text-sm font-semibold text-gray-700 mb-1 inline-flex items-center gap-2"><i class="fa-solid fa-user-tag text-slate-400"></i>Role</label>
             <select name="role" id="role" class="w-full border border-blue-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" required>
                 <option value="">Pilih Role</option>
                 <option value="mahasiswa" {{ old('role', $user->role)=='mahasiswa' ? 'selected' : '' }}>Mahasiswa</option>
@@ -72,6 +78,9 @@
                 <option value="pejabat" {{ old('role', $user->role)=='pejabat' ? 'selected' : '' }}>Pejabat</option>
                 <option value="admin" {{ old('role', $user->role)=='admin' ? 'selected' : '' }}>Admin</option>
             </select>
+            <p id="role-hint-edit" class="text-xs text-slate-500 mt-1 {{ old('role', $user->role) === 'mahasiswa' ? '' : 'hidden' }}">
+                <i class="fa-solid fa-user-graduate text-slate-400 mr-1"></i>Role mahasiswa berfungsi sebagai pengantre.
+            </p>
             @error('role')
                 <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
             @enderror
@@ -79,9 +88,25 @@
 
         {{-- Jabatan (untuk dosen/pejabat) --}}
         <div id="jabatan-fields" class="{{ in_array(old('role', $user->role), ['dosen','pejabat']) ? '' : 'hidden' }}">
-            <label class="block text-sm font-semibold text-gray-700 mb-1">Jabatan</label>
+            <label class="block text-sm font-semibold text-gray-700 mb-1 inline-flex items-center gap-2"><i class="fa-solid fa-id-badge text-slate-400"></i>Jabatan</label>
             <input type="text" name="jabatan" value="{{ old('jabatan', $user->jabatan) }}" 
                 class="w-full border border-blue-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+            @error('jabatan')
+                <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+            @enderror
+        </div>
+
+        {{-- Ruangan (khusus pejabat) --}}
+        <div id="ruangan-fields" class="{{ old('role', $user->role) === 'pejabat' ? '' : 'hidden' }}">
+            <label class="block text-sm font-semibold text-gray-700 mb-1 inline-flex items-center gap-2">
+                <i class="fa-solid fa-door-open text-slate-400"></i>Ruangan <span id="ruangan-required-label" class="text-red-500 {{ old('role', $user->role) === 'pejabat' ? '' : 'hidden' }}">*</span>
+            </label>
+            <input type="text" name="ruangan" value="{{ old('ruangan', $user->ruangan) }}"
+                class="w-full border border-blue-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+            <p class="text-xs text-gray-500 mt-1">Wajib diisi untuk role pejabat.</p>
+            @error('ruangan')
+                <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+            @enderror
         </div>
 
         {{-- Status --}}
@@ -91,6 +116,9 @@
                 <option value="aktif" {{ old('status', $user->status)=='aktif' ? 'selected' : '' }}>Aktif</option>
                 <option value="nonaktif" {{ old('status', $user->status)=='nonaktif' ? 'selected' : '' }}>Nonaktif</option>
             </select>
+            @error('status')
+                <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+            @enderror
         </div>
 
         {{-- Submit --}}
@@ -103,13 +131,29 @@
 </div>
 
 <script>
-document.getElementById('role').addEventListener('change', function() {
-    const jabatan = document.getElementById('jabatan-fields');
-    if(this.value === 'dosen' || this.value === 'pejabat') {
-        jabatan.classList.remove('hidden');
-    } else {
-        jabatan.classList.add('hidden');
-    }
+const editRoleField = document.getElementById('role');
+const editJabatanField = document.getElementById('jabatan-fields');
+const editRuanganField = document.getElementById('ruangan-fields');
+const editRuanganLabel = document.getElementById('ruangan-required-label');
+const editRuanganInput = document.querySelector('input[name="ruangan"]');
+const roleHintEdit = document.getElementById('role-hint-edit');
+
+function syncEditRoleFields(role) {
+    const showJabatan = role === 'dosen' || role === 'pejabat';
+    const showRuangan = role === 'pejabat';
+    const showMahasiswaHint = role === 'mahasiswa';
+
+    editJabatanField.classList.toggle('hidden', !showJabatan);
+    editRuanganField.classList.toggle('hidden', !showRuangan);
+    editRuanganLabel.classList.toggle('hidden', !showRuangan);
+    editRuanganInput.required = showRuangan;
+    roleHintEdit.classList.toggle('hidden', !showMahasiswaHint);
+}
+
+editRoleField.addEventListener('change', function() {
+    syncEditRoleFields(this.value);
 });
+
+syncEditRoleFields(editRoleField.value);
 </script>
 @endsection

@@ -70,7 +70,7 @@
 
             {{-- Role --}}
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                <label class="block text-sm font-medium text-gray-700 mb-1 inline-flex items-center gap-2"><i class="fa-solid fa-user-tag text-slate-400"></i>Role</label>
                 <select name="role" id="role"
                     class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                     required>
@@ -80,21 +80,29 @@
                     <option value="pejabat" {{ old('role')=='pejabat' ? 'selected' : '' }}>Pejabat</option>
                     <option value="admin" {{ old('role')=='admin' ? 'selected' : '' }}>Admin</option>
                 </select>
+                <p id="role-hint-create" class="text-xs text-slate-500 mt-1 {{ old('role') === 'mahasiswa' ? '' : 'hidden' }}">
+                    <i class="fa-solid fa-user-graduate text-slate-400 mr-1"></i>Role mahasiswa berfungsi sebagai pengantre.
+                </p>
                 @error('role') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
             </div>
 
             {{-- Jabatan --}}
-            <div id="jabatan-fields" class="hidden">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Jabatan</label>
+            <div id="jabatan-fields" class="{{ in_array(old('role'), ['dosen', 'pejabat'], true) ? '' : 'hidden' }}">
+                <label class="block text-sm font-medium text-gray-700 mb-1 inline-flex items-center gap-2"><i class="fa-solid fa-id-badge text-slate-400"></i>Jabatan</label>
                 <input type="text" name="jabatan" value="{{ old('jabatan') }}"
                     class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                @error('jabatan') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
             </div>
 
             {{-- Ruangan --}}
-            <div id="ruangan-fields" class="hidden">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Ruangan</label>
+            <div id="ruangan-fields" class="{{ old('role') === 'pejabat' ? '' : 'hidden' }}">
+                <label class="block text-sm font-medium text-gray-700 mb-1 inline-flex items-center gap-2">
+                    <i class="fa-solid fa-door-open text-slate-400"></i>Ruangan <span id="ruangan-required-label" class="text-red-500 {{ old('role') === 'pejabat' ? '' : 'hidden' }}">*</span>
+                </label>
                 <input type="text" name="ruangan" value="{{ old('ruangan') }}"
                     class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                <p class="text-xs text-gray-500 mt-1">Wajib diisi untuk role pejabat.</p>
+                @error('ruangan') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
             </div>
 
             {{-- Status --}}
@@ -105,6 +113,7 @@
                     <option value="aktif" {{ old('status')=='aktif' ? 'selected' : '' }}>Aktif</option>
                     <option value="nonaktif" {{ old('status')=='nonaktif' ? 'selected' : '' }}>Nonaktif</option>
                 </select>
+                @error('status') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
             </div>
 
             {{-- Submit --}}
@@ -119,17 +128,29 @@
 </div>
 
 <script>
-document.getElementById('role').addEventListener('change', function() {
-    const jabatan = document.getElementById('jabatan-fields');
-    const ruangan = document.getElementById('ruangan-fields');
+const roleField = document.getElementById('role');
+const jabatanField = document.getElementById('jabatan-fields');
+const ruanganField = document.getElementById('ruangan-fields');
+const ruanganLabel = document.getElementById('ruangan-required-label');
+const ruanganInput = document.querySelector('input[name="ruangan"]');
+const roleHintCreate = document.getElementById('role-hint-create');
 
-    if (this.value === 'dosen' || this.value === 'pejabat') {
-        jabatan.classList.remove('hidden');
-        ruangan.classList.remove('hidden');
-    } else {
-        jabatan.classList.add('hidden');
-        ruangan.classList.add('hidden');
-    }
+function syncRoleFields(role) {
+    const showJabatan = role === 'dosen' || role === 'pejabat';
+    const showRuangan = role === 'pejabat';
+    const showMahasiswaHint = role === 'mahasiswa';
+
+    jabatanField.classList.toggle('hidden', !showJabatan);
+    ruanganField.classList.toggle('hidden', !showRuangan);
+    ruanganLabel.classList.toggle('hidden', !showRuangan);
+    ruanganInput.required = showRuangan;
+    roleHintCreate.classList.toggle('hidden', !showMahasiswaHint);
+}
+
+roleField.addEventListener('change', function() {
+    syncRoleFields(this.value);
 });
+
+syncRoleFields(roleField.value);
 </script>
 @endsection

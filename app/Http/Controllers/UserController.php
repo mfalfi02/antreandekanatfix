@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
@@ -20,30 +21,30 @@ class UserController extends Controller
 
     public function store(Request $request)
     {
-        // validasi input
-       $request->validate([
-        'kode' => 'required|unique:users,kode',
-        'name' => 'required|string|max:255',
-        'email' => 'required|email|unique:users,email',
-        'role' => 'required|in:admin,dosen,mahasiswa,pejabat',
-        'password' => 'required|string|min:6',
-        'jabatan' => 'nullable|string|max:255',
-        'ruangan' => 'nullable|string|max:255',
-    ]);
+        $validated = $request->validate([
+            'kode' => 'required|string|max:20|unique:users,kode',
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|max:255|unique:users,email',
+            'role' => 'required|in:admin,dosen,mahasiswa,pejabat',
+            'password' => 'required|string|min:6|confirmed',
+            'jabatan' => 'nullable|string|max:255',
+            'ruangan' => 'nullable|string|max:255|required_if:role,pejabat',
+            'status' => 'required|in:aktif,nonaktif',
+        ]);
 
-        // simpan user baru
         User::create([
-        'kode' => $request->kode,
-        'name' => $request->name,
-        'email' => $request->email,
-        'role' => $request->role,
-        'password' => bcrypt($request->password),
-        'jabatan' => $request->jabatan,
-        'ruangan' => $request->ruangan,
-    ]);
+            'kode' => $validated['kode'],
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'role' => $validated['role'],
+            'password' => bcrypt($validated['password']),
+            'jabatan' => in_array($validated['role'], ['dosen', 'pejabat'], true) ? ($validated['jabatan'] ?? null) : null,
+            'ruangan' => $validated['role'] === 'pejabat' ? ($validated['ruangan'] ?? null) : null,
+            'status' => $validated['status'],
+        ]);
 
-    return redirect()->route('users.index')->with('success', 'User berhasil ditambahkan!');
-}
+        return redirect()->route('users.index')->with('success', 'User berhasil ditambahkan!');
+    }
 
    public function edit($kode)
     {
@@ -53,34 +54,46 @@ class UserController extends Controller
 
     // Update user
    public function update(Request $request, $kode)
-{
-    $user = User::where('kode', $kode)->firstOrFail();
+    {
+        $user = User::where('kode', $kode)->firstOrFail();
 
-    $request->validate([
-        'kode' => 'required|string|unique:users,kode,' . $user->kode . ',kode',
-        'name' => 'required|string|max:255',
-        'email' => 'nullable|email|unique:users,email,' . $user->kode . ',kode',
-        'role' => 'required|in:admin,dosen,mahasiswa,pejabat',
-        'jabatan' => 'nullable|string|max:255',
-        'status' => 'required|in:aktif,nonaktif',
-        'password' => 'nullable|string|min:6',
-    ]);
+        $validated = $request->validate([
+            'kode' => [
+                'required',
+                'string',
+                'max:20',
+                Rule::unique('users', 'kode')->ignore($user->kode, 'kode'),
+            ],
+            'name' => 'required|string|max:255',
+            'email' => [
+                'required',
+                'email',
+                'max:255',
+                Rule::unique('users', 'email')->ignore($user->kode, 'kode'),
+            ],
+            'role' => 'required|in:admin,dosen,mahasiswa,pejabat',
+            'jabatan' => 'nullable|string|max:255',
+            'ruangan' => 'nullable|string|max:255|required_if:role,pejabat',
+            'status' => 'required|in:aktif,nonaktif',
+            'password' => 'nullable|string|min:6|confirmed',
+        ]);
 
-    $user->kode = $request->kode;
-    $user->name = $request->name;
-    $user->email = $request->email;
-    $user->role = $request->role;
-    $user->jabatan = $request->jabatan;
-    $user->status = $request->status;
+        $user->kode = $validated['kode'];
+        $user->name = $validated['name'];
+        $user->email = $validated['email'];
+        $user->role = $validated['role'];
+        $user->jabatan = in_array($validated['role'], ['dosen', 'pejabat'], true) ? ($validated['jabatan'] ?? null) : null;
+        $user->ruangan = $validated['role'] === 'pejabat' ? ($validated['ruangan'] ?? null) : null;
+        $user->status = $validated['status'];
 
-    if ($request->password) {
-        $user->password = bcrypt($request->password);
+        if (!empty($validated['password'])) {
+            $user->password = bcrypt($validated['password']);
+        }
+
+        $user->save();
+
+        return redirect()->route('users.index')->with('success', 'Pengguna berhasil diperbarui!');
     }
-
-    $user->save();
-
-    return redirect()->route('users.index')->with('success', 'Pengguna berhasil diperbarui!');
-}
 
     public function destroy($kode)
     {
