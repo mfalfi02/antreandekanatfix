@@ -211,7 +211,7 @@
                                 <th class="px-3 py-3 text-left">Jenis Layanan</th>
                                 <th class="px-3 py-3 text-center">Status</th>
                                 <th class="px-3 py-3 text-center">Expected Buka</th>
-                                <th class="px-3 py-3 text-center">Expected Tutup</th>
+                                <th class="px-3 py-3 text-center">Perkiraan Tutup</th>
                                 <th class="px-3 py-3 text-center">Jam Buka</th>
                                 <th class="px-3 py-3 text-center">Jam Tutup</th>
                             </tr>

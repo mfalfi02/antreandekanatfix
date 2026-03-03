@@ -55,7 +55,7 @@ class AuthController extends Controller
                         ->orderBy('created_at', 'asc')
                         ->get();
 
-        $pejabat = User::whereIn('role', ['pejabat', 'dosen'])->where('status', 'aktif')->get();
+        $pejabat = User::where('role', 'pejabat')->where('status', 'aktif')->get();
         $pejabatStatuses = [];
         $pejabatServices = [];
         $pejabatExpectedClose = [];

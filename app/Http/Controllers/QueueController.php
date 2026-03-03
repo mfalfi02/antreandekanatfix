@@ -54,7 +54,7 @@ class QueueController extends Controller
         if (in_array($status, ['open', 'occupied'], true) && !$expectedJamTutupInput) {
             return response()->json([
                 'success' => false,
-                'message' => 'Expected jam tutup wajib diisi sebelum membuka antrean.',
+                'message' => 'Perkiraan jam tutup wajib diisi sebelum membuka antrean.',
             ], 422);
         }
 
@@ -89,7 +89,7 @@ class QueueController extends Controller
             if ($closeTime->lessThanOrEqualTo($openTime)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Expected jam tutup harus lebih besar dari jam buka.',
+                    'message' => 'Perkiraan jam tutup harus lebih besar dari jam buka.',
                 ], 422);
             }
 
@@ -327,6 +327,30 @@ class QueueController extends Controller
                 ->latest('created_at')
                 ->get();
 
+            // Estimasi tunggu dihitung dari total estimasi service pengantre aktif sebelumnya (per dosen, hari ini).
+            $activeByDosen = Queue::query()
+                ->with('service:id,est')
+                ->whereDate('created_at', $today)
+                ->whereIn('status', ['menunggu', 'diproses'])
+                ->orderBy('created_at', 'asc')
+                ->get()
+                ->groupBy('kode_dosen');
+
+            $waitMap = [];
+            foreach ($activeByDosen as $kodeDosen => $rows) {
+                $acc = 0;
+                foreach ($rows as $row) {
+                    $isInProgress = $row->status === 'diproses';
+                    $waitMap[$row->id] = $isInProgress ? 0 : $acc;
+                    $acc += (int) ($row->service?->est ?? 0);
+                }
+            }
+
+            $queues = $queues->map(function (Queue $queue) use ($waitMap) {
+                $queue->estimated_wait_minutes = (int) ($waitMap[$queue->id] ?? 0);
+                return $queue;
+            })->values();
+
             return response()->json([
                 'success' => true,
                 'role' => 'mahasiswa',
@@ -360,7 +384,7 @@ class QueueController extends Controller
     private function statusesForPejabat(): array
     {
         $users = User::query()
-            ->whereIn('role', ['pejabat', 'dosen'])
+            ->where('role', 'pejabat')
             ->where('status', 'aktif')
             ->get(['kode', 'name', 'role']);
 

@@ -340,7 +340,7 @@
 
                         <div class="mt-2 space-y-1">
                             <p class="text-xs text-blue-700">Jenis Layanan: ${escapeHtml(d.service?.nama_layanan ?? '-')}</p>
-                            <p class="text-xs text-indigo-700">Expected Tutup: ${escapeHtml(d.waktu?.expected_jam_tutup ?? '-')}</p>
+                            <p class="text-xs text-indigo-700">Perkiraan Tutup: ${escapeHtml(d.waktu?.expected_jam_tutup ?? '-')}</p>
                         </div>
 
                         <div class="grid grid-cols-4 gap-2 mt-3 text-center">

@@ -227,7 +227,7 @@
                                 Jenis Layanan: {{ $servicePejabat ?: '-' }}
                             </p>
                             <p id="expected-close-pejabat-{{ $pejabat->kode }}" class="text-xs text-indigo-700">
-                                Expected Tutup: {{ $expectedClosePejabat ?: '-' }}
+                                Perkiraan Tutup: {{ $expectedClosePejabat ?: '-' }}
                             </p>
                         </div>
                     </div>
@@ -288,6 +288,54 @@
 
         {{-- FORM ANTREAN UNTUK MAHASISWA DAN DOSEN --}}
         @if (in_array($data['user']->role, ['mahasiswa', 'dosen']))
+            @if ($data['user']->role === 'mahasiswa')
+                @php
+                    $currentQueue = collect($data['myQueues'] ?? [])->first(function ($queue) {
+                        return in_array($queue->status ?? '', ['menunggu', 'diproses'], true);
+                    });
+                    $currentQueueStatus = match ($currentQueue->status ?? null) {
+                        'diproses' => 'Melayani',
+                        'menunggu' => 'Menunggu',
+                        default => 'Tidak ada antrean aktif',
+                    };
+                @endphp
+                <div class="panel p-6">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-4">Nomor Antrean Anda Saat Ini</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+                        <div class="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
+                            <p class="text-xs uppercase tracking-wide text-blue-700 font-semibold">Nomor</p>
+                            <p id="current-queue-number" class="mt-1 text-2xl font-extrabold text-blue-800">
+                                {{ $currentQueue ? '#' . $currentQueue->nomor_antrian : '-' }}
+                            </p>
+                        </div>
+                        <div class="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3">
+                            <p class="text-xs uppercase tracking-wide text-amber-700 font-semibold">Status</p>
+                            <p id="current-queue-status" class="mt-1 text-base font-bold text-amber-800">
+                                {{ $currentQueueStatus }}
+                            </p>
+                        </div>
+                        <div class="rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3">
+                            <p class="text-xs uppercase tracking-wide text-indigo-700 font-semibold">Layanan</p>
+                            <p id="current-queue-service" class="mt-1 text-sm font-semibold text-indigo-800">
+                                {{ $currentQueue->service->nama_layanan ?? '-' }}
+                            </p>
+                        </div>
+                        <div class="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3">
+                            <p class="text-xs uppercase tracking-wide text-emerald-700 font-semibold">Dosen</p>
+                            <p id="current-queue-dosen" class="mt-1 text-sm font-semibold text-emerald-800">
+                                {{ $currentQueue->dosen->name ?? '-' }}
+                            </p>
+                        </div>
+                        <div class="rounded-xl border border-fuchsia-100 bg-fuchsia-50 px-4 py-3">
+                            <p class="text-xs uppercase tracking-wide text-fuchsia-700 font-semibold">Estimasi Tunggu</p>
+                            <p id="current-queue-estimate" class="mt-1 text-sm font-semibold text-fuchsia-800">
+                                -
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {{-- Ambil Antrean --}}
                 <div class="panel p-6">
@@ -314,6 +362,7 @@
                             </select>
                             <i class="fa-solid fa-chevron-down combo-icon"></i>
                         </div>
+                        <p id="service-filter-hint" class="text-xs text-gray-500">Pilih dosen terlebih dahulu.</p>
 
                         <button id="join-queue-btn"
                             class="btn-brand w-full px-4 py-2">
@@ -324,7 +373,7 @@
 
                 {{-- Status Antrean --}}
                 <div class="panel p-6">
-                    <h2 class="text-xl font-semibold text-gray-900 mb-4">Antrean Anda</h2>
+                    <h2 class="text-xl font-semibold text-gray-900 mb-4">Riwayat Antrean Anda</h2>
                     <div id="my-queue-list" class="space-y-3 max-h-96 overflow-y-auto">
                         @forelse($data['myQueues'] as $queue)
                             <div class="p-3 border rounded-lg flex justify-between items-center">
@@ -383,10 +432,21 @@
         const serviceSelect = document.getElementById('service-select');
         const joinQueueBtn = document.getElementById('join-queue-btn');
         const myQueueList = document.getElementById('my-queue-list');
+        const serviceFilterHint = document.getElementById('service-filter-hint');
+        const currentQueueNumberEl = document.getElementById('current-queue-number');
+        const currentQueueStatusEl = document.getElementById('current-queue-status');
+        const currentQueueServiceEl = document.getElementById('current-queue-service');
+        const currentQueueDosenEl = document.getElementById('current-queue-dosen');
+        const currentQueueEstimateEl = document.getElementById('current-queue-estimate');
         const csrfToken = "{{ csrf_token() }}";
         const currentUserKode = "{{ $data['user']->kode }}";
         const currentUserRole = "{{ $data['user']->role }}";
         const deanStatusMap = @json($data['pejabat_statuses'] ?? []);
+        const deanServiceMap = {};
+        const allServiceOptions = serviceSelect ? Array.from(serviceSelect.options).map((opt) => ({
+            value: opt.value,
+            text: opt.text,
+        })) : [];
         let queueStatusById = new Map();
         let queuePollingInitialized = false;
         const notifiedQueueIds = new Set();
@@ -417,16 +477,60 @@
                                 `<span class="${badgeClass}"><i class="fa-solid ${icon}"></i>${item.queue_status_label}</span>`;
                         }
                         deanStatusMap[item.kode] = item.queue_status;
+                        deanServiceMap[item.kode] = item.service?.id ?? null;
                         if (serviceLine) {
                             serviceLine.textContent = `Jenis Layanan: ${item.service?.nama_layanan ?? '-'}`;
                         }
                         if (expectedCloseLine) {
-                            expectedCloseLine.textContent = `Expected Tutup: ${item.waktu?.expected_jam_tutup ?? '-'}`;
+                            expectedCloseLine.textContent = `Perkiraan Tutup: ${item.waktu?.expected_jam_tutup ?? '-'}`;
                         }
                     });
+                    syncServiceOptionsForSelectedDean();
                 }
             } catch (error) {
                 console.error(error);
+            }
+        }
+
+        function syncServiceOptionsForSelectedDean() {
+            if (!serviceSelect || !deanSelect) return;
+
+            const deanId = deanSelect.value;
+            const currentSelected = serviceSelect.value;
+            const status = deanStatusMap[deanId] ?? 'closed';
+            const openedServiceId = deanServiceMap[deanId];
+            let filteredOptions = allServiceOptions;
+
+            if (deanId && !['open', 'occupied'].includes(status)) {
+                // Ruangan dosen tutup: tetap tampil opsi, tapi informasikan lewat hint.
+                filteredOptions = allServiceOptions;
+                if (serviceFilterHint) {
+                    serviceFilterHint.textContent = 'Dosen ini sedang menutup antrean.';
+                }
+            } else if (deanId && openedServiceId !== null && openedServiceId !== undefined) {
+                // Dosen hanya membuka satu layanan: tampilkan placeholder + layanan tersebut.
+                filteredOptions = allServiceOptions.filter((opt) =>
+                    opt.value === '' || Number(opt.value) === Number(openedServiceId)
+                );
+                if (serviceFilterHint) {
+                    serviceFilterHint.textContent = 'Layanan difilter sesuai layanan yang dibuka dosen.';
+                }
+            } else {
+                // Dosen membuka semua layanan.
+                filteredOptions = allServiceOptions;
+                if (serviceFilterHint) {
+                    serviceFilterHint.textContent = deanId ? 'Dosen membuka semua jenis layanan.' : 'Pilih dosen terlebih dahulu.';
+                }
+            }
+
+            serviceSelect.innerHTML = filteredOptions
+                .map((opt) => `<option value="${escapeHtml(opt.value)}">${escapeHtml(opt.text)}</option>`)
+                .join('');
+
+            if (filteredOptions.some((opt) => String(opt.value) === String(currentSelected))) {
+                serviceSelect.value = currentSelected;
+            } else {
+                serviceSelect.value = '';
             }
         }
 
@@ -578,6 +682,27 @@
             }).join('');
         }
 
+        function renderCurrentQueueInfo(rows = []) {
+            if (!currentQueueNumberEl || !currentQueueStatusEl || !currentQueueServiceEl || !currentQueueDosenEl || !currentQueueEstimateEl) return;
+
+            const activeQueue = rows.find((q) => ['menunggu', 'diproses'].includes((q.status ?? '').toLowerCase()));
+            if (!activeQueue) {
+                currentQueueNumberEl.textContent = '-';
+                currentQueueStatusEl.textContent = 'Tidak ada antrean aktif';
+                currentQueueServiceEl.textContent = '-';
+                currentQueueDosenEl.textContent = '-';
+                currentQueueEstimateEl.textContent = '-';
+                return;
+            }
+
+            const status = (activeQueue.status ?? '').toLowerCase();
+            currentQueueNumberEl.textContent = activeQueue.nomor_antrian ? `#${activeQueue.nomor_antrian}` : '-';
+            currentQueueStatusEl.textContent = status === 'diproses' ? 'Melayani' : 'Menunggu';
+            currentQueueServiceEl.textContent = activeQueue.service?.nama_layanan ?? '-';
+            currentQueueDosenEl.textContent = activeQueue.dosen?.name ?? '-';
+            currentQueueEstimateEl.textContent = `${Number(activeQueue.estimated_wait_minutes ?? 0)} menit`;
+        }
+
         function detectQueueCalledFromPolling(rows = []) {
             if (currentUserRole !== 'mahasiswa') return;
 
@@ -620,6 +745,7 @@
                 if (data?.role !== 'mahasiswa') return;
                 const rows = Array.isArray(data.queues) ? data.queues : [];
                 renderMyQueueList(rows);
+                renderCurrentQueueInfo(rows);
                 detectQueueCalledFromPolling(rows);
                 queuePollingInitialized = true;
             } catch (error) {
@@ -645,6 +771,12 @@
 
             if (!serviceId) {
                 alert('Pilih jenis layanan terlebih dahulu.');
+                return;
+            }
+
+            const openedServiceId = deanServiceMap[deanId];
+            if (openedServiceId !== null && openedServiceId !== undefined && Number(openedServiceId) !== Number(serviceId)) {
+                alert('Layanan yang dipilih tidak sedang dibuka oleh dosen tersebut.');
                 return;
             }
 
@@ -685,6 +817,11 @@
         setInterval(syncMyQueues, 5000);
         updateMahasiswaClock();
         setInterval(updateMahasiswaClock, 1000);
+        syncServiceOptionsForSelectedDean();
+
+        if (deanSelect) {
+            deanSelect.addEventListener('change', syncServiceOptionsForSelectedDean);
+        }
 
         if (window.Echo) {
             window.Echo.channel('queue-status')

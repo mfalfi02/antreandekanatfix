@@ -194,7 +194,7 @@
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700">Expected Jam Tutup</label>
+                    <label class="block text-sm font-medium text-gray-700">Perkiraan Jam Tutup</label>
                     <div class="mt-2 flex items-center gap-2">
                         <input id="expected-close-input" type="text" placeholder="09.00"
                             class="block w-full px-3 py-2 border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
@@ -545,7 +545,7 @@
                 const expectedOpen = getCurrentTimeHHMM();
                 const expectedClose = normalizeIndoTime(expectedCloseInput?.value);
                 if (!expectedClose) {
-                    alert('Expected jam tutup wajib diisi sebelum membuka antrean.');
+                    alert('Perkiraan jam tutup wajib diisi sebelum membuka antrean.');
                     return;
                 }
                 if (selectedService === 'all') {
