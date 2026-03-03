@@ -303,7 +303,7 @@
                         <div>
                             <p class="font-semibold text-slate-900">${escapeHtml(q.user?.name ?? q.nama ?? '-')}</p>
                             <p class="text-sm text-slate-600">${escapeHtml(q.service?.nama_layanan ?? '-')}</p>
-                            <p class="text-xs text-slate-500">Dosen: ${escapeHtml(q.dosen?.name ?? '-')}</p>
+                            <p class="text-xs text-slate-500">Dosen: ${escapeHtml(q.dosen?.name ?? '-')} (${escapeHtml(q.dosen?.kode ?? '-')})</p>
                         </div>
                         <span class="${labelClass}">${labelText}</span>
                     </li>
@@ -330,6 +330,7 @@
                         <div class="flex items-start justify-between gap-3">
                             <div>
                                 <p class="font-semibold text-slate-900">${escapeHtml(d.name ?? '-')}</p>
+                                <p class="text-xs text-blue-700 font-semibold">Kode: ${escapeHtml(d.kode ?? '-')}</p>
                                 <p class="text-xs text-slate-500">${escapeHtml(d.jabatan ?? '-')} • ${escapeHtml(d.ruangan ?? '-')}</p>
                             </div>
                             <span class="${statusClass}">
@@ -353,12 +354,14 @@
                                 <p class="text-sm font-extrabold text-blue-700">${summary.nomor_terakhir ? '#' + summary.nomor_terakhir : '-'}</p>
                             </div>
                             <div class="rounded-md bg-amber-50 px-2 py-2">
-                                <p class="text-[11px] text-slate-500">Menunggu</p>
+                                <p class="text-[11px] text-slate-500">Menunggu (User)</p>
                                 <p class="text-sm font-extrabold text-amber-700">${summary.menunggu ?? 0}</p>
+                                <p class="text-[10px] text-amber-700/80">Mhs: ${summary.menunggu_mahasiswa ?? 0}</p>
                             </div>
                             <div class="rounded-md bg-emerald-50 px-2 py-2">
-                                <p class="text-[11px] text-slate-500">Total</p>
+                                <p class="text-[11px] text-slate-500">Total (User)</p>
                                 <p class="text-sm font-extrabold text-emerald-700">${summary.total_hari_ini ?? 0}</p>
+                                <p class="text-[10px] text-emerald-700/80">Mhs: ${summary.total_hari_ini_mahasiswa ?? 0}</p>
                             </div>
                         </div>
                     </li>

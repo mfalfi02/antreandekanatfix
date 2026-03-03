@@ -296,7 +296,7 @@ class QueueController extends Controller
 
         $today = Carbon::now('Asia/Jakarta')->toDateString();
 
-        if (in_array($user->role, ['pejabat', 'dosen'], true)) {
+        if ($user->role === 'pejabat') {
             $queues = Queue::query()
                 ->with(['user', 'service'])
                 ->where('kode_dosen', $user->kode)
@@ -319,7 +319,7 @@ class QueueController extends Controller
             ]);
         }
 
-        if ($user->role === 'mahasiswa') {
+        if (in_array($user->role, ['mahasiswa', 'dosen'], true)) {
             $queues = Queue::query()
                 ->with(['service', 'dosen'])
                 ->where('kode_user', $user->kode)
@@ -353,7 +353,7 @@ class QueueController extends Controller
 
             return response()->json([
                 'success' => true,
-                'role' => 'mahasiswa',
+                'role' => $user->role,
                 'queues' => $queues,
             ]);
         }

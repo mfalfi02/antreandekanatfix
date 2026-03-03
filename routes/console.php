@@ -2,6 +2,7 @@
 
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use App\Models\Queue;
 use App\Models\RuangAntri;
 use Illuminate\Support\Carbon;
@@ -121,3 +122,76 @@ Artisan::command('queues:backfill-kode-dosen {--date=} {--dry-run}', function ()
 
     return self::SUCCESS;
 })->purpose('Backfill queues.kode_dosen untuk data historis berdasarkan ruang antrean');
+
+Artisan::command('queues:renumber-per-dosen {--date=} {--dry-run}', function () {
+    $dateFilter = $this->option('date') ?: Carbon::now('Asia/Jakarta')->toDateString();
+    $dryRun = (bool) $this->option('dry-run');
+
+    try {
+        Carbon::createFromFormat('Y-m-d', $dateFilter);
+    } catch (\Throwable $e) {
+        $this->error('Format --date harus YYYY-MM-DD.');
+        return self::FAILURE;
+    }
+
+    $baseQuery = Queue::query()
+        ->whereDate('created_at', $dateFilter)
+        ->whereNotNull('kode_dosen');
+
+    $total = (clone $baseQuery)->count();
+    if ($total === 0) {
+        $this->info("Tidak ada queue pada tanggal {$dateFilter}.");
+        return self::SUCCESS;
+    }
+
+    $this->info("Renumber antrean per dosen untuk tanggal {$dateFilter}...");
+    if ($dryRun) {
+        $this->comment('Mode dry-run aktif, tidak ada perubahan database.');
+    }
+
+    $groups = (clone $baseQuery)
+        ->select('kode_dosen')
+        ->groupBy('kode_dosen')
+        ->pluck('kode_dosen');
+
+    $updated = 0;
+    $unchanged = 0;
+
+    foreach ($groups as $kodeDosen) {
+        $queues = Queue::query()
+            ->whereDate('created_at', $dateFilter)
+            ->where('kode_dosen', $kodeDosen)
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->get(['id', 'nomor_antrian']);
+
+        $nextNumber = 1;
+        foreach ($queues as $queue) {
+            if ((int) $queue->nomor_antrian === $nextNumber) {
+                $unchanged++;
+                $nextNumber++;
+                continue;
+            }
+
+            if (!$dryRun) {
+                DB::table('queues')
+                    ->where('id', $queue->id)
+                    ->update([
+                        'nomor_antrian' => $nextNumber,
+                        'updated_at' => now(),
+                    ]);
+            }
+
+            $updated++;
+            $nextNumber++;
+        }
+    }
+
+    $this->newLine();
+    $this->info('Renumber selesai.');
+    $this->line('Updated  : ' . $updated);
+    $this->line('Unchanged: ' . $unchanged);
+    $this->line('Total    : ' . ($updated + $unchanged));
+
+    return self::SUCCESS;
+})->purpose('Renumber queues.nomor_antrian per kode_dosen per hari');

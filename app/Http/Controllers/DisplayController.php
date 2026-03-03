@@ -87,6 +87,17 @@ class DisplayController extends Controller
                     ->first();
                 $waitingCount = (clone $todayQueues)->where('status', 'menunggu')->count();
                 $totalCount = (clone $todayQueues)->count();
+                $waitingMahasiswaCount = (clone $todayQueues)
+                    ->where('status', 'menunggu')
+                    ->whereHas('user', function ($query) {
+                        $query->where('role', 'mahasiswa');
+                    })
+                    ->count();
+                $totalMahasiswaCount = (clone $todayQueues)
+                    ->whereHas('user', function ($query) {
+                        $query->where('role', 'mahasiswa');
+                    })
+                    ->count();
 
                 return [
                     'kode' => $dosen->kode,
@@ -97,6 +108,8 @@ class DisplayController extends Controller
                     'nomor_terakhir' => $lastNumber,
                     'menunggu' => $waitingCount,
                     'total_hari_ini' => $totalCount,
+                    'menunggu_mahasiswa' => $waitingMahasiswaCount,
+                    'total_hari_ini_mahasiswa' => $totalMahasiswaCount,
                 ];
             })
             ->sortBy('name')

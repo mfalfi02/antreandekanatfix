@@ -194,6 +194,7 @@
                                 </div>
                                 <div class="min-w-0">
                                     <p class="font-semibold text-gray-900 truncate">{{ $pejabat->name }}</p>
+                                    <p class="text-xs text-blue-700 font-semibold">Kode: {{ $pejabat->kode }}</p>
                                     <p class="text-sm text-gray-500">{{ ucfirst($pejabat->jabatan) }}</p>
                                     <p class="text-xs text-gray-400">
                                         <i class="fa fa-map-marker-alt"></i> {{ $pejabat->ruangan ?? '-' }}
@@ -288,7 +289,7 @@
 
         {{-- FORM ANTREAN UNTUK MAHASISWA DAN DOSEN --}}
         @if (in_array($data['user']->role, ['mahasiswa', 'dosen']))
-            @if ($data['user']->role === 'mahasiswa')
+            @if (in_array($data['user']->role, ['mahasiswa', 'dosen']))
                 @php
                     $currentQueue = collect($data['myQueues'] ?? [])->first(function ($queue) {
                         return in_array($queue->status ?? '', ['menunggu', 'diproses'], true);
@@ -346,7 +347,7 @@
                             <select id="dean-select" class="combo-box">
                                 <option value="">Pilih dosen</option>
                                 @foreach ($data['pejabat'] as $pejabat)
-                                    <option value="{{ $pejabat->kode }}">{{ $pejabat->name }}</option>
+                                    <option value="{{ $pejabat->kode }}">{{ $pejabat->name }} ({{ $pejabat->kode }})</option>
                                 @endforeach
                             </select>
                             <i class="fa-solid fa-chevron-down combo-icon"></i>
@@ -381,6 +382,7 @@
                                     <p class="font-semibold text-gray-900">#{{ $queue->nomor_antrian }} -
                                         {{ $queue->service->nama_layanan ?? '-' }}</p>
                                     <p class="text-sm text-gray-500">{{ ucfirst($queue->status) }}</p>
+                                    <p class="text-xs text-gray-500">Dosen: {{ $queue->dosen->name ?? '-' }}</p>
                                     <p class="text-xs text-gray-400">
                                         Tanggal: {{ optional($queue->created_at)->format('d-m-Y') ?? '-' }} |
                                         Jam: {{ optional($queue->created_at)->format('H:i') ?? '-' }} WIB
@@ -675,6 +677,7 @@
                         <div>
                             <p class="font-semibold text-gray-900">#${queue.nomor_antrian ?? '-'} - ${escapeHtml(queue.service?.nama_layanan ?? '-')}</p>
                             <p class="text-sm text-gray-500">${escapeHtml((queue.status ?? '').charAt(0).toUpperCase() + (queue.status ?? '').slice(1))}</p>
+                            <p class="text-xs text-gray-500">Dosen: ${escapeHtml(queue.dosen?.name ?? '-')}</p>
                             <p class="text-xs text-gray-400">Tanggal: ${tanggal} | Jam: ${jam} WIB</p>
                         </div>
                     </div>
@@ -704,7 +707,7 @@
         }
 
         function detectQueueCalledFromPolling(rows = []) {
-            if (currentUserRole !== 'mahasiswa') return;
+            if (!['mahasiswa', 'dosen'].includes(currentUserRole)) return;
 
             rows.forEach((queue) => {
                 const queueId = String(queue.id ?? '');
@@ -742,7 +745,7 @@
                 const res = await fetch("{{ route('queue.my') }}");
                 if (!res.ok) return;
                 const data = await res.json();
-                if (data?.role !== 'mahasiswa') return;
+                if (!['mahasiswa', 'dosen'].includes(data?.role)) return;
                 const rows = Array.isArray(data.queues) ? data.queues : [];
                 renderMyQueueList(rows);
                 renderCurrentQueueInfo(rows);
@@ -803,6 +806,10 @@
                 }
 
                 await syncMyQueues();
+                const nomor = data?.queue?.nomor_antrian ?? '-';
+                const dosenNama = data?.queue?.dosen?.name ?? '-';
+                const dosenKode = data?.queue?.kode_dosen ?? data?.queue?.dosen?.kode ?? deanId;
+                alert(`Nomor antrean berhasil diambil: #${nomor} untuk ${dosenNama} (${dosenKode}).`);
             } catch (error) {
                 console.error(error);
                 alert('Terjadi kesalahan saat mengambil nomor antrean.');
@@ -830,7 +837,7 @@
                     syncMyQueues();
 
                     if (
-                        currentUserRole === 'mahasiswa' &&
+                        ['mahasiswa', 'dosen'].includes(currentUserRole) &&
                         e?.meta?.event === 'queue_called' &&
                         e?.meta?.kode_user === currentUserKode
                     ) {

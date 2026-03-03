@@ -49,7 +49,7 @@ class AuthController extends Controller
         $user = Auth::user();
         $todayJakarta = Carbon::now('Asia/Jakarta')->toDateString();
 
-        $myQueues = Queue::with(['user', 'service'])
+        $myQueues = Queue::with(['user', 'service', 'dosen'])
                         ->where('kode_user', $user->kode)
                         ->whereDate('created_at', $todayJakarta)
                         ->orderBy('created_at', 'asc')
@@ -87,6 +87,14 @@ class AuthController extends Controller
     public function dosen()
     {
         $user = Auth::user();
+        if (!$user) {
+            return redirect()->route('login');
+        }
+
+        // Role dosen disamakan dengan mahasiswa, jadi selalu gunakan dashboard mahasiswa.
+        if ($user->role === 'dosen') {
+            return $this->mahasiswa();
+        }
         $todayJakarta = Carbon::now('Asia/Jakarta')->toDateString();
 
         $myQueues = Queue::with(['user', 'service'])

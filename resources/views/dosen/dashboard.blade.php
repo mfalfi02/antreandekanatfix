@@ -266,7 +266,9 @@
                                 class="p-3 border rounded-lg transition-all duration-300">
                                 <div class="flex items-center justify-between">
                                     <div class="flex-1 flex items-center gap-3">
-                                        <div class="text-2xl font-bold text-gray-500 queue-number">#{{ $queue->id }}
+                                        <div class="text-center min-w-[64px]">
+                                            <div class="text-2xl font-bold text-gray-500 queue-number">#{{ $queue->nomor_antrian }}</div>
+                                            <div class="text-[10px] text-gray-400">ID {{ $queue->id }}</div>
                                         </div>
                                         <div>
                                             <p class="font-semibold text-gray-900">{{ $queue->user->name ?? '-' }}
@@ -312,8 +314,9 @@
                                 <div class="flex items-center gap-3">
                                     <i class="fa-solid fa-check-circle text-2xl text-green-600"></i>
                                     <div>
-                                        <p class="font-semibold text-gray-900">#{{ $queue->id }} -
+                                        <p class="font-semibold text-gray-900">#{{ $queue->nomor_antrian }} -
                                             {{ $queue->user->name ?? '-' }}</p>
+                                        <p class="text-[10px] text-gray-400">ID Data: {{ $queue->id }}</p>
                                         <p class="text-sm text-gray-500">{{ $queue->service->nama_layanan ?? '-' }}</p>
                                         <p class="text-xs text-gray-400">
                                             Dosen: {{ $data['user']->name ?? '-' }}
@@ -424,7 +427,10 @@
                     <div id="queue-item-${q.id}" class="p-3 border rounded-lg transition-all duration-300">
                         <div class="flex items-center justify-between">
                             <div class="flex-1 flex items-center gap-3">
-                                <div class="text-2xl font-bold text-gray-500 queue-number">#${q.id}</div>
+                                <div class="text-center min-w-[64px]">
+                                    <div class="text-2xl font-bold text-gray-500 queue-number">#${q.nomor_antrian ?? '-'}</div>
+                                    <div class="text-[10px] text-gray-400">ID ${q.id}</div>
+                                </div>
                                 <div>
                                     <p class="font-semibold text-gray-900">${escapeHtml(q.user?.name ?? '-')}</p>
                                     <p class="text-sm text-gray-500 queue-service">
@@ -463,7 +469,8 @@
                             <div class="flex items-center gap-3">
                                 <i class="fa-solid fa-check-circle text-2xl text-green-600"></i>
                                 <div>
-                                    <p class="font-semibold text-gray-900">#${q.id} - ${escapeHtml(q.user?.name ?? '-')}</p>
+                                    <p class="font-semibold text-gray-900">#${q.nomor_antrian ?? '-'} - ${escapeHtml(q.user?.name ?? '-')}</p>
+                                    <p class="text-[10px] text-gray-400">ID Data: ${q.id ?? '-'}</p>
                                     <p class="text-sm text-gray-500">${escapeHtml(q.service?.nama_layanan ?? '-')}</p>
                                     <p class="text-xs text-gray-400">Dosen: ${escapeHtml("{{ $data['user']->name }}")}</p>
                                 </div>
