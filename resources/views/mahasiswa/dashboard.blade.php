@@ -420,6 +420,7 @@
                             class="btn-brand w-full px-4 py-2">
                             Ambil Nomor
                         </button>
+                        <p id="join-queue-lock-hint" class="text-xs text-amber-700 hidden"></p>
                     </div>
                 </div>
 
@@ -527,6 +528,7 @@
         const deanSelect = document.getElementById('dean-select');
         const serviceSelect = document.getElementById('service-select');
         const joinQueueBtn = document.getElementById('join-queue-btn');
+        const joinQueueLockHint = document.getElementById('join-queue-lock-hint');
         const myQueueList = document.getElementById('my-queue-list');
         const previousQueueToggle = document.getElementById('previous-queue-toggle');
         const previousQueuePanel = document.getElementById('previous-queue-panel');
@@ -544,7 +546,7 @@
         const currentUserKode = "{{ $data['user']->kode }}";
         const currentUserRole = "{{ $data['user']->role }}";
         const deanStatusMap = @json($data['pejabat_statuses'] ?? []);
-        const deanServiceMap = {};
+        const deanServiceIdsMap = {};
         const allServiceOptions = serviceSelect ? Array.from(serviceSelect.options).map((opt) => ({
             value: opt.value,
             text: opt.text,
@@ -553,6 +555,35 @@
         let queuePollingInitialized = false;
         const notifiedQueueIds = new Set();
         let previousQueueCache = @json($data['historyQueues'] ?? []);
+        let activeQueueDeanSet = new Set();
+        let isJoiningQueue = false;
+
+        function toggleJoinButton(disabled) {
+            if (!joinQueueBtn) return;
+            joinQueueBtn.disabled = disabled;
+            joinQueueBtn.classList.toggle('opacity-60', disabled);
+            joinQueueBtn.classList.toggle('cursor-not-allowed', disabled);
+        }
+
+        function updateJoinQueueAvailability() {
+            if (!joinQueueBtn) return;
+            if (isJoiningQueue) return;
+
+            const deanId = String(deanSelect?.value ?? '');
+            const blockedByActiveQueue = deanId && activeQueueDeanSet.has(deanId);
+
+            toggleJoinButton(Boolean(blockedByActiveQueue));
+
+            if (!joinQueueLockHint) return;
+            if (blockedByActiveQueue) {
+                joinQueueLockHint.textContent = 'Anda masih memiliki antrean aktif pada pejabat ini. Selesaikan dulu, atau pilih pejabat lain.';
+                joinQueueLockHint.classList.remove('hidden');
+                return;
+            }
+
+            joinQueueLockHint.textContent = '';
+            joinQueueLockHint.classList.add('hidden');
+        }
 
         async function syncQueueStatus() {
             try {
@@ -580,7 +611,10 @@
                                 `<span class="${badgeClass}"><i class="fa-solid ${icon}"></i>${item.queue_status_label}</span>`;
                         }
                         deanStatusMap[item.kode] = item.queue_status;
-                        deanServiceMap[item.kode] = item.service?.id ?? null;
+                        const serviceIds = Array.isArray(item.service?.ids) ?
+                            item.service.ids.map((id) => Number(id)) :
+                            (item.service?.id ? [Number(item.service.id)] : []);
+                        deanServiceIdsMap[item.kode] = serviceIds;
                         if (serviceLine) {
                             serviceLine.innerHTML =
                                 `<i class="fa-solid fa-screwdriver-wrench text-slate-400"></i> ${escapeHtml(item.service?.nama_layanan ?? '-')}`;
@@ -591,6 +625,7 @@
                         }
                     });
                     syncServiceOptionsForSelectedDean();
+                    updateJoinQueueAvailability();
                 }
             } catch (error) {
                 console.error(error);
@@ -603,7 +638,7 @@
             const deanId = deanSelect.value;
             const currentSelected = serviceSelect.value;
             const status = deanStatusMap[deanId] ?? 'closed';
-            const openedServiceId = deanServiceMap[deanId];
+            const openedServiceIds = deanServiceIdsMap[deanId] ?? [];
             let filteredOptions = allServiceOptions;
 
             if (deanId && !['open', 'occupied'].includes(status)) {
@@ -612,10 +647,10 @@
                 if (serviceFilterHint) {
                     serviceFilterHint.textContent = 'Dosen ini sedang menutup antrean.';
                 }
-            } else if (deanId && openedServiceId !== null && openedServiceId !== undefined) {
-                // Dosen hanya membuka satu layanan: tampilkan placeholder + layanan tersebut.
+            } else if (deanId && openedServiceIds.length > 0) {
+                // Dosen membuka layanan tertentu: tampilkan placeholder + layanan yang dibuka.
                 filteredOptions = allServiceOptions.filter((opt) =>
-                    opt.value === '' || Number(opt.value) === Number(openedServiceId)
+                    opt.value === '' || openedServiceIds.includes(Number(opt.value))
                 );
                 if (serviceFilterHint) {
                     serviceFilterHint.textContent = 'Layanan difilter sesuai layanan yang dibuka dosen.';
@@ -637,6 +672,8 @@
             } else {
                 serviceSelect.value = '';
             }
+
+            updateJoinQueueAvailability();
         }
 
         function escapeHtml(value) {
@@ -903,10 +940,17 @@
                 if (!['mahasiswa', 'dosen'].includes(data?.role)) return;
                 const rows = Array.isArray(data.queues) ? data.queues : [];
                 const historyRows = Array.isArray(data.history_queues) ? data.history_queues : [];
+                activeQueueDeanSet = new Set(
+                    rows
+                    .filter((q) => ['menunggu', 'diproses'].includes((q.status ?? '').toLowerCase()))
+                    .map((q) => String(q.kode_dosen ?? q.dosen?.kode ?? ''))
+                    .filter(Boolean)
+                );
                 renderMyQueueList(rows);
                 renderPreviousQueueList(historyRows);
                 renderCurrentQueueInfo(rows);
                 detectQueueCalledFromPolling(rows);
+                updateJoinQueueAvailability();
                 queuePollingInitialized = true;
             } catch (error) {
                 console.error(error);
@@ -924,6 +968,11 @@
                 return;
             }
 
+            if (activeQueueDeanSet.has(String(deanId))) {
+                alert('Anda masih memiliki antrean aktif pada pejabat ini. Selesaikan dulu atau pilih pejabat lain.');
+                return;
+            }
+
             if (!['open', 'occupied'].includes(deanStatusMap[deanId] ?? 'closed')) {
                 alert('Ruangan dosen yang dipilih sedang tutup. Silakan pilih dosen lain.');
                 return;
@@ -934,14 +983,14 @@
                 return;
             }
 
-            const openedServiceId = deanServiceMap[deanId];
-            if (openedServiceId !== null && openedServiceId !== undefined && Number(openedServiceId) !== Number(serviceId)) {
+            const openedServiceIds = deanServiceIdsMap[deanId] ?? [];
+            if (openedServiceIds.length > 0 && !openedServiceIds.includes(Number(serviceId))) {
                 alert('Layanan yang dipilih tidak sedang dibuka oleh dosen tersebut.');
                 return;
             }
 
-            joinQueueBtn.disabled = true;
-            joinQueueBtn.classList.add('opacity-60', 'cursor-not-allowed');
+            isJoiningQueue = true;
+            toggleJoinButton(true);
 
             try {
                 const res = await fetch("{{ route('queue.join') }}", {
@@ -971,8 +1020,8 @@
                 console.error(error);
                 alert('Terjadi kesalahan saat mengambil nomor antrean.');
             } finally {
-                joinQueueBtn.disabled = false;
-                joinQueueBtn.classList.remove('opacity-60', 'cursor-not-allowed');
+                isJoiningQueue = false;
+                updateJoinQueueAvailability();
             }
         }
 
@@ -984,7 +1033,10 @@
         syncServiceOptionsForSelectedDean();
 
         if (deanSelect) {
-            deanSelect.addEventListener('change', syncServiceOptionsForSelectedDean);
+            deanSelect.addEventListener('change', () => {
+                syncServiceOptionsForSelectedDean();
+                updateJoinQueueAvailability();
+            });
         }
 
         if (window.Echo) {

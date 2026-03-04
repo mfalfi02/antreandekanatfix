@@ -23,7 +23,9 @@ class QueueController extends Controller
         $request->validate([
             'status' => 'required|in:open,closed,occupied',
             'service_id' => 'nullable|exists:services,id',
-            'service_scope' => 'nullable|in:all,single',
+            'service_ids' => 'nullable|array',
+            'service_ids.*' => 'integer|exists:services,id',
+            'service_scope' => 'nullable|in:all,single,multiple',
             'expected_jam_buka' => 'nullable|date_format:H:i',
             'expected_jam_tutup' => 'nullable|date_format:H:i',
         ]);
@@ -37,14 +39,17 @@ class QueueController extends Controller
         }
 
         $status = $request->status;
-        $serviceId = $request->input('service_id');
         $serviceScope = $request->input('service_scope', 'single');
+        $selectedServiceIds = $this->resolveSelectedServiceIds($request, $serviceScope);
+        if ($serviceScope !== 'all') {
+            $serviceScope = count($selectedServiceIds) > 1 ? 'multiple' : 'single';
+        }
         $expectedJamTutupInput = $request->input('expected_jam_tutup');
         $now = Carbon::now('Asia/Jakarta');
         $today = $now->toDateString();
         $nowTime = $now->format('H:i:s');
 
-        if (in_array($status, ['open', 'occupied'], true) && $serviceScope !== 'all' && !$serviceId) {
+        if (in_array($status, ['open', 'occupied'], true) && $serviceScope !== 'all' && count($selectedServiceIds) === 0) {
             return response()->json([
                 'success' => false,
                 'message' => 'Jenis layanan harus dipilih atau pilih Semua Jenis Layanan.',
@@ -77,19 +82,25 @@ class QueueController extends Controller
 
         $ruang->status_ruang = $status;
         if (in_array($status, ['open', 'occupied'], true)) {
-            $ruang->service_id = $serviceScope === 'all' ? null : ($serviceId ?: null);
+            if ($serviceScope === 'all') {
+                $ruang->service_id = null;
+                $ruang->service_ids = null;
+            } else {
+                $ruang->service_ids = $selectedServiceIds;
+                $ruang->service_id = count($selectedServiceIds) === 1 ? $selectedServiceIds[0] : null;
+            }
             if (!$ruang->jam_buka_ruang_antri) {
                 $ruang->jam_buka_ruang_antri = $nowTime;
             }
 
             $ruang->expected_jam_buka_ruang_antri = $ruang->jam_buka_ruang_antri;
 
-            $openTime = Carbon::createFromFormat('H:i:s', $ruang->jam_buka_ruang_antri);
             $closeTime = Carbon::createFromFormat('H:i', $expectedJamTutupInput);
-            if ($closeTime->lessThanOrEqualTo($openTime)) {
+            $currentTime = Carbon::createFromFormat('H:i:s', $nowTime);
+            if ($closeTime->lessThanOrEqualTo($currentTime)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Perkiraan jam tutup harus lebih besar dari jam buka.',
+                    'message' => 'Perkiraan jam tutup harus lebih besar dari jam sekarang.',
                 ], 422);
             }
 
@@ -124,10 +135,7 @@ class QueueController extends Controller
             'success' => true,
             'kode_dosen' => $user->kode,
             'queue_status' => $status,
-            'service' => $this->formatServicePayload(
-                $status,
-                $ruang->service_id ? Service::query()->find($ruang->service_id, ['id', 'nama_layanan']) : null
-            ),
+            'service' => $this->formatServicePayload($status, $this->resolveRoomServices($ruang)),
             'waktu' => $this->formatWaktuPayload($ruang),
             'queue_status_label' => match ($status) {
                 'open' => 'Antrean Dibuka',
@@ -200,13 +208,18 @@ class QueueController extends Controller
             ->latest('updated_at')
             ->first();
 
+        $nextRoomStatus = 'closed';
         if ($ruang) {
-            $ruang->status_ruang = 'occupied';
-            $ruang->save();
+            // Jika ruangan sudah ditutup manual, jangan auto-buka lagi saat memanggil antrean sisa.
+            if ($ruang->status_ruang !== 'closed') {
+                $ruang->status_ruang = 'occupied';
+                $ruang->save();
+                $nextRoomStatus = 'occupied';
+            }
         }
 
         try {
-            event(new QueueStatusUpdated($user->kode, 'occupied', [
+            event(new QueueStatusUpdated($user->kode, $nextRoomStatus, [
                 'event' => 'queue_called',
                 'queue_id' => $queue->id,
                 'nomor_antrian' => $queue->nomor_antrian,
@@ -222,7 +235,7 @@ class QueueController extends Controller
         return response()->json([
             'success' => true,
             'queue' => $queue->load(['user', 'service']),
-            'queue_status' => 'occupied',
+            'queue_status' => $nextRoomStatus,
         ]);
     }
 
@@ -263,9 +276,14 @@ class QueueController extends Controller
             ->exists();
         $nextRoomStatus = $hasInProgress ? 'occupied' : 'open';
 
-        if ($ruang && $ruang->status_ruang !== 'closed') {
-            $ruang->status_ruang = $nextRoomStatus;
-            $ruang->save();
+        if ($ruang) {
+            // Jika ruangan sudah ditutup manual, pertahankan closed walau masih ada proses penyelesaian antrean.
+            if ($ruang->status_ruang !== 'closed') {
+                $ruang->status_ruang = $nextRoomStatus;
+                $ruang->save();
+            } else {
+                $nextRoomStatus = 'closed';
+            }
         }
 
         try {
@@ -387,15 +405,16 @@ class QueueController extends Controller
     private function statusDetailForUser(string $kode): array
     {
         $record = RuangAntri::query()
-            ->with('service:id,nama_layanan')
             ->where('kode_dosen', $kode)
             ->whereDate('tanggal_buka_ruang_antri', Carbon::now('Asia/Jakarta')->toDateString())
             ->latest('updated_at')
             ->first();
 
+        $services = $this->resolveRoomServices($record);
+
         return [
             'queue_status' => $record?->status_ruang ?? 'closed',
-            'service' => $this->formatServicePayload($record?->status_ruang ?? 'closed', $record?->service),
+            'service' => $this->formatServicePayload($record?->status_ruang ?? 'closed', $services),
             'waktu' => $record ? $this->formatWaktuPayload($record) : null,
         ];
     }
@@ -444,23 +463,77 @@ class QueueController extends Controller
         };
     }
 
-    private function formatServicePayload(string $status, ?Service $service): ?array
+    private function formatServicePayload(string $status, $services): ?array
     {
-        if ($service) {
+        if ($services->count() > 0) {
+            $ids = $services->pluck('id')->values()->all();
             return [
-                'id' => $service->id,
-                'nama_layanan' => $service->nama_layanan,
+                'id' => count($ids) === 1 ? $ids[0] : null,
+                'ids' => $ids,
+                'nama_layanan' => $services->pluck('nama_layanan')->implode(', '),
             ];
         }
 
         if (in_array($status, ['open', 'occupied'], true)) {
             return [
                 'id' => null,
+                'ids' => [],
                 'nama_layanan' => 'Semua Jenis Layanan',
             ];
         }
 
         return null;
+    }
+
+    private function resolveSelectedServiceIds(Request $request, string $serviceScope): array
+    {
+        if ($serviceScope === 'all') {
+            return [];
+        }
+
+        $serviceIds = $request->input('service_ids', []);
+        if (!is_array($serviceIds)) {
+            $serviceIds = [];
+        }
+
+        $serviceIds = array_values(array_unique(array_map(
+            'intval',
+            array_filter($serviceIds, fn ($id) => $id !== null && $id !== '')
+        )));
+
+        if (count($serviceIds) === 0 && $request->filled('service_id')) {
+            $serviceIds = [(int) $request->input('service_id')];
+        }
+
+        return $serviceIds;
+    }
+
+    private function resolveRoomServices(?RuangAntri $ruang)
+    {
+        if (!$ruang) {
+            return collect();
+        }
+
+        $ids = is_array($ruang->service_ids) ? $ruang->service_ids : [];
+        $ids = array_values(array_unique(array_map('intval', array_filter($ids, fn ($id) => $id !== null && $id !== ''))));
+
+        if (count($ids) === 0 && $ruang->service_id) {
+            $ids = [(int) $ruang->service_id];
+        }
+
+        if (count($ids) === 0) {
+            return collect();
+        }
+
+        $servicesById = Service::query()
+            ->whereIn('id', $ids)
+            ->get(['id', 'nama_layanan'])
+            ->keyBy('id');
+
+        return collect($ids)
+            ->map(fn (int $id) => $servicesById->get($id))
+            ->filter()
+            ->values();
     }
 
     private function formatWaktuPayload(RuangAntri $ruang): array

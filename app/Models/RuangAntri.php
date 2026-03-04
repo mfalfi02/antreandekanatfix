@@ -15,12 +15,17 @@ class RuangAntri extends Model
     protected $fillable = [
         'kode_dosen',
         'service_id',
+        'service_ids',
         'status_ruang',
         'expected_jam_buka_ruang_antri',
         'expected_jam_tutup_ruang_antri',
         'jam_buka_ruang_antri',
         'jam_tutup_ruang_antri',
         'tanggal_buka_ruang_antri',
+    ];
+
+    protected $casts = [
+        'service_ids' => 'array',
     ];
 
     /**

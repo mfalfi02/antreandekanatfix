@@ -203,10 +203,32 @@ private function statusDetailForUser(string $kode): array
         ->latest('updated_at')
         ->first();
 
+    $serviceIds = is_array($record?->service_ids) ? $record->service_ids : [];
+    $serviceIds = array_values(array_unique(array_map('intval', array_filter(
+        $serviceIds,
+        fn ($id) => $id !== null && $id !== ''
+    ))));
+
+    $serviceName = null;
+    if (count($serviceIds) > 0) {
+        $servicesById = Service::query()
+            ->whereIn('id', $serviceIds)
+            ->get(['id', 'nama_layanan'])
+            ->keyBy('id');
+
+        $serviceName = collect($serviceIds)
+            ->map(fn (int $id) => $servicesById->get($id)?->nama_layanan)
+            ->filter()
+            ->implode(', ');
+    } elseif ($record?->service?->nama_layanan) {
+        $serviceName = $record->service->nama_layanan;
+    } elseif (in_array($record?->status_ruang, ['open', 'occupied'], true)) {
+        $serviceName = 'Semua Jenis Layanan';
+    }
+
     return [
         'queue_status' => $record?->status_ruang ?? 'closed',
-        'service_name' => $record?->service?->nama_layanan
-            ?? (in_array($record?->status_ruang, ['open', 'occupied'], true) ? 'Semua Jenis Layanan' : null),
+        'service_name' => $serviceName,
         'expected_jam_tutup' => $record?->expected_jam_tutup_ruang_antri,
     ];
 }

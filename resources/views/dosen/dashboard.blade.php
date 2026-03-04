@@ -110,6 +110,46 @@
             font-size: .78rem;
         }
 
+        .service-picker-btn {
+            width: 100%;
+            border: 1px solid #cfdcf1;
+            border-radius: .75rem;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+            padding: .62rem .9rem;
+            color: #0f172a;
+            font-weight: 500;
+            box-shadow: 0 1px 0 rgba(15, 23, 42, .03);
+            transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: .75rem;
+            text-align: left;
+        }
+
+        .service-picker-btn:hover {
+            border-color: #b9cae7;
+        }
+
+        .service-picker-btn:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, .18);
+            background: #fff;
+        }
+
+        .service-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: .35rem;
+            border-radius: 999px;
+            padding: .22rem .55rem;
+            background: #eaf2ff;
+            color: #1e40af;
+            font-size: .72rem;
+            font-weight: 700;
+        }
+
         .btn-brand {
             background: var(--primary);
             color: #fff;
@@ -206,10 +246,19 @@
                     <p id="current-date-dosen" class="text-xs text-gray-500">-</p>
                     <p id="current-time-dosen" class="text-sm font-semibold text-gray-800">- WIB</p>
                 </div>
-                <span class="text-sm">Status Ruangan:</span>
-                <span id="room-status" class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-red-100 text-red-800">
-                    Tutup
-                </span>
+                <div class="flex flex-col gap-1">
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm">Status Ruangan:</span>
+                        <span id="room-status" class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-red-100 text-red-800">
+                            Tutup
+                        </span>
+                    </div>
+                    <span id="queue-carryover-badge"
+                        class="hidden text-[11px] font-semibold px-2 py-1 rounded-full bg-amber-100 text-amber-800 ring-1 ring-amber-200">
+                        <i class="fa-solid fa-circle-info mr-1"></i>
+                        Ruangan ditutup, sedang melayani sisa antrean
+                    </span>
+                </div>
                 <form action="{{ route('logout') }}" method="POST" class="inline">
                     @csrf
                     <button type="submit"
@@ -221,23 +270,31 @@
         </div>
 
         {{-- Kontrol Antrean --}}
-        <div class="panel p-6">
+        <div class="panel p-6 relative z-30 overflow-visible">
             <h2 class="text-xl font-semibold text-gray-900 flex items-center gap-2 mb-4">
                 <i class="fa-solid fa-play-circle text-gray-600"></i> Kontrol Antrean
             </h2>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Jenis Layanan</label>
-                    <div class="combo-wrap mt-2">
-                        <select id="service-select" class="combo-box">
-                            <option value="">Pilih jenis layanan</option>
+                    <div class="mt-2 relative z-40">
+                        <select id="service-select" class="hidden" multiple>
                             <option value="all">Semua jenis layanan</option>
                             @foreach ($data['services'] as $service)
                                 <option value="{{ $service->id }}">{{ $service->nama_layanan }}</option>
                             @endforeach
                         </select>
-                        <i class="fa-solid fa-chevron-down combo-icon"></i>
+                        <button type="button" id="service-picker-btn" class="service-picker-btn">
+                            <span id="service-picker-label">Pilih satu/lebih layanan</span>
+                            <i class="fa-solid fa-chevron-down text-slate-500 text-xs"></i>
+                        </button>
+                        <div id="service-picker-panel"
+                            class="hidden absolute z-50 mt-2 w-full rounded-xl border border-slate-200 bg-white shadow-lg p-3">
+                            <div id="service-picker-options" class="space-y-2 max-h-52 overflow-y-auto pr-1"></div>
+                        </div>
+                        <div id="service-selected-chips" class="mt-2 flex flex-wrap gap-1.5"></div>
                     </div>
+                    <p class="text-xs text-gray-500 mt-1">Pilih satu/lebih layanan. Jika pilih "Semua jenis layanan", layanan lain diabaikan.</p>
                 </div>
 
                 <div>
@@ -420,11 +477,20 @@
         </div>
     </div>
 
+    <div id="pejabat-toast-container" class="fixed top-4 right-4 z-[70] space-y-2 pointer-events-none"></div>
+
     <script>
         const currentDateDosen = document.getElementById('current-date-dosen');
         const currentTimeDosen = document.getElementById('current-time-dosen');
         const roomStatus = document.getElementById('room-status');
+        const queueCarryoverBadge = document.getElementById('queue-carryover-badge');
+        const pejabatToastContainer = document.getElementById('pejabat-toast-container');
         const serviceSelect = document.getElementById('service-select');
+        const servicePickerBtn = document.getElementById('service-picker-btn');
+        const servicePickerLabel = document.getElementById('service-picker-label');
+        const servicePickerPanel = document.getElementById('service-picker-panel');
+        const servicePickerOptions = document.getElementById('service-picker-options');
+        const serviceSelectedChips = document.getElementById('service-selected-chips');
         const expectedCloseInput = document.getElementById('expected-close-input');
 
         const openBtns = [
@@ -450,6 +516,9 @@
         let historyQueuesCache = @json($data['historyQueues'] ?? []);
         let currentStatus = "{{ $data['queue_status'] ?? 'closed' }}";
         let isSubmitting = false;
+        let activeQueueCount = Number(@json($data['activeQueues'] ?? 0));
+        const notifiedQueueJoinedIds = new Set();
+        let queuePollingInitialized = false;
 
         function getCurrentTimeHHMM() {
             const parts = new Intl.DateTimeFormat('id-ID', {
@@ -469,6 +538,114 @@
 
         function normalizeIndoTime(value) {
             return (value || '').trim().replace('.', ':');
+        }
+
+        function getSelectedServiceValues() {
+            if (!serviceSelect) return [];
+            return Array.from(serviceSelect.selectedOptions).map((opt) => opt.value);
+        }
+
+        function setSelectedServiceValues(values = []) {
+            if (!serviceSelect) return;
+            const selectedSet = new Set(values.map((val) => String(val)));
+
+            Array.from(serviceSelect.options).forEach((opt) => {
+                opt.selected = selectedSet.has(String(opt.value));
+            });
+        }
+
+        function renderSelectedServiceChips() {
+            if (!serviceSelectedChips || !servicePickerLabel || !serviceSelect) return;
+            const selectedValues = getSelectedServiceValues();
+            const allSelected = selectedValues.includes('all');
+            const selectedOptions = Array.from(serviceSelect.options).filter((opt) => opt.selected);
+
+            if (selectedOptions.length === 0) {
+                servicePickerLabel.textContent = 'Pilih satu/lebih layanan';
+                serviceSelectedChips.innerHTML = '';
+                return;
+            }
+
+            if (allSelected) {
+                servicePickerLabel.textContent = 'Semua jenis layanan';
+            } else if (selectedOptions.length === 1) {
+                servicePickerLabel.textContent = selectedOptions[0].textContent;
+            } else {
+                servicePickerLabel.textContent = `${selectedOptions.length} layanan dipilih`;
+            }
+
+            serviceSelectedChips.innerHTML = selectedOptions.map((opt) => `
+                <span class="service-chip">
+                    <i class="fa-solid ${opt.value === 'all' ? 'fa-layer-group' : 'fa-screwdriver-wrench'} text-[10px]"></i>
+                    ${escapeHtml(opt.textContent)}
+                </span>
+            `).join('');
+        }
+
+        function renderServicePickerOptions() {
+            if (!servicePickerOptions || !serviceSelect) return;
+
+            const selectedValues = new Set(getSelectedServiceValues().map((val) => String(val)));
+            servicePickerOptions.innerHTML = Array.from(serviceSelect.options).map((opt) => {
+                const value = String(opt.value);
+                const checked = selectedValues.has(value) ? 'checked' : '';
+                return `
+                    <label class="flex items-center gap-2 text-sm text-slate-700">
+                        <input type="checkbox" class="service-picker-checkbox rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                            data-value="${escapeHtml(value)}" ${checked}>
+                        <span>${escapeHtml(opt.textContent)}</span>
+                    </label>
+                `;
+            }).join('');
+        }
+
+        function toggleServiceSelection(value, checked) {
+            const current = new Set(getSelectedServiceValues().map((val) => String(val)));
+            const normalized = String(value);
+
+            if (normalized === 'all') {
+                if (checked) {
+                    current.clear();
+                    current.add('all');
+                } else {
+                    current.delete('all');
+                }
+            } else {
+                current.delete('all');
+                if (checked) {
+                    current.add(normalized);
+                } else {
+                    current.delete(normalized);
+                }
+            }
+
+            setSelectedServiceValues(Array.from(current));
+            renderServicePickerOptions();
+            renderSelectedServiceChips();
+        }
+
+        function initServicePicker() {
+            if (!serviceSelect || !servicePickerBtn || !servicePickerPanel || !servicePickerOptions) return;
+
+            renderServicePickerOptions();
+            renderSelectedServiceChips();
+
+            servicePickerBtn.addEventListener('click', () => {
+                servicePickerPanel.classList.toggle('hidden');
+            });
+
+            servicePickerOptions.addEventListener('change', (event) => {
+                const checkbox = event.target.closest('.service-picker-checkbox');
+                if (!checkbox) return;
+                toggleServiceSelection(checkbox.dataset.value ?? '', checkbox.checked);
+            });
+
+            document.addEventListener('click', (event) => {
+                if (servicePickerPanel.classList.contains('hidden')) return;
+                const target = event.target;
+                if (servicePickerPanel.contains(target) || servicePickerBtn.contains(target)) return;
+                servicePickerPanel.classList.add('hidden');
+            });
         }
 
         function updateDosenClock() {
@@ -500,6 +677,66 @@
                 .replaceAll('>', '&gt;')
                 .replaceAll('"', '&quot;')
                 .replaceAll("'", '&#039;');
+        }
+
+        function showPejabatToast(meta = {}) {
+            if (!pejabatToastContainer) return;
+            const nomor = meta?.nomor_antrian ? `#${meta.nomor_antrian}` : null;
+            const mahasiswaName = meta?.mahasiswa_name ?? '-';
+            const kodeUser = meta?.kode_user ?? '-';
+            const serviceName = meta?.service_name ?? '-';
+
+            const toast = document.createElement('div');
+            toast.className =
+                'pointer-events-auto w-[22rem] rounded-xl border border-blue-200 bg-white shadow-lg p-4 transform transition-all duration-300 translate-x-6 opacity-0';
+            toast.innerHTML = `
+                <div class="flex items-start gap-3">
+                    <span class="mt-0.5 h-9 w-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center">
+                        <i class="fa-solid fa-bell"></i>
+                    </span>
+                    <div class="min-w-0">
+                        <p class="text-sm font-semibold text-gray-900">Antrean baru masuk</p>
+                        <p class="text-xs text-gray-600 mt-1">Mahasiswa: ${escapeHtml(mahasiswaName)}</p>
+                        <p class="text-xs text-gray-600">Kode: ${escapeHtml(kodeUser)}</p>
+                        <p class="text-xs text-gray-600">Layanan: ${escapeHtml(serviceName)}</p>
+                        ${nomor ? `<p class="text-xs font-bold text-blue-700 mt-1">Nomor: ${escapeHtml(nomor)}</p>` : ''}
+                    </div>
+                </div>
+            `;
+
+            pejabatToastContainer.appendChild(toast);
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-x-6', 'opacity-0');
+            });
+
+            setTimeout(() => {
+                toast.classList.add('translate-x-6', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 7000);
+        }
+
+        function playPejabatNotifSound(eventType = 'default') {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (!AudioCtx) return;
+            const ctx = new AudioCtx();
+            const pattern = eventType === 'queue_joined' ? [1047, 1319] : [880, 1047];
+
+            pattern.forEach((freq, i) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.value = freq;
+                gain.gain.value = 0.0001;
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                const start = ctx.currentTime + (i * 0.16);
+                const end = start + 0.12;
+                gain.gain.exponentialRampToValueAtTime(0.11, start + 0.02);
+                gain.gain.exponentialRampToValueAtTime(0.0001, end);
+                osc.start(start);
+                osc.stop(end + 0.01);
+            });
         }
 
         function renderDosenQueues(queues = []) {
@@ -570,8 +807,9 @@
         }
 
         function renderDosenStats(stats = {}) {
+            activeQueueCount = Number(stats.active ?? 0);
             if (statActiveQueues) {
-                statActiveQueues.textContent = String(stats.active ?? 0);
+                statActiveQueues.textContent = String(activeQueueCount);
             }
             if (statCompletedQueues) {
                 statCompletedQueues.textContent = String(stats.completed ?? 0);
@@ -582,6 +820,13 @@
             if (statServiceEstimate) {
                 statServiceEstimate.textContent = stats.current_service_estimate ? `${stats.current_service_estimate} menit` : '-';
             }
+            updateQueueCarryoverBadge();
+        }
+
+        function updateQueueCarryoverBadge() {
+            if (!queueCarryoverBadge) return;
+            const shouldShow = currentStatus === 'closed' && activeQueueCount > 0;
+            queueCarryoverBadge.classList.toggle('hidden', !shouldShow);
         }
 
         function renderDosenHistoryQueues(queues = []) {
@@ -667,6 +912,8 @@
                 openBtns.forEach(b => b.classList.remove('hidden'));
                 closeBtns.forEach(b => b.classList.add('hidden'));
             }
+
+            updateQueueCarryoverBadge();
         }
 
         async function toggleQueue(status) {
@@ -678,8 +925,8 @@
             };
 
             if (status === 'open' || status === 'occupied') {
-                const selectedService = serviceSelect?.value;
-                if (!selectedService) {
+                const selectedServices = serviceSelect ? Array.from(serviceSelect.selectedOptions).map((opt) => opt.value) : [];
+                if (selectedServices.length === 0) {
                     alert('Pilih jenis layanan terlebih dahulu.');
                     return;
                 }
@@ -689,11 +936,14 @@
                     alert('Perkiraan jam tutup wajib diisi sebelum membuka antrean.');
                     return;
                 }
-                if (selectedService === 'all') {
+                if (selectedServices.includes('all')) {
                     payload.service_scope = 'all';
                 } else {
-                    payload.service_scope = 'single';
-                    payload.service_id = selectedService;
+                    payload.service_scope = selectedServices.length > 1 ? 'multiple' : 'single';
+                    payload.service_ids = selectedServices.map((id) => Number(id));
+                    if (selectedServices.length === 1) {
+                        payload.service_id = Number(selectedServices[0]);
+                    }
                 }
                 payload.expected_jam_buka = expectedOpen;
                 payload.expected_jam_tutup = expectedClose;
@@ -749,7 +999,31 @@
                 if (!res.ok) return;
                 const data = await res.json();
                 if (data?.role !== 'pejabat') return;
-                renderDosenQueues(Array.isArray(data.queues) ? data.queues : []);
+                const rows = Array.isArray(data.queues) ? data.queues : [];
+                if (!queuePollingInitialized) {
+                    rows.forEach((queue) => {
+                        const queueId = String(queue?.id ?? '');
+                        if (queueId) {
+                            notifiedQueueJoinedIds.add(queueId);
+                        }
+                    });
+                    queuePollingInitialized = true;
+                } else {
+                    rows.forEach((queue) => {
+                        const queueId = String(queue?.id ?? '');
+                        if (!queueId || notifiedQueueJoinedIds.has(queueId)) return;
+                        notifiedQueueJoinedIds.add(queueId);
+                        showPejabatToast({
+                            nomor_antrian: queue?.nomor_antrian,
+                            kode_user: queue?.kode_user,
+                            mahasiswa_name: queue?.user?.name,
+                            service_name: queue?.service?.nama_layanan,
+                        });
+                        playPejabatNotifSound('queue_joined');
+                    });
+                }
+
+                renderDosenQueues(rows);
                 renderDosenHistoryQueues(Array.isArray(data.history_queues) ? data.history_queues : []);
                 renderDosenStats(data.stats ?? {});
             } catch (e) {
@@ -806,6 +1080,7 @@
 
         openBtns.forEach(b => b.addEventListener('click', () => toggleQueue('open')));
         closeBtns.forEach(b => b.addEventListener('click', () => toggleQueue('closed')));
+        initServicePicker();
         if (historyDateFilter) {
             historyDateFilter.addEventListener('change', () => renderDosenHistoryQueues(historyQueuesCache));
         }
@@ -819,6 +1094,7 @@
         updateStatus("{{ $data['queue_status'] ?? 'closed' }}");
         syncOwnStatus();
         syncDosenQueues();
+        setInterval(syncDosenQueues, 5000);
         updateDosenClock();
         setInterval(updateDosenClock, 1000);
         // Laravel Echo realtime
@@ -826,6 +1102,16 @@
             window.Echo.channel('queue-status')
                 .listen('.queue.status.updated', (e) => {
                     if (e.userKode === myKode) {
+                        if (e?.meta?.event === 'queue_joined') {
+                            const queueId = String(e?.meta?.queue_id ?? '');
+                            if (!queueId || !notifiedQueueJoinedIds.has(queueId)) {
+                                if (queueId) {
+                                    notifiedQueueJoinedIds.add(queueId);
+                                }
+                                showPejabatToast(e?.meta ?? {});
+                                playPejabatNotifSound('queue_joined');
+                            }
+                        }
                         updateStatus(e.queueStatus);
                         syncDosenQueues();
                     }

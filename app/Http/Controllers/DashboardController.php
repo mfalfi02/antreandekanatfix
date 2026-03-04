@@ -39,6 +39,20 @@ class DashboardController extends Controller
         $deanRoomStatus = 'closed';
 
         DB::transaction(function () use ($request, $user, $todayJakarta, &$queue, &$deanRoomStatus) {
+            $activeQueueToSameDean = Queue::query()
+                ->where('kode_user', $user->kode)
+                ->where('kode_dosen', $request->dean_id)
+                ->whereIn('status', ['menunggu', 'diproses'])
+                ->lockForUpdate()
+                ->first();
+
+            if ($activeQueueToSameDean) {
+                abort(response()->json([
+                    'status' => 'error',
+                    'message' => 'Anda masih memiliki antrean aktif pada pejabat ini. Selesaikan dulu antrean sebelumnya.',
+                ], 422));
+            }
+
             $deanRoom = RuangAntri::query()
                 ->where('kode_dosen', $request->dean_id)
                 ->whereDate('tanggal_buka_ruang_antri', $todayJakarta)
@@ -56,7 +70,20 @@ class DashboardController extends Controller
                 ], 422));
             }
 
-            if ($deanRoom?->service_id && (int) $deanRoom->service_id !== (int) $request->service_id) {
+            $openedServiceIds = is_array($deanRoom?->service_ids) ? $deanRoom->service_ids : [];
+            $openedServiceIds = array_values(array_unique(array_map('intval', array_filter(
+                $openedServiceIds,
+                fn ($id) => $id !== null && $id !== ''
+            ))));
+
+            if (count($openedServiceIds) > 0) {
+                if (!in_array((int) $request->service_id, $openedServiceIds, true)) {
+                    abort(response()->json([
+                        'status' => 'error',
+                        'message' => 'Jenis layanan tidak sesuai dengan layanan yang sedang dibuka dosen tersebut.',
+                    ], 422));
+                }
+            } elseif ($deanRoom?->service_id && (int) $deanRoom->service_id !== (int) $request->service_id) {
                 abort(response()->json([
                     'status' => 'error',
                     'message' => 'Jenis layanan tidak sesuai dengan layanan yang sedang dibuka dosen tersebut.',
@@ -84,6 +111,10 @@ class DashboardController extends Controller
             event(new QueueStatusUpdated($request->dean_id, $deanRoomStatus ?? 'open', [
                 'event' => 'queue_joined',
                 'queue_id' => $queue->id,
+                'nomor_antrian' => $queue->nomor_antrian,
+                'kode_user' => $queue->kode_user,
+                'mahasiswa_name' => $queue->user?->name,
+                'service_name' => $queue->service?->nama_layanan,
             ]));
         } catch (\Throwable $e) {
             report($e);

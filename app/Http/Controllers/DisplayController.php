@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Queue;
 use App\Models\RuangAntri;
+use App\Models\Service;
 use App\Models\SystemSetting;
 use App\Models\User;
 use Illuminate\Support\Carbon;
@@ -39,6 +40,8 @@ class DisplayController extends Controller
             ];
         });
 
+        $serviceNameMap = Service::query()->pluck('nama_layanan', 'id');
+
         $activeStaff = RuangAntri::with(['dosen', 'service'])
             ->whereDate('tanggal_buka_ruang_antri', $todayJakarta)
             ->whereIn('status_ruang', ['open', 'occupied'])
@@ -46,19 +49,42 @@ class DisplayController extends Controller
             ->get()
             ->unique('kode_dosen')
             ->values()
-            ->map(function ($item) {
+            ->map(function ($item) use ($serviceNameMap) {
+                $serviceIds = is_array($item->service_ids) ? $item->service_ids : [];
+                $serviceIds = array_values(array_unique(array_map('intval', array_filter(
+                    $serviceIds,
+                    fn ($id) => $id !== null && $id !== ''
+                ))));
+
+                if (count($serviceIds) === 0 && $item->service_id) {
+                    $serviceIds = [(int) $item->service_id];
+                }
+
+                if (count($serviceIds) > 0) {
+                    $serviceNames = collect($serviceIds)
+                        ->map(fn (int $id) => $serviceNameMap->get($id))
+                        ->filter()
+                        ->values();
+
+                    $servicePayload = [
+                        'id' => count($serviceIds) === 1 ? $serviceIds[0] : null,
+                        'ids' => $serviceIds,
+                        'nama_layanan' => $serviceNames->implode(', '),
+                    ];
+                } else {
+                    $servicePayload = [
+                        'id' => null,
+                        'ids' => [],
+                        'nama_layanan' => 'Semua Jenis Layanan',
+                    ];
+                }
+
                 return [
                     'kode' => $item->kode_dosen,
                     'name' => $item->dosen->name ?? '-',
                     'jabatan' => $item->dosen->jabatan ?? '-',
                     'ruangan' => $item->dosen->ruangan ?? '-',
-                    'service' => $item->service ? [
-                        'id' => $item->service->id,
-                        'nama_layanan' => $item->service->nama_layanan,
-                    ] : [
-                        'id' => null,
-                        'nama_layanan' => 'Semua Jenis Layanan',
-                    ],
+                    'service' => $servicePayload,
                     'waktu' => [
                         'expected_jam_tutup' => $item->expected_jam_tutup_ruang_antri,
                     ],
