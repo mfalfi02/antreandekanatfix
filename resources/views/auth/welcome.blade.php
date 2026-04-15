@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Selamat Datang - Sistem Antrean Dekanat</title>
     @vite('resources/css/app.css')
+    @include('partials.pwa-head')
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
         crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -49,7 +50,7 @@
     <div class="min-h-[calc(100vh-2rem)] max-w-5xl mx-auto grid place-items-center">
         <div class="glass-panel w-full p-6 md:p-10 text-white">
             <div class="text-center max-w-2xl mx-auto">
-                <img src="{{ asset('images/logokampus.png') }}" alt="Logo Universitas"
+                <img src="{{ asset('images/logosistem.jpeg') }}" alt="Logo Sistem"
                     class="mx-auto mb-4 w-20 h-20 md:w-24 md:h-24 object-contain">
 
                 <p class="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-100">Sistem Antrean</p>
@@ -87,6 +88,8 @@
             </div>
         </div>
     </div>
+
+    @include('partials.pwa-scripts')
 </body>
 
 </html>

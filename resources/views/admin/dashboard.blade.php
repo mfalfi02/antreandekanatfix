@@ -7,7 +7,12 @@
     <title>Sistem Antrean Dekanat - Dashboard Admin</title>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-
+    @include('partials.pwa-head', [
+        'appleTouchIcon' => asset('pwa/dashboard-icons/icon-180x180.png'),
+        'favicon16' => asset('pwa/dashboard-icons/icon-16x16.png'),
+        'favicon32' => asset('pwa/dashboard-icons/icon-32x32.png'),
+        'appleTitle' => 'Dashboard Antrean'
+    ])
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
         crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -115,6 +120,27 @@
             border: 1px dashed #bfdbfe;
             border-radius: .9rem;
             background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+        }
+
+        .user-list-scroll {
+            max-height: 34rem;
+            overflow-y: auto;
+            padding-right: .25rem;
+            scrollbar-width: thin;
+            scrollbar-color: #c5d4eb #f6f9ff;
+        }
+
+        .user-list-scroll::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .user-list-scroll::-webkit-scrollbar-thumb {
+            background: #c5d4eb;
+            border-radius: 999px;
+        }
+
+        .user-list-scroll::-webkit-scrollbar-track {
+            background: #f6f9ff;
         }
 
         .service-card {
@@ -287,13 +313,67 @@
             </div>
 
             <div class="panel p-6">
-                <div class="flex items-start justify-between gap-3 mb-4">
+                @php
+                    $dashboardMonths = [
+                        1 => 'Januari',
+                        2 => 'Februari',
+                        3 => 'Maret',
+                        4 => 'April',
+                        5 => 'Mei',
+                        6 => 'Juni',
+                        7 => 'Juli',
+                        8 => 'Agustus',
+                        9 => 'September',
+                        10 => 'Oktober',
+                        11 => 'November',
+                        12 => 'Desember',
+                    ];
+                    $selectedDashboardMonth = $dashboardMonth ?? now()->month;
+                    $selectedDashboardYear = $dashboardYear ?? now()->year;
+                    $availableDashboardYears = $availableDashboardYears ?? [now()->year];
+                    $dashboardPeriodLabel = $dashboardPeriodLabel ?? ($dashboardMonths[$selectedDashboardMonth] . ' ' . $selectedDashboardYear);
+                @endphp
+
+                <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-4">
                     <div>
-                        <h2 class="text-xl font-semibold text-gray-900">Sinkronisasi Ruang Antrean Hari Ini</h2>
-                        <p class="text-sm text-gray-500">Monitoring status room dan waktu layanan dosen secara realtime.</p>
+                        <h2 class="text-xl font-semibold text-gray-900">Sinkronisasi Ruang Antrean per Periode</h2>
+                        <p class="text-sm text-gray-500">Monitoring status room dan waktu layanan dosen per bulan.</p>
                     </div>
-                    <span class="text-xs px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 font-semibold">Auto Sync</span>
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+                        <span class="text-xs px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 font-semibold">Auto Sync</span>
+                        <span class="text-xs px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 font-semibold">Periode {{ $dashboardPeriodLabel }}</span>
+                    </div>
                 </div>
+
+                <form id="roomPeriodForm" method="GET" action="{{ route('adm') }}"
+                    class="flex flex-col md:flex-row md:items-end gap-3 mb-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1">
+                        <label class="block">
+                            <span class="mb-1.5 block text-sm font-medium text-slate-700">Bulan</span>
+                            <select name="month" class="soft-input w-full px-3 py-2 text-sm">
+                                @foreach ($dashboardMonths as $monthNumber => $monthLabel)
+                                    <option value="{{ $monthNumber }}" {{ (int) $selectedDashboardMonth === $monthNumber ? 'selected' : '' }}>
+                                        {{ $monthLabel }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </label>
+                        <label class="block">
+                            <span class="mb-1.5 block text-sm font-medium text-slate-700">Tahun</span>
+                            <select name="year" class="soft-input w-full px-3 py-2 text-sm">
+                                @foreach ($availableDashboardYears as $year)
+                                    <option value="{{ $year }}" {{ (int) $selectedDashboardYear === (int) $year ? 'selected' : '' }}>
+                                        {{ $year }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </label>
+                    </div>
+                    <button type="submit" class="btn-brand px-4 py-2 text-sm inline-flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-filter"></i> Tampilkan
+                    </button>
+                </form>
+
                 <div class="admin-room-table-wrap overflow-x-auto rounded-xl border border-blue-100">
                     <table class="room-sync-table min-w-full text-sm">
                         <thead>
@@ -358,7 +438,8 @@
                 <div>
                     @foreach (['admin', 'dosen', 'mahasiswa', 'pejabat'] as $tabId)
                         <div class="tab-content {{ $loop->first ? '' : 'hidden' }}" id="{{ $tabId }}">
-                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 user-item">
+                            <div class="user-list-scroll">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 user-item">
                                 @foreach ($data['users'] as $user)
                                     @if ($user->role === $tabId)
                                         <div class="p-4 flex flex-col justify-between user-card">
@@ -429,6 +510,7 @@
                                         <p>Belum ada pengguna dengan role {{ ucfirst($tabId) }}.</p>
                                     </div>
                                 @endif
+                                </div>
                             </div>
                         </div>
                     @endforeach
@@ -545,7 +627,22 @@
 
         async function syncAdminQueueStatus() {
             try {
-                const res = await fetch("{{ route('queue.status') }}");
+                const periodForm = document.getElementById('roomPeriodForm');
+                const params = new URLSearchParams();
+
+                if (periodForm) {
+                    const formData = new FormData(periodForm);
+                    const month = formData.get('month');
+                    const year = formData.get('year');
+
+                    if (month) params.set('month', month);
+                    if (year) params.set('year', year);
+                }
+
+                const url = new URL("{{ route('queue.status') }}", window.location.origin);
+                params.forEach((value, key) => url.searchParams.set(key, value));
+
+                const res = await fetch(url.toString());
                 const data = await res.json();
                 renderRoomSyncRows(data?.per_user_statuses ?? []);
             } catch (error) {
@@ -642,6 +739,8 @@
             });
         });
     </script>
+
+    @include('partials.pwa-scripts')
 
 
 </body>

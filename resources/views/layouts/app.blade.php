@@ -7,6 +7,7 @@
     <title>@yield('title') | Antrean Dekanat</title>
     @vite('resources/css/app.css')
     @vite('resources/js/app.js')
+    @include('partials.pwa-head')
 </head>
 
 <body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100">
@@ -59,6 +60,7 @@
     @endif
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    @include('partials.pwa-scripts')
 
 </body>
 

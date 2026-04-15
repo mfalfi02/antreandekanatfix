@@ -6,6 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistem Antrean Dekanat FTI</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @include('partials.pwa-head', [
+        'appleTouchIcon' => asset('pwa/dashboard-icons/icon-180x180.png'),
+        'favicon16' => asset('pwa/dashboard-icons/icon-16x16.png'),
+        'favicon32' => asset('pwa/dashboard-icons/icon-32x32.png'),
+        'appleTitle' => 'Dashboard Antrean'
+    ])
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
         crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1090,6 +1096,8 @@
             });
         }
     </script>
+
+    @include('partials.pwa-scripts')
 </body>
 
 </html>

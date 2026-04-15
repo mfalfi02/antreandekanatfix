@@ -6,6 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistem Antrean Dekanat - Dashboard Pejabat</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @include('partials.pwa-head', [
+        'appleTouchIcon' => asset('pwa/dashboard-icons/icon-180x180.png'),
+        'favicon16' => asset('pwa/dashboard-icons/icon-16x16.png'),
+        'favicon32' => asset('pwa/dashboard-icons/icon-32x32.png'),
+        'appleTitle' => 'Dashboard Antrean'
+    ])
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
         crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -300,10 +306,27 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Perkiraan Jam Tutup</label>
                     <div class="mt-2 flex items-center gap-2">
-                        <input id="expected-close-input" type="text" placeholder="09.00"
+                        <select id="expected-close-hour"
                             class="block w-full px-3 py-2 border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            @for ($hour = 0; $hour < 24; $hour++)
+                                <option value="{{ str_pad((string) $hour, 2, '0', STR_PAD_LEFT) }}">
+                                    {{ str_pad((string) $hour, 2, '0', STR_PAD_LEFT) }}
+                                </option>
+                            @endfor
+                        </select>
+                        <span class="text-sm text-gray-500">:</span>
+                        <select id="expected-close-minute"
+                            class="block w-full px-3 py-2 border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            @for ($minute = 0; $minute < 60; $minute++)
+                                <option value="{{ str_pad((string) $minute, 2, '0', STR_PAD_LEFT) }}">
+                                    {{ str_pad((string) $minute, 2, '0', STR_PAD_LEFT) }}
+                                </option>
+                            @endfor
+                        </select>
                         <span class="text-sm text-gray-500">WIB</span>
                     </div>
+                    <input id="expected-close-input" type="hidden">
+                    <p class="text-xs text-gray-500 mt-1">Pilih jam dan menit dalam format 24 jam, tanpa AM/PM.</p>
                 </div>
 
                 <div>
@@ -491,6 +514,8 @@
         const servicePickerPanel = document.getElementById('service-picker-panel');
         const servicePickerOptions = document.getElementById('service-picker-options');
         const serviceSelectedChips = document.getElementById('service-selected-chips');
+        const expectedCloseHourInput = document.getElementById('expected-close-hour');
+        const expectedCloseMinuteInput = document.getElementById('expected-close-minute');
         const expectedCloseInput = document.getElementById('expected-close-input');
 
         const openBtns = [
@@ -532,12 +557,72 @@
             return `${h}:${m}`;
         }
 
-        function toIndoTime(value) {
-            return (value || '').replace(':', '.');
+        function normalizeIndoTime(value) {
+            const raw = (value || '').trim();
+            if (!raw) return '';
+
+            const cleaned = raw.replace('.', ':');
+            const match = cleaned.match(/^(\d{1,2}):(\d{2})$/);
+            if (!match) return '';
+
+            const hour = Number(match[1]);
+            const minute = Number(match[2]);
+            if (Number.isNaN(hour) || Number.isNaN(minute) || hour < 0 || hour > 23 || minute < 0 || minute > 59) {
+                return '';
+            }
+
+            return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
         }
 
-        function normalizeIndoTime(value) {
-            return (value || '').trim().replace('.', ':');
+        function setExpectedCloseValue(timeValue) {
+            const normalized = normalizeIndoTime(timeValue);
+            if (!normalized) {
+                if (expectedCloseInput) expectedCloseInput.value = '';
+                return '';
+            }
+
+            if (expectedCloseInput) expectedCloseInput.value = normalized;
+            return normalized;
+        }
+
+        function syncExpectedCloseValue() {
+            if (!expectedCloseHourInput || !expectedCloseMinuteInput) return '';
+
+            const hour = expectedCloseHourInput.value;
+            const minute = expectedCloseMinuteInput.value;
+
+            const combined = `${hour}:${minute}`;
+            return setExpectedCloseValue(combined);
+        }
+
+        function getDefaultExpectedCloseTime() {
+            const currentTime = getCurrentTimeHHMM();
+            const [hourPart, minutePart] = currentTime.split(':');
+            const hour = Number(hourPart);
+            const minute = Number(minutePart);
+
+            if (Number.isNaN(hour) || Number.isNaN(minute)) {
+                return currentTime;
+            }
+
+            const nextHour = (hour + 2) % 24;
+            return `${String(nextHour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+        }
+
+        if (expectedCloseHourInput && expectedCloseMinuteInput) {
+            const defaultTime = getDefaultExpectedCloseTime();
+            const [defaultHour, defaultMinute] = defaultTime.split(':');
+            expectedCloseHourInput.value = defaultHour;
+            expectedCloseMinuteInput.value = defaultMinute;
+            setExpectedCloseValue(defaultTime);
+        }
+
+        if (expectedCloseHourInput) {
+            expectedCloseHourInput.addEventListener('change', () => syncExpectedCloseValue());
+        }
+
+        if (expectedCloseMinuteInput) {
+            expectedCloseMinuteInput.addEventListener('change', () => syncExpectedCloseValue());
         }
 
         function getSelectedServiceValues() {
@@ -931,6 +1016,7 @@
                     return;
                 }
                 const expectedOpen = getCurrentTimeHHMM();
+                syncExpectedCloseValue();
                 const expectedClose = normalizeIndoTime(expectedCloseInput?.value);
                 if (!expectedClose) {
                     alert('Perkiraan jam tutup wajib diisi sebelum membuka antrean.');
@@ -1118,6 +1204,8 @@
                 });
         }
     </script>
+
+    @include('partials.pwa-scripts')
 </body>
 
 </html>

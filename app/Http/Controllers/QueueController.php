@@ -146,15 +146,17 @@ class QueueController extends Controller
         ]);
     }
 
-    public function status()
+    public function status(Request $request)
     {
-        $kode = request()->query('kode');
+        $kode = $request->query('kode');
         if (!$kode && Auth::check() && $this->isPejabat(Auth::user())) {
             $kode = Auth::user()->kode;
         }
 
+        $period = $this->resolveStatusPeriod($request);
+
         if ($kode) {
-            $detail = $this->statusDetailForUser($kode);
+            $detail = $this->statusDetailForUser($kode, $period);
 
             return response()->json([
                 'success' => true,
@@ -166,7 +168,7 @@ class QueueController extends Controller
             ]);
         }
 
-        $statuses = $this->statusesForPejabat();
+        $statuses = $this->statusesForPejabat($period);
         $globalStatus = $this->globalStatusFromCollection(collect($statuses)->pluck('queue_status'));
 
         return response()->json([
@@ -174,6 +176,11 @@ class QueueController extends Controller
             'queue_status' => $globalStatus,
             'queue_status_label' => $this->labelForStatus($globalStatus),
             'per_user_statuses' => $statuses,
+            'period' => $period ? [
+                'month' => (int) $period['month'],
+                'year' => (int) $period['year'],
+                'label' => $period['label'],
+            ] : null,
         ]);
     }
 
@@ -402,13 +409,22 @@ class QueueController extends Controller
         return $user && $user->role === 'pejabat';
     }
 
-    private function statusDetailForUser(string $kode): array
+    private function statusDetailForUser(string $kode, ?array $period = null): array
     {
-        $record = RuangAntri::query()
+        $query = RuangAntri::query()
             ->where('kode_dosen', $kode)
-            ->whereDate('tanggal_buka_ruang_antri', Carbon::now('Asia/Jakarta')->toDateString())
-            ->latest('updated_at')
-            ->first();
+            ->latest('updated_at');
+
+        if ($period) {
+            $query->whereBetween('tanggal_buka_ruang_antri', [
+                $period['start']->toDateString(),
+                $period['end']->toDateString(),
+            ]);
+        } else {
+            $query->whereDate('tanggal_buka_ruang_antri', Carbon::now('Asia/Jakarta')->toDateString());
+        }
+
+        $record = $query->first();
 
         $services = $this->resolveRoomServices($record);
 
@@ -419,15 +435,15 @@ class QueueController extends Controller
         ];
     }
 
-    private function statusesForPejabat(): array
+    private function statusesForPejabat(?array $period = null): array
     {
         $users = User::query()
             ->where('role', 'pejabat')
             ->where('status', 'aktif')
             ->get(['kode', 'name', 'role']);
 
-        return $users->map(function (User $user) {
-            $detail = $this->statusDetailForUser($user->kode);
+        return $users->map(function (User $user) use ($period) {
+            $detail = $this->statusDetailForUser($user->kode, $period);
             $status = $detail['queue_status'];
             return [
                 'kode' => $user->kode,
@@ -439,6 +455,46 @@ class QueueController extends Controller
                 'waktu' => $detail['waktu'],
             ];
         })->values()->all();
+    }
+
+    private function resolveStatusPeriod(Request $request): ?array
+    {
+        $month = (int) $request->query('month', 0);
+        $year = (int) $request->query('year', 0);
+
+        if ($month < 1 || $month > 12 || $year < 2000 || $year > 2100) {
+            return null;
+        }
+
+        $start = Carbon::create($year, $month, 1, 0, 0, 0, 'Asia/Jakarta')->startOfMonth();
+        $end = (clone $start)->endOfMonth();
+
+        return [
+            'month' => $month,
+            'year' => $year,
+            'start' => $start,
+            'end' => $end,
+            'label' => $this->monthLabel($month) . ' ' . $year,
+        ];
+    }
+
+    private function monthLabel(int $month): string
+    {
+        return match ($month) {
+            1 => 'Januari',
+            2 => 'Februari',
+            3 => 'Maret',
+            4 => 'April',
+            5 => 'Mei',
+            6 => 'Juni',
+            7 => 'Juli',
+            8 => 'Agustus',
+            9 => 'September',
+            10 => 'Oktober',
+            11 => 'November',
+            12 => 'Desember',
+            default => '-',
+        };
     }
 
     private function globalStatusFromCollection($statuses): string
