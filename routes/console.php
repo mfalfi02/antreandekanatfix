@@ -195,3 +195,64 @@ Artisan::command('queues:renumber-per-dosen {--date=} {--dry-run}', function () 
 
     return self::SUCCESS;
 })->purpose('Renumber queues.nomor_antrian per kode_dosen per hari');
+
+Artisan::command('queues:cleanup-stale-active {--date=} {--kode-user=} {--kode-dosen=} {--dry-run}', function () {
+    $dateFilter = $this->option('date') ?: Carbon::now('Asia/Jakarta')->toDateString();
+    $kodeUser = trim((string) $this->option('kode-user'));
+    $kodeDosen = trim((string) $this->option('kode-dosen'));
+    $dryRun = (bool) $this->option('dry-run');
+
+    try {
+        Carbon::createFromFormat('Y-m-d', $dateFilter);
+    } catch (\Throwable $e) {
+        $this->error('Format --date harus YYYY-MM-DD.');
+        return self::FAILURE;
+    }
+
+    $query = Queue::query()
+        ->whereIn('status', ['menunggu', 'diproses'])
+        ->whereDate('created_at', '<', $dateFilter)
+        ->orderBy('created_at')
+        ->orderBy('id');
+
+    if ($kodeUser !== '') {
+        $query->where('kode_user', $kodeUser);
+    }
+
+    if ($kodeDosen !== '') {
+        $query->where('kode_dosen', $kodeDosen);
+    }
+
+    $total = (clone $query)->count();
+    if ($total === 0) {
+        $this->info('Tidak ada antrean aktif lama yang perlu dibersihkan.');
+        return self::SUCCESS;
+    }
+
+    $this->info("Menemukan {$total} antrean aktif lama yang akan ditutup sebagai batal.");
+    if ($dryRun) {
+        $this->comment('Mode dry-run aktif, tidak ada perubahan database.');
+    }
+
+    $updated = 0;
+    $query->chunkById(200, function ($queues) use (&$updated, $dryRun) {
+        foreach ($queues as $queue) {
+            if (!$dryRun) {
+                DB::table('queues')
+                    ->where('id', $queue->id)
+                    ->update([
+                        'status' => 'batal',
+                        'updated_at' => now(),
+                    ]);
+            }
+            $updated++;
+        }
+    });
+
+    $this->newLine();
+    $this->info('Cleanup selesai.');
+    $this->line('Updated : ' . $updated);
+    $this->line('Mode    : ' . ($dryRun ? 'dry-run' : 'apply'));
+
+    return self::SUCCESS;
+})->purpose('Menutup antrean aktif lama yang sudah lewat tanggal hari ini');

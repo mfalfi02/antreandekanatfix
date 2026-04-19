@@ -42,6 +42,7 @@ class DashboardController extends Controller
             $activeQueueToSameDean = Queue::query()
                 ->where('kode_user', $user->kode)
                 ->where('kode_dosen', $request->dean_id)
+                ->whereDate('created_at', $todayJakarta)
                 ->whereIn('status', ['menunggu', 'diproses'])
                 ->lockForUpdate()
                 ->first();
