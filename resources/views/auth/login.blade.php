@@ -121,6 +121,7 @@
     </div>
 
     <script>
+        // Tombol ini hanya mengubah tipe input password agar user bisa cek isi sandi sebelum submit.
         const togglePassword = document.getElementById('togglePassword');
         const passwordInput = document.getElementById('password');
         const eyeIcon = document.getElementById('eyeIcon');

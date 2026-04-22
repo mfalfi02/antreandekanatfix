@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Events\QueueStatusUpdated;
 use App\Models\Queue;
 use App\Models\RuangAntri;
+use App\Services\GeofenceService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -12,6 +13,7 @@ use Illuminate\Support\Carbon;
 
 class DashboardController extends Controller
 {
+    // Pengantre mengambil nomor antrean untuk dosen atau pejabat yang sedang buka layanan.
     public function joinQueue(Request $request)
     {
         $user = Auth::user();
@@ -32,13 +34,23 @@ class DashboardController extends Controller
         $request->validate([
             'dean_id' => 'required|exists:users,kode',
             'service_id' => 'required|exists:services,id',
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
+            'accuracy' => 'nullable|numeric|min:0',
         ]);
+
+        // Cegah user mengambil antrean dari luar radius yang sudah ditentukan admin.
+        if ($response = app(GeofenceService::class)->validateRequest($request, 'mengambil antrean')) {
+            return $response;
+        }
 
         $todayJakarta = Carbon::now('Asia/Jakarta')->toDateString();
         $queue = null;
         $deanRoomStatus = 'closed';
 
+        // Semua cek dan pembuatan antrean dibungkus transaksi agar data tetap konsisten.
         DB::transaction(function () use ($request, $user, $todayJakarta, &$queue, &$deanRoomStatus) {
+            // Cegah satu pengguna mengambil antrean aktif dua kali ke pejabat yang sama.
             $activeQueueToSameDean = Queue::query()
                 ->where('kode_user', $user->kode)
                 ->where('kode_dosen', $request->dean_id)
@@ -54,6 +66,7 @@ class DashboardController extends Controller
                 ], 422));
             }
 
+            // Ambil status ruang layanan terakhir pada hari ini untuk dosen yang dipilih.
             $deanRoom = RuangAntri::query()
                 ->where('kode_dosen', $request->dean_id)
                 ->whereDate('tanggal_buka_ruang_antri', $todayJakarta)
@@ -71,6 +84,7 @@ class DashboardController extends Controller
                 ], 422));
             }
 
+            // Cocokkan layanan yang diminta dengan layanan yang sedang dibuka.
             $openedServiceIds = is_array($deanRoom?->service_ids) ? $deanRoom->service_ids : [];
             $openedServiceIds = array_values(array_unique(array_map('intval', array_filter(
                 $openedServiceIds,
@@ -108,6 +122,7 @@ class DashboardController extends Controller
             ]);
         });
 
+        // Broadcast agar dashboard lain dan display publik ikut refresh.
         try {
             event(new QueueStatusUpdated($request->dean_id, $deanRoomStatus ?? 'open', [
                 'event' => 'queue_joined',

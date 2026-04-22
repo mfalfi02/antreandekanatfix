@@ -12,10 +12,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('system_settings', function (Blueprint $table) {
-    $table->id();
-    $table->string('queue_status')->default('closed');
-    $table->timestamps();
-});
+            $table->id();
+            $table->string('queue_status')->default('closed');
+            $table->decimal('center_latitude', 10, 7)->nullable();
+            $table->decimal('center_longitude', 10, 7)->nullable();
+            $table->unsignedInteger('radius_meters')->default(300);
+            $table->timestamps();
+        });
     }
 
     /**

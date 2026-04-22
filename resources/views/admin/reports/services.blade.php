@@ -11,6 +11,7 @@
                 </p>
             </div>
 
+            {{-- Filter periode bulanan dijalankan lewat query string supaya bisa dibagikan dan di-bookmark. --}}
             <form method="GET" action="{{ route('reports.services') }}"
                 class="flex flex-col gap-2 rounded-xl bg-white/10 p-3 backdrop-blur sm:flex-row sm:items-end">
                 <div>
@@ -69,6 +70,7 @@
     </div>
 
     @php
+        // Ringkasan ini dihitung dari koleksi yang sudah disiapkan controller.
         $totalLayanan = $services->count();
         $totalMahasiswa = $services->sum('mahasiswa_count');
         $topService = $services->sortByDesc('mahasiswa_count')->first();
@@ -111,6 +113,7 @@
 
     <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         <h2 class="mb-4 text-lg font-semibold text-gray-800">Grafik Layanan</h2>
+        {{-- Canvas ini diisi Chart.js dari data layanan yang sudah diolah server. --}}
         <canvas id="serviceChart" height="110"></canvas>
     </div>
 
@@ -201,7 +204,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-    // fallback jika variabel tidak dikirim (agar tidak error)
+    // Fallback menjaga chart tetap aman meski controller belum mengirim data.
     const labels = @json($labels ?? []);
     const dataset = @json($data ?? []);
 

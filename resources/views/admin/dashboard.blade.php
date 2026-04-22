@@ -19,7 +19,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
         rel="stylesheet">
-
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
     <style>
         :root {
             --bg-1: #f7fbff;
@@ -120,6 +121,14 @@
             border: 1px dashed #bfdbfe;
             border-radius: .9rem;
             background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+        }
+
+        #location-map {
+            height: 280px;
+            border-radius: 1rem;
+            overflow: hidden;
+            border: 1px solid #dbe6f6;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, .7);
         }
 
         .user-list-scroll {
@@ -273,46 +282,119 @@
     <div class="min-h-screen">
         <div class="max-w-7xl mx-auto space-y-8">
 
-            {{-- Stats Cards --}}
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div
-                    class="panel p-6 flex items-center gap-4 hover:scale-105 transition-transform">
-                    <i class="fa-solid fa-users text-4xl text-blue-600"></i>
+            @if (session('error'))
+                <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                    <i class="fa-solid fa-triangle-exclamation mr-2"></i>
+                    {{ session('error') }}
+                </div>
+            @endif
+
+            {{-- Panel ini dipakai untuk menentukan titik pusat dan radius validasi lokasi antrean. --}}
+            <div class="panel p-6">
+                @php
+                    $locationSetting = $locationSetting ?? null;
+                @endphp
+                <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-4">
                     <div>
-                        <p class="text-3xl font-bold text-gray-900">{{ $data['totalUsers'] }}</p>
-                        <p class="text-sm text-gray-500">Total Pengguna</p>
+                        <h2 class="text-xl font-semibold text-gray-900">Pengaturan Lokasi Antrean</h2>
+                        <p class="text-sm text-gray-500">Titik ini dipakai saat user membuka atau mengambil antrean dari browser.</p>
+                    </div>
+                    <div class="text-sm text-gray-600">
+                        <p class="font-semibold text-gray-800">Radius aktif</p>
+                        <p>{{ $locationSetting?->radius_meters ?? 300 }} meter</p>
                     </div>
                 </div>
 
-                <div
-                    class="panel p-6 flex items-center gap-4 hover:scale-105 transition-transform">
-                    <i class="fa-solid fa-signal text-4xl text-green-600"></i>
-                    <div>
-                        <p class="text-3xl font-bold text-gray-900">{{ $data['activeQueues'] }}</p>
-                        <p class="text-sm text-gray-500">Antrean Aktif</p>
+                <form id="location-setting-form" method="POST" action="{{ route('adm.location.update') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    @csrf
+                    <label class="block">
+                        <span class="mb-1.5 block text-sm font-medium text-slate-700">Latitude Pusat</span>
+                        <input
+                            id="location-center-latitude"
+                            type="number"
+                            name="center_latitude"
+                            step="0.0000001"
+                            required
+                            value="{{ old('center_latitude', $locationSetting?->center_latitude) }}"
+                            class="soft-input w-full px-3 py-2 text-sm"
+                        >
+                    </label>
+                    <label class="block">
+                        <span class="mb-1.5 block text-sm font-medium text-slate-700">Longitude Pusat</span>
+                        <input
+                            id="location-center-longitude"
+                            type="number"
+                            name="center_longitude"
+                            step="0.0000001"
+                            required
+                            value="{{ old('center_longitude', $locationSetting?->center_longitude) }}"
+                            class="soft-input w-full px-3 py-2 text-sm"
+                        >
+                    </label>
+                    <label class="block">
+                        <span class="mb-1.5 block text-sm font-medium text-slate-700">Radius Meter</span>
+                        <input
+                            type="number"
+                            name="radius_meters"
+                            min="1"
+                            max="5000"
+                            required
+                            value="{{ old('radius_meters', $locationSetting?->radius_meters ?? 300) }}"
+                            class="soft-input w-full px-3 py-2 text-sm"
+                        >
+                    </label>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 md:col-span-4">
+                        <button type="button" id="use-browser-location-btn"
+                            class="btn-brand px-4 py-2 text-sm inline-flex items-center justify-center gap-2 w-full">
+                            <i class="fa-solid fa-crosshairs"></i>
+                            Gunakan Lokasi Saat Ini
+                        </button>
+                        <button type="button" id="reset-location-btn"
+                            class="px-4 py-2 text-sm inline-flex items-center justify-center gap-2 w-full rounded-xl border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition-colors">
+                            <i class="fa-solid fa-rotate-left"></i>
+                            Reset Lokasi Awal
+                        </button>
+                        <button type="submit" class="btn-brand px-4 py-2 text-sm inline-flex items-center justify-center gap-2 w-full">
+                            <i class="fa-solid fa-location-dot"></i>
+                            Simpan Lokasi
+                        </button>
+                    </div>
+                </form>
+
+                <p id="location-status" class="mt-3 text-xs text-gray-500">
+                    Jika koordinat belum diisi, validasi lokasi akan dilewati sementara agar sistem tetap bisa dipakai.
+                </p>
+
+                <div class="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <p class="text-sm font-semibold text-slate-800">Preview Lokasi</p>
+                    <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-slate-600">
+                        <div>
+                            <p class="text-xs uppercase tracking-wide text-slate-500">Titik pusat</p>
+                            <p id="location-preview-center" class="font-semibold text-slate-800">-</p>
+                        </div>
+                        <div>
+                            <p class="text-xs uppercase tracking-wide text-slate-500">Lokasi browser saat ini</p>
+                            <p id="location-preview-current" class="font-semibold text-slate-800">-</p>
+                        </div>
+                        <div>
+                            <p class="text-xs uppercase tracking-wide text-slate-500">Jarak ke pusat</p>
+                            <p id="location-preview-distance" class="font-semibold text-slate-800">-</p>
+                        </div>
+                        <div>
+                            <p class="text-xs uppercase tracking-wide text-slate-500">Radius validasi</p>
+                            <p id="location-preview-radius" class="font-semibold text-slate-800">{{ $locationSetting?->radius_meters ?? 300 }} meter</p>
+                        </div>
                     </div>
                 </div>
 
-                <div
-                    class="panel p-6 flex items-center gap-4 hover:scale-105 transition-transform">
-                    <i class="fa-solid fa-calendar-check text-4xl text-orange-600"></i>
-                    <div>
-                        <p class="text-3xl font-bold text-gray-900">{{ $data['completedQueues'] }}</p>
-                        <p class="text-sm text-gray-500">Selesai Hari Ini</p>
-                    </div>
-                </div>
-
-                <div
-                    class="panel p-6 flex items-center gap-4 hover:scale-105 transition-transform">
-                    <i class="fa-solid fa-layer-group text-4xl text-purple-600"></i>
-                    <div>
-                        <p class="text-3xl font-bold text-gray-900">{{ $data['totalServices'] }}</p>
-                        <p class="text-sm text-gray-500">Kategori Layanan</p>
-                    </div>
+                <div class="mt-4">
+                    <p class="mb-2 text-sm font-semibold text-slate-800">Radius Visual</p>
+                    <div id="location-map"></div>
                 </div>
             </div>
 
             <div class="panel p-6">
+                {{-- Menyiapkan daftar bulan, tahun aktif, dan label periode yang sedang dipilih --}}
                 @php
                     $dashboardMonths = [
                         1 => 'Januari',
@@ -374,6 +456,7 @@
                     </button>
                 </form>
 
+                {{-- Tabel ini diisi ulang lewat JavaScript dari data sinkronisasi backend --}}
                 <div class="admin-room-table-wrap overflow-x-auto rounded-xl border border-blue-100">
                     <table class="room-sync-table min-w-full text-sm">
                         <thead>
@@ -416,12 +499,14 @@
                 </div>
 
                 @php
+                    // Menghitung jumlah pengguna per role untuk badge pada tab.
                     $roleCounts = collect($data['users'])->groupBy('role')->map->count();
                 @endphp
 
                 {{-- Tabs Navigation --}}
                 <div class="mb-4 border-b border-gray-200">
                     <nav class="-mb-px flex flex-wrap gap-2">
+                        {{-- Masing-masing tombol tab mewakili satu role pengguna --}}
                         @foreach (['admin', 'dosen', 'mahasiswa', 'pejabat'] as $roleTab)
                             <button class="tab-btn py-2 px-4 text-sm font-medium text-gray-600 hover:text-blue-600 {{ $loop->first ? 'is-active' : '' }}"
                                 data-tab="{{ $roleTab }}">
@@ -436,11 +521,13 @@
 
                 {{-- Tab Content --}}
                 <div>
+                    {{-- Konten dipisah per role, lalu difilter lagi agar hanya menampilkan pengguna yang cocok --}}
                     @foreach (['admin', 'dosen', 'mahasiswa', 'pejabat'] as $tabId)
                         <div class="tab-content {{ $loop->first ? '' : 'hidden' }}" id="{{ $tabId }}">
                             <div class="user-list-scroll">
                                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 user-item">
                                 @foreach ($data['users'] as $user)
+                                    {{-- Hanya tampilkan kartu pengguna jika role-nya sesuai tab aktif --}}
                                     @if ($user->role === $tabId)
                                         <div class="p-4 flex flex-col justify-between user-card">
                                             <div>
@@ -454,18 +541,21 @@
                                                             <p class="font-semibold text-gray-900 user-name">{{ $user->name }}</p>
                                                             <p class="text-sm text-gray-500 user-kode">{{ $user->kode }}</p>
                                                             <p class="text-xs text-gray-500">{{ $user->email }}</p>
+                                                            {{-- Detail tambahan ditampilkan sesuai jenis role pengguna --}}
                                                             @if (in_array($user->role, ['dosen', 'pejabat'], true) && $user->jabatan)
                                                                 <p class="text-xs text-slate-600 inline-flex items-center gap-1 mt-0.5">
                                                                     <i class="fa-solid fa-id-badge text-slate-400"></i>
                                                                     {{ $user->jabatan }}
                                                                 </p>
                                                             @endif
+                                                            {{-- Pejabat mendapatkan informasi ruangan jika tersedia --}}
                                                             @if ($user->role === 'pejabat' && $user->ruangan)
                                                                 <p class="text-xs text-slate-600 inline-flex items-center gap-1 mt-0.5">
                                                                     <i class="fa-solid fa-door-open text-slate-400"></i>
                                                                     {{ $user->ruangan }}
                                                                 </p>
                                                             @endif
+                                                            {{-- Mahasiswa menampilkan label bawaan bila jabatan belum diisi --}}
                                                             @if ($user->role === 'mahasiswa')
                                                                 <p class="text-xs text-slate-600 inline-flex items-center gap-1 mt-0.5">
                                                                     <i class="fa-solid fa-user-graduate text-slate-400"></i>
@@ -476,6 +566,7 @@
                                                     </div>
                                                 </div>
                                                 @php
+                                                    // Menentukan badge status aktif atau nonaktif untuk pengguna.
                                                     $isAktif = $user->status === 'aktif';
                                                 @endphp
                                                 <span
@@ -485,6 +576,7 @@
                                                 </span>
                                             </div>
                                             <div class="flex justify-end mt-4 space-x-2">
+                                                {{-- Tombol edit dan hapus untuk setiap pengguna --}}
                                                 <a href="{{ route('users.edit', $user->kode) }}"
                                                     title="Edit {{ $user->name }}"
                                                     class="user-action-btn border border-blue-200 text-blue-600 hover:bg-blue-50">
@@ -535,6 +627,7 @@
                 </div>
 
                 <div class="space-y-4" id="serviceList">
+                    {{-- Setiap item layanan ditampilkan sebagai kartu dengan nama, deskripsi, dan estimasi waktu --}}
                     @foreach ($data['service'] as $service)
                         <div class="flex justify-between items-center p-4 service-card">
                             <div class="flex-1">
@@ -550,6 +643,7 @@
                                 </div>
                             </div>
                             <div class="flex items-center space-x-2 ml-4">
+                                {{-- Aksi edit dan hapus untuk masing-masing layanan --}}
                                 <a href="{{ route('services.edit', $service->id) }}"
                                     class="h-9 w-9 rounded-lg border border-blue-200 text-blue-600 hover:bg-blue-50 transition-colors inline-flex items-center justify-center">
                                     <i class="fa-solid fa-edit"></i>
@@ -597,12 +691,483 @@
         </div>
     </div>
 
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
     {{-- Script: Tabs --}}
     <script>
+        // Mengelola jam dan tanggal admin secara real-time.
         const currentDateAdmin = document.getElementById('current-date-admin');
         const currentTimeAdmin = document.getElementById('current-time-admin');
         const roomSyncBody = document.getElementById('room-sync-body');
+        const locationSettingForm = document.getElementById('location-setting-form');
+        const useBrowserLocationBtn = document.getElementById('use-browser-location-btn');
+        const resetLocationBtn = document.getElementById('reset-location-btn');
+        const locationLatitudeInput = document.getElementById('location-center-latitude');
+        const locationLongitudeInput = document.getElementById('location-center-longitude');
+        const locationRadiusInput = document.querySelector('input[name="radius_meters"]');
+        const locationStatus = document.getElementById('location-status');
+        const locationPreviewCenter = document.getElementById('location-preview-center');
+        const locationPreviewCurrent = document.getElementById('location-preview-current');
+        const locationPreviewDistance = document.getElementById('location-preview-distance');
+        const locationPreviewRadius = document.getElementById('location-preview-radius');
+        const locationMapContainer = document.getElementById('location-map');
+        let browserLocation = null;
+        let locationMap = null;
+        let locationCenterMarker = null;
+        let locationRadiusCircle = null;
+        let autoSaveTimer = null;
+        let isSavingLocation = false;
+        @php
+            // Nilai awal disiapkan di PHP dulu supaya Blade tidak memecah ekspresi JSON saat compile.
+            $initialLocation = [
+                'latitude' => old('center_latitude', $locationSetting?->center_latitude),
+                'longitude' => old('center_longitude', $locationSetting?->center_longitude),
+                'radius' => old('radius_meters', $locationSetting?->radius_meters ?? 300),
+            ];
+        @endphp
+        let initialLocation = @json($initialLocation);
 
+        // Rumus Haversine dipakai untuk menghitung jarak dua titik koordinat dalam meter.
+        function haversineMeters(lat1, lng1, lat2, lng2) {
+            const earthRadius = 6371000;
+            const toRad = (value) => value * Math.PI / 180;
+            const dLat = toRad(lat2 - lat1);
+            const dLng = toRad(lng2 - lng1);
+            const a = Math.sin(dLat / 2) ** 2 +
+                Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+            return 2 * earthRadius * Math.asin(Math.min(1, Math.sqrt(a)));
+        }
+
+        // Format jarak agar mudah dibaca admin saat melihat preview lokasi.
+        function formatDistance(meters) {
+            if (!Number.isFinite(meters)) return '-';
+            if (meters < 1000) {
+                return `${Math.round(meters)} meter`;
+            }
+            return `${(meters / 1000).toFixed(2)} km`;
+        }
+
+        // Ambil nilai input koordinat dan ubah ke angka aman untuk dipakai di peta maupun preview.
+        function getLocationInputs() {
+            const latitude = Number(locationLatitudeInput?.value);
+            const longitude = Number(locationLongitudeInput?.value);
+            return {
+                latitude: Number.isFinite(latitude) ? latitude : null,
+                longitude: Number.isFinite(longitude) ? longitude : null,
+            };
+        }
+
+        // Ambil radius validasi dari input agar preview dan peta memakai angka yang sama.
+        function getLocationRadius() {
+            const radius = Number(locationRadiusInput?.value ?? 300);
+            return Number.isFinite(radius) ? radius : 300;
+        }
+
+        // Tentukan titik pusat yang layak dipakai untuk peta jika koordinat belum lengkap.
+        function getMapFallbackCenter() {
+            const center = getLocationInputs();
+            if (center.latitude !== null && center.longitude !== null) {
+                return [center.latitude, center.longitude];
+            }
+
+            if (browserLocation) {
+                return [browserLocation.latitude, browserLocation.longitude];
+            }
+
+            return [-6.200000, 106.816666];
+        }
+
+        // Peta dipakai hanya sebagai visualisasi radius dan titik pusat lokasi yang dipilih admin.
+        function ensureLocationMap() {
+            if (!locationMapContainer || !window.L) return;
+
+            if (!locationMap) {
+                locationMap = L.map('location-map', {
+                    scrollWheelZoom: false,
+                    zoomControl: true,
+                }).setView(getMapFallbackCenter(), 16);
+
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '&copy; OpenStreetMap contributors',
+                }).addTo(locationMap);
+
+                locationMap.on('click', (event) => {
+                    const latitude = Number(event?.latlng?.lat);
+                    const longitude = Number(event?.latlng?.lng);
+
+                    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
+
+                    locationLatitudeInput.value = latitude.toFixed(7);
+                    locationLongitudeInput.value = longitude.toFixed(7);
+                    updateLocationPreview();
+                    updateLocationMap();
+                    scheduleLocationAutoSave('Pusat lokasi dipindahkan dari peta.');
+                });
+            }
+        }
+
+        // Sinkronkan marker dan lingkar radius supaya visual peta selalu sesuai dengan input form.
+        function updateLocationMap() {
+            if (!locationMapContainer || !window.L) return;
+
+            ensureLocationMap();
+            if (!locationMap) return;
+
+            const center = getLocationInputs();
+            const radius = getLocationRadius();
+            const hasCenter = center.latitude !== null && center.longitude !== null;
+
+            if (!hasCenter) {
+                if (locationCenterMarker) {
+                    locationMap.removeLayer(locationCenterMarker);
+                    locationCenterMarker = null;
+                }
+
+                if (locationRadiusCircle) {
+                    locationMap.removeLayer(locationRadiusCircle);
+                    locationRadiusCircle = null;
+                }
+
+                locationMap.setView(getMapFallbackCenter(), 12);
+                locationMap.invalidateSize();
+                return;
+            }
+
+            const latLng = [center.latitude, center.longitude];
+
+            if (!locationCenterMarker) {
+                locationCenterMarker = L.marker(latLng, {
+                    draggable: true,
+                }).addTo(locationMap);
+
+                locationCenterMarker.on('dragend', () => {
+                    const markerLatLng = locationCenterMarker.getLatLng();
+                    locationLatitudeInput.value = markerLatLng.lat.toFixed(7);
+                    locationLongitudeInput.value = markerLatLng.lng.toFixed(7);
+                    updateLocationPreview();
+                    updateLocationMap();
+                    scheduleLocationAutoSave('Pusat lokasi dipindahkan dari marker.');
+                });
+            } else {
+                locationCenterMarker.setLatLng(latLng);
+            }
+
+            if (!locationRadiusCircle) {
+                locationRadiusCircle = L.circle(latLng, {
+                    radius,
+                    color: '#2563eb',
+                    weight: 2,
+                    fillColor: '#60a5fa',
+                    fillOpacity: 0.18,
+                }).addTo(locationMap);
+            } else {
+                locationRadiusCircle.setLatLng(latLng);
+                locationRadiusCircle.setRadius(radius);
+            }
+
+            const bounds = locationRadiusCircle.getBounds();
+            if (bounds?.isValid?.()) {
+                locationMap.fitBounds(bounds, { padding: [32, 32] });
+            } else {
+                locationMap.setView(latLng, 16, { animate: false });
+            }
+            locationMap.invalidateSize();
+        }
+
+        // Perbarui ringkasan lokasi di panel kanan, termasuk jarak dari browser admin ke pusat.
+        function updateLocationPreview() {
+            const center = getLocationInputs();
+            const radius = getLocationRadius();
+
+            if (locationPreviewCenter) {
+                locationPreviewCenter.textContent = center.latitude !== null && center.longitude !== null
+                    ? `${center.latitude.toFixed(7)}, ${center.longitude.toFixed(7)}`
+                    : '-';
+            }
+
+            if (locationPreviewRadius) {
+                locationPreviewRadius.textContent = `${Number.isFinite(radius) ? radius : 300} meter`;
+            }
+
+            if (locationPreviewCurrent) {
+                if (browserLocation) {
+                    locationPreviewCurrent.textContent = `${browserLocation.latitude.toFixed(7)}, ${browserLocation.longitude.toFixed(7)}`;
+                } else {
+                    locationPreviewCurrent.textContent = '-';
+                }
+            }
+
+            if (locationPreviewDistance) {
+                if (center.latitude !== null && center.longitude !== null && browserLocation) {
+                    const distance = haversineMeters(
+                        browserLocation.latitude,
+                        browserLocation.longitude,
+                        center.latitude,
+                        center.longitude
+                    );
+                    const status = distance <= (Number.isFinite(radius) ? radius : 300) ? 'di dalam radius' : 'di luar radius';
+                    locationPreviewDistance.textContent = `${formatDistance(distance)} (${status})`;
+                } else {
+                    locationPreviewDistance.textContent = '-';
+                }
+            }
+
+            updateLocationMap();
+        }
+
+        // Set status agar admin tahu perubahan lokasi sudah dikirim ke server atau masih menunggu.
+        function setLocationStatus(message, tone = 'info') {
+            if (!locationStatus) return;
+
+            const toneClass = tone === 'error'
+                ? 'text-red-600'
+                : tone === 'success'
+                    ? 'text-emerald-600'
+                    : 'text-gray-500';
+
+            locationStatus.className = `mt-3 text-xs ${toneClass}`;
+            locationStatus.textContent = message;
+        }
+
+        // Ambil token CSRF dari form supaya request autosave tetap aman.
+        function getLocationCsrfToken() {
+            return locationSettingForm?.querySelector('input[name="_token"]')?.value ?? '';
+        }
+
+        // Kumpulkan payload lokasi dari input form dan pastikan nilainya siap dikirim ke server.
+        function buildLocationPayload() {
+            const center = getLocationInputs();
+            const radius = getLocationRadius();
+
+            if (center.latitude === null || center.longitude === null) {
+                return null;
+            }
+
+            return {
+                center_latitude: center.latitude,
+                center_longitude: center.longitude,
+                radius_meters: radius,
+            };
+        }
+
+        // Kirim data lokasi ke backend tanpa reload halaman agar autosave terasa lebih halus.
+        async function saveLocationSetting({ silent = false, reason = 'manual' } = {}) {
+            if (!locationSettingForm || isSavingLocation) return false;
+
+            const payload = buildLocationPayload();
+            if (!payload) {
+                setLocationStatus('Isi latitude dan longitude dulu sebelum menyimpan lokasi.', 'error');
+                return false;
+            }
+
+            isSavingLocation = true;
+            if (!silent) {
+                setLocationStatus(reason === 'auto' ? 'Menyimpan lokasi otomatis...' : 'Menyimpan lokasi...', 'info');
+            }
+
+            try {
+                const response = await fetch(locationSettingForm.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': getLocationCsrfToken(),
+                    },
+                    body: new URLSearchParams({
+                        _token: getLocationCsrfToken(),
+                        center_latitude: String(payload.center_latitude),
+                        center_longitude: String(payload.center_longitude),
+                        radius_meters: String(payload.radius_meters),
+                    }),
+                });
+
+                const data = await response.json().catch(() => null);
+
+                if (!response.ok) {
+                    const message = data?.message
+                        ?? Object.values(data?.errors ?? {})?.flat?.()?.[0]
+                        ?? 'Gagal menyimpan lokasi.';
+                    throw new Error(message);
+                }
+
+                initialLocation = { ...payload };
+                setLocationStatus(data?.message ?? 'Pengaturan lokasi berhasil disimpan.', 'success');
+                return true;
+            } catch (error) {
+                console.error(error);
+                const message = error?.message ?? 'Gagal menyimpan lokasi.';
+                setLocationStatus(message, 'error');
+                if (!silent) {
+                    alert(message);
+                }
+                return false;
+            } finally {
+                isSavingLocation = false;
+            }
+        }
+
+        // Autosave dibuat dengan debounce supaya input tidak mengirim request terlalu sering.
+        function scheduleLocationAutoSave(reason = 'auto') {
+            if (!locationSettingForm) return;
+
+            window.clearTimeout(autoSaveTimer);
+            autoSaveTimer = window.setTimeout(() => {
+                saveLocationSetting({ silent: true, reason });
+            }, 900);
+        }
+
+        // Mengembalikan input ke lokasi awal yang tersimpan saat halaman dibuka.
+        function resetLocationToInitial() {
+            if (!locationLatitudeInput || !locationLongitudeInput || !locationRadiusInput) return;
+
+            window.clearTimeout(autoSaveTimer);
+
+            if (initialLocation?.latitude !== null && initialLocation?.latitude !== undefined) {
+                locationLatitudeInput.value = initialLocation.latitude;
+            } else {
+                locationLatitudeInput.value = '';
+            }
+
+            if (initialLocation?.longitude !== null && initialLocation?.longitude !== undefined) {
+                locationLongitudeInput.value = initialLocation.longitude;
+            } else {
+                locationLongitudeInput.value = '';
+            }
+
+            if (initialLocation?.radius !== null && initialLocation?.radius !== undefined) {
+                locationRadiusInput.value = initialLocation.radius;
+            } else {
+                locationRadiusInput.value = 300;
+            }
+
+            updateLocationPreview();
+            setLocationStatus('Lokasi dikembalikan ke nilai awal.', 'info');
+            if (buildLocationPayload()) {
+                scheduleLocationAutoSave('reset');
+            }
+        }
+
+        // Browser Geolocation API membantu admin mengambil koordinat pusat lokasi dari tempat ia berdiri.
+        function getBrowserLocation() {
+            return new Promise((resolve, reject) => {
+                if (!navigator.geolocation) {
+                    reject(new Error('Geolocation tidak didukung oleh browser ini.'));
+                    return;
+                }
+
+                navigator.geolocation.getCurrentPosition(
+                    resolve,
+                    reject,
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 12000,
+                        maximumAge: 0,
+                    }
+                );
+            });
+        }
+
+        // Ubah kode error GPS menjadi pesan yang lebih mudah dipahami admin.
+        function getLocationErrorMessage(error) {
+            switch (Number(error?.code)) {
+                case 1:
+                    return 'Izin lokasi ditolak. Izinkan akses lokasi lalu coba lagi.';
+                case 2:
+                    return 'Lokasi tidak tersedia. Coba aktifkan GPS atau pindah ke area dengan sinyal lebih baik.';
+                case 3:
+                    return 'Pengambilan lokasi melebihi batas waktu. Coba ulangi.';
+                default:
+                    return error?.message ?? 'Gagal membaca lokasi perangkat.';
+            }
+        }
+
+        // Coba baca lokasi browser saat halaman dibuka supaya preview jarak langsung terisi.
+        async function hydrateBrowserLocationForPreview() {
+            try {
+                const position = await getBrowserLocation();
+                const coords = position.coords ?? {};
+                const latitude = Number(coords.latitude);
+                const longitude = Number(coords.longitude);
+
+                if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+                    return;
+                }
+
+                browserLocation = { latitude, longitude };
+                updateLocationPreview();
+
+                if (locationStatus && !locationStatus.textContent.includes('Lokasi berhasil diambil')) {
+                    locationStatus.textContent = `Lokasi browser terbaca. Accuracy: ${Math.round(coords.accuracy ?? 0)} meter.`;
+                }
+            } catch (error) {
+                // Kalau izin lokasi belum diberikan, preview tetap bekerja untuk titik pusat.
+                console.info('Browser location preview skipped:', error?.message ?? error);
+            }
+        }
+
+        // Isi field latitude dan longitude dari lokasi browser saat ini.
+        async function fillCurrentLocation() {
+            if (!useBrowserLocationBtn || !locationLatitudeInput || !locationLongitudeInput) return;
+
+            useBrowserLocationBtn.disabled = true;
+            useBrowserLocationBtn.classList.add('opacity-60', 'cursor-not-allowed');
+            if (locationStatus) {
+                locationStatus.textContent = 'Mengambil lokasi dari browser...';
+            }
+
+            try {
+                const position = await getBrowserLocation();
+                const coords = position.coords ?? {};
+                const latitude = Number(coords.latitude);
+                const longitude = Number(coords.longitude);
+                if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+                    throw new Error('Koordinat lokasi tidak valid.');
+                }
+
+                browserLocation = { latitude, longitude };
+                locationLatitudeInput.value = latitude.toFixed(7);
+                locationLongitudeInput.value = longitude.toFixed(7);
+                updateLocationPreview();
+                setLocationStatus(`Lokasi berhasil diambil. Accuracy: ${Math.round(coords.accuracy ?? 0)} meter.`, 'success');
+                scheduleLocationAutoSave('browser');
+            } catch (error) {
+                console.error(error);
+                const message = getLocationErrorMessage(error);
+                setLocationStatus(message, 'error');
+                alert(message);
+            } finally {
+                useBrowserLocationBtn.disabled = false;
+                useBrowserLocationBtn.classList.remove('opacity-60', 'cursor-not-allowed');
+            }
+        }
+
+        if (locationLatitudeInput) {
+            locationLatitudeInput.addEventListener('input', updateLocationPreview);
+        }
+
+        if (locationLongitudeInput) {
+            locationLongitudeInput.addEventListener('input', updateLocationPreview);
+        }
+
+        if (locationRadiusInput) {
+            locationRadiusInput.addEventListener('input', updateLocationPreview);
+        }
+
+        if (resetLocationBtn) {
+            resetLocationBtn.addEventListener('click', resetLocationToInitial);
+        }
+
+        if (locationSettingForm) {
+            locationSettingForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                window.clearTimeout(autoSaveTimer);
+                await saveLocationSetting({ silent: false, reason: 'manual' });
+            });
+        }
+
+        // Memperbarui tampilan tanggal dan jam di header dashboard.
         function updateAdminClock() {
             const now = new Date();
             if (currentDateAdmin) {
@@ -625,11 +1190,13 @@
             }
         }
 
+        // Mengambil status antrean per pengguna sesuai periode yang dipilih.
         async function syncAdminQueueStatus() {
             try {
                 const periodForm = document.getElementById('roomPeriodForm');
                 const params = new URLSearchParams();
 
+                // Jika form periode terisi, kirim bulan dan tahun ke backend.
                 if (periodForm) {
                     const formData = new FormData(periodForm);
                     const month = formData.get('month');
@@ -650,10 +1217,12 @@
             }
         }
 
+        // Merender baris tabel sinkronisasi berdasarkan data yang diterima dari backend.
         function renderRoomSyncRows(rows) {
             if (!roomSyncBody) return;
             const formatTime = (value) => value ? `${value} WIB` : '-';
             const statusBadge = (status, label) => {
+                // Badge status dibuat berbeda agar mudah dibaca admin.
                 if (status === 'open') {
                     return `<span class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700"><i class="fa-solid fa-door-open"></i>${label ?? 'Antrean Dibuka'}</span>`;
                 }
@@ -663,6 +1232,7 @@
                 return `<span class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-rose-100 text-rose-700"><i class="fa-solid fa-door-closed"></i>${label ?? 'Antrean Ditutup'}</span>`;
             };
 
+            // Jika data kosong, tampilkan pesan kosong agar user tahu tidak ada hasil.
             if (!Array.isArray(rows) || rows.length === 0) {
                 roomSyncBody.innerHTML = `
                     <tr>
@@ -674,6 +1244,7 @@
                 return;
             }
 
+            // Susun ulang semua baris tabel agar sinkron dengan data terbaru.
             roomSyncBody.innerHTML = rows.map((item) => `
                 <tr class="border-b border-blue-50">
                     <td class="px-3 py-3">
@@ -694,10 +1265,18 @@
             `).join('');
         }
 
+        // Jalankan sinkronisasi dan jam segera saat halaman dibuka.
+        updateLocationPreview();
+        hydrateBrowserLocationForPreview();
         syncAdminQueueStatus();
         updateAdminClock();
         setInterval(updateAdminClock, 1000);
 
+        if (useBrowserLocationBtn) {
+            useBrowserLocationBtn.addEventListener('click', fillCurrentLocation);
+        }
+
+        // Jika Echo tersedia, dengarkan event perubahan queue untuk refresh otomatis.
         if (window.Echo) {
             window.Echo.channel('queue-status')
                 .listen('.queue.status.updated', () => {
@@ -706,11 +1285,13 @@
         }
 
         // === Tab Navigation ===
+        // Tab digunakan untuk memisahkan daftar pengguna berdasarkan role.
         const tabs = document.querySelectorAll('.tab-btn');
         const contents = document.querySelectorAll('.tab-content');
 
         tabs.forEach(tab => {
             tab.addEventListener('click', () => {
+                // Nonaktifkan semua tab, lalu tampilkan konten tab yang dipilih.
                 tabs.forEach(t => t.classList.remove('is-active', 'text-blue-600'));
                 contents.forEach(c => c.classList.add('hidden'));
 
@@ -720,6 +1301,7 @@
         });
 
         // === Search Users ===
+        // Pencarian pengguna memfilter kartu berdasarkan nama atau kode.
         document.getElementById('searchUser').addEventListener('input', function() {
             const query = this.value.toLowerCase();
             document.querySelectorAll('.user-card').forEach(card => {
@@ -730,6 +1312,7 @@
         });
 
         // === Search Services ===
+        // Pencarian layanan memfilter kartu berdasarkan nama dan deskripsi.
         document.getElementById('searchService').addEventListener('input', function() {
             const query = this.value.toLowerCase();
             document.querySelectorAll('.service-card').forEach(card => {

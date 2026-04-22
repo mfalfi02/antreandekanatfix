@@ -8,17 +8,20 @@ use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
+    // Tampilkan daftar semua pengguna untuk admin.
     public function index()
     {
         $users = User::all();
         return view('admin.users.index', compact('users'));
     }
 
+    // Tampilkan form pembuatan user baru.
     public function create()
     {
         return view('admin.users.create'); // halaman form tambah user
     }
 
+    // Simpan user baru setelah semua validasi lolos.
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -46,14 +49,15 @@ class UserController extends Controller
         return redirect()->route('users.index')->with('success', 'User berhasil ditambahkan!');
     }
 
-   public function edit($kode)
+    // Tampilkan form edit berdasarkan kode unik user.
+    public function edit($kode)
     {
         $user = User::where('kode', $kode)->firstOrFail();
         return view('admin.users.edit', compact('user'));
     }
 
-    // Update user
-   public function update(Request $request, $kode)
+    // Update data user dan ganti password bila diisi.
+    public function update(Request $request, $kode)
     {
         $user = User::where('kode', $kode)->firstOrFail();
 
@@ -95,6 +99,7 @@ class UserController extends Controller
         return redirect()->route('users.index')->with('success', 'Pengguna berhasil diperbarui!');
     }
 
+    // Hapus user berdasarkan kode unik.
     public function destroy($kode)
     {
         $user = User::where('kode', $kode)->firstOrFail();

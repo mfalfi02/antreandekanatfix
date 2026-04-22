@@ -3,6 +3,7 @@
 @section('content')
 <div class="space-y-6">
     @php
+        // Normalisasi tanggal ke zona waktu server operasional agar filter harian selalu konsisten.
         $reportDate = \Carbon\Carbon::parse($date)->setTimezone('Asia/Jakarta')->locale('id');
     @endphp
 
@@ -47,6 +48,7 @@
     </div>
 
     @php
+        // Hitung metrik utama sekali di server supaya kartu ringkasan tidak perlu proses tambahan di browser.
         $totalQueues = $queues->count();
         $totalRoomSessions = $roomSessions->count();
         $activeRooms = $roomSessions->whereIn('status_ruang', ['open', 'occupied'])->count();
@@ -123,6 +125,7 @@
                             <td class="px-4 py-3 text-gray-600">{{ $room->service->nama_layanan ?? 'Semua Jenis Layanan' }}</td>
                             <td class="px-4 py-3">
                                 @php
+                                    // Mapping status dipakai untuk memberi warna label yang langsung terbaca.
                                     $statusClass = match ($room->status_ruang) {
                                         'open' => 'bg-emerald-100 text-emerald-700',
                                         'occupied' => 'bg-amber-100 text-amber-700',

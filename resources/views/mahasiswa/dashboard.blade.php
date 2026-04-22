@@ -348,9 +348,11 @@
         @if (in_array($data['user']->role, ['mahasiswa', 'dosen']))
             @if (in_array($data['user']->role, ['mahasiswa', 'dosen']))
                 @php
+                    // Ambil antrean aktif pertama supaya kartu "Nomor Antrean Anda Saat Ini" selalu menampilkan antrian yang masih berjalan.
                     $currentQueue = collect($data['myQueues'] ?? [])->first(function ($queue) {
                         return in_array($queue->status ?? '', ['menunggu', 'diproses'], true);
                     });
+                    // Ubah status teknis menjadi label yang lebih mudah dibaca di UI.
                     $currentQueueStatus = match ($currentQueue->status ?? null) {
                         'diproses' => 'Melayani',
                         'menunggu' => 'Menunggu',
@@ -523,6 +525,7 @@
     </div>
 
     <script>
+        // Elemen UI yang diperbarui lewat polling dan event realtime.
         const currentDateMahasiswa = document.getElementById('current-date-mahasiswa');
         const currentTimeMahasiswa = document.getElementById('current-time-mahasiswa');
         const queueCallToastContainer = document.getElementById('queue-call-toast-container');
@@ -551,6 +554,7 @@
         const csrfToken = "{{ csrf_token() }}";
         const currentUserKode = "{{ $data['user']->kode }}";
         const currentUserRole = "{{ $data['user']->role }}";
+        // Cache status dosen dan layanan yang dibuka agar filter layanan bisa disesuaikan tanpa reload halaman.
         const deanStatusMap = @json($data['pejabat_statuses'] ?? []);
         const deanServiceIdsMap = {};
         const allServiceOptions = serviceSelect ? Array.from(serviceSelect.options).map((opt) => ({
@@ -564,6 +568,40 @@
         let activeQueueDeanSet = new Set();
         let isJoiningQueue = false;
 
+        // Browser Geolocation API dipakai untuk mengambil titik lokasi user sebelum request dikirim.
+        function getBrowserLocation() {
+            return new Promise((resolve, reject) => {
+                if (!navigator.geolocation) {
+                    reject(new Error('Geolocation tidak didukung oleh browser ini.'));
+                    return;
+                }
+
+                navigator.geolocation.getCurrentPosition(
+                    resolve,
+                    reject,
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 12000,
+                        maximumAge: 0,
+                    }
+                );
+            });
+        }
+
+        // Ubah kode error geolocation menjadi pesan yang lebih mudah dipahami user.
+        function getLocationErrorMessage(error) {
+            switch (Number(error?.code)) {
+                case 1:
+                    return 'Izin lokasi ditolak. Aktifkan akses lokasi untuk mengambil antrean.';
+                case 2:
+                    return 'Lokasi perangkat tidak tersedia. Coba aktifkan GPS lalu ulangi.';
+                case 3:
+                    return 'Pengambilan lokasi melebihi batas waktu. Coba ulangi.';
+                default:
+                    return error?.message ?? 'Gagal membaca lokasi perangkat.';
+            }
+        }
+
         function toggleJoinButton(disabled) {
             if (!joinQueueBtn) return;
             joinQueueBtn.disabled = disabled;
@@ -571,6 +609,7 @@
             joinQueueBtn.classList.toggle('cursor-not-allowed', disabled);
         }
 
+        // Tombol ambil antrean dikunci jika mahasiswa masih punya antrean aktif pada dosen yang sama.
         function updateJoinQueueAvailability() {
             if (!joinQueueBtn) return;
             if (isJoiningQueue) return;
@@ -591,6 +630,7 @@
             joinQueueLockHint.classList.add('hidden');
         }
 
+        // Sinkronkan status dosen, layanan yang aktif, dan estimasi tutup dari server.
         async function syncQueueStatus() {
             try {
                 const res = await fetch("{{ route('queue.status') }}");
@@ -638,6 +678,7 @@
             }
         }
 
+        // Batasi pilihan layanan berdasarkan status dan layanan yang sedang dibuka oleh dosen terpilih.
         function syncServiceOptionsForSelectedDean() {
             if (!serviceSelect || !deanSelect) return;
 
@@ -713,6 +754,7 @@
             }
         }
 
+        // Toast dipakai untuk memberi notifikasi singkat saat antrean dipanggil.
         function showQueueCallToast(meta = {}) {
             if (!queueCallToastContainer) return;
 
@@ -748,6 +790,7 @@
             }, 6000);
         }
 
+        // Bunyi pendek ini menjadi penanda audio agar panggilan tidak terlewat.
         function playQueueCallSound() {
             const AudioCtx = window.AudioContext || window.webkitAudioContext;
             if (!AudioCtx) return;
@@ -772,6 +815,7 @@
             });
         }
 
+        // Modal dipakai sebagai notifikasi yang lebih besar jika toast tidak langsung terlihat.
         function showQueueCallModal(meta = {}) {
             if (!queueCallModal) return;
             const nomor = meta.nomor_antrian ? `#${meta.nomor_antrian}` : '#-';
@@ -792,6 +836,7 @@
             queueCallModal.classList.remove('flex');
         }
 
+        // Render ulang daftar antrean milik user dari hasil polling terakhir.
         function renderMyQueueList(rows = []) {
             if (!myQueueList) return;
             if (!Array.isArray(rows) || rows.length === 0) {
@@ -831,6 +876,7 @@
             }).join('');
         }
 
+        // Riwayat hari sebelumnya bisa difilter per tanggal di sisi client.
         function renderPreviousQueueList(rows = []) {
             if (!previousQueueList || !previousQueueCount) return;
             previousQueueCache = Array.isArray(rows) ? rows : [];
@@ -883,6 +929,7 @@
             }).join('');
         }
 
+        // Ringkasan ini selalu menampilkan antrean aktif pertama yang ditemukan.
         function renderCurrentQueueInfo(rows = []) {
             if (!currentQueueNumberEl || !currentQueueStatusEl || !currentQueueServiceEl || !currentQueueDosenEl || !currentQueueEstimateEl) return;
 
@@ -904,6 +951,7 @@
             currentQueueEstimateEl.textContent = `${Number(activeQueue.estimated_wait_minutes ?? 0)} menit`;
         }
 
+        // Fallback notifikasi jika websocket tidak sempat mengirim event realtime.
         function detectQueueCalledFromPolling(rows = []) {
             if (!['mahasiswa', 'dosen'].includes(currentUserRole)) return;
 
@@ -937,6 +985,7 @@
             });
         }
 
+        // Polling periodik menjaga tampilan daftar antrean tetap segar tanpa refresh halaman.
         async function syncMyQueues() {
             if (!myQueueList) return;
             try {
@@ -963,6 +1012,7 @@
             }
         }
 
+        // Validasi ringan dilakukan di client sebelum request join dikirim ke server.
         async function joinQueue() {
             if (!joinQueueBtn) return;
 
@@ -999,6 +1049,8 @@
             toggleJoinButton(true);
 
             try {
+                const position = await getBrowserLocation();
+                const coords = position.coords ?? {};
                 const res = await fetch("{{ route('queue.join') }}", {
                     method: 'POST',
                     headers: {
@@ -1008,6 +1060,9 @@
                     body: JSON.stringify({
                         dean_id: deanId,
                         service_id: serviceId,
+                        latitude: coords.latitude,
+                        longitude: coords.longitude,
+                        accuracy: coords.accuracy,
                     }),
                 });
 
@@ -1024,7 +1079,7 @@
                 alert(`Nomor antrean berhasil diambil: #${nomor} untuk ${dosenNama} (${dosenKode}).`);
             } catch (error) {
                 console.error(error);
-                alert('Terjadi kesalahan saat mengambil nomor antrean.');
+                alert(getLocationErrorMessage(error));
             } finally {
                 isJoiningQueue = false;
                 updateJoinQueueAvailability();

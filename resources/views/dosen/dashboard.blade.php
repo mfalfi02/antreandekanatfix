@@ -539,12 +539,48 @@
         const statCurrentQueue = document.getElementById('stat-current-queue');
         const statServiceEstimate = document.getElementById('stat-service-estimate');
         let historyQueuesCache = @json($data['historyQueues'] ?? []);
+        // Status ruang dipakai untuk menentukan apakah tombol buka atau tutup yang aktif.
         let currentStatus = "{{ $data['queue_status'] ?? 'closed' }}";
         let isSubmitting = false;
         let activeQueueCount = Number(@json($data['activeQueues'] ?? 0));
         const notifiedQueueJoinedIds = new Set();
         let queuePollingInitialized = false;
 
+        // Browser Geolocation API dipakai untuk memastikan pejabat berada di area layanan saat membuka antrean.
+        function getBrowserLocation() {
+            return new Promise((resolve, reject) => {
+                if (!navigator.geolocation) {
+                    reject(new Error('Geolocation tidak didukung oleh browser ini.'));
+                    return;
+                }
+
+                navigator.geolocation.getCurrentPosition(
+                    resolve,
+                    reject,
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 12000,
+                        maximumAge: 0,
+                    }
+                );
+            });
+        }
+
+        // Pesan error geolocation dibuat lebih ramah agar operator tahu langkah yang perlu dilakukan.
+        function getLocationErrorMessage(error) {
+            switch (Number(error?.code)) {
+                case 1:
+                    return 'Izin lokasi ditolak. Aktifkan akses lokasi untuk membuka antrean.';
+                case 2:
+                    return 'Lokasi perangkat tidak tersedia. Coba aktifkan GPS lalu ulangi.';
+                case 3:
+                    return 'Pengambilan lokasi melebihi batas waktu. Coba ulangi.';
+                default:
+                    return error?.message ?? 'Gagal membaca lokasi perangkat.';
+            }
+        }
+
+        // Format waktu server ke HH:MM supaya bisa dibandingkan dan dikirim balik ke backend dengan konsisten.
         function getCurrentTimeHHMM() {
             const parts = new Intl.DateTimeFormat('id-ID', {
                 timeZone: 'Asia/Jakarta',
@@ -557,6 +593,7 @@
             return `${h}:${m}`;
         }
 
+        // Normalisasi input waktu Indonesia ke format 24 jam "HH:MM".
         function normalizeIndoTime(value) {
             const raw = (value || '').trim();
             if (!raw) return '';
@@ -574,6 +611,7 @@
             return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
         }
 
+        // Simpan waktu tutup ke hidden input setelah divalidasi.
         function setExpectedCloseValue(timeValue) {
             const normalized = normalizeIndoTime(timeValue);
             if (!normalized) {
@@ -585,6 +623,7 @@
             return normalized;
         }
 
+        // Gabungkan pilihan jam dan menit menjadi satu nilai yang siap dikirim.
         function syncExpectedCloseValue() {
             if (!expectedCloseHourInput || !expectedCloseMinuteInput) return '';
 
@@ -595,6 +634,7 @@
             return setExpectedCloseValue(combined);
         }
 
+        // Default jam tutup dibuat 2 jam setelah waktu sekarang agar operator tidak perlu mengisi manual dari nol.
         function getDefaultExpectedCloseTime() {
             const currentTime = getCurrentTimeHHMM();
             const [hourPart, minutePart] = currentTime.split(':');
@@ -625,11 +665,13 @@
             expectedCloseMinuteInput.addEventListener('change', () => syncExpectedCloseValue());
         }
 
+        // Picker layanan berbasis checkbox agar bisa memilih satu atau lebih layanan sekaligus.
         function getSelectedServiceValues() {
             if (!serviceSelect) return [];
             return Array.from(serviceSelect.selectedOptions).map((opt) => opt.value);
         }
 
+        // Sinkronkan nilai checkbox dengan elemen select tersembunyi yang tetap menjadi sumber data form.
         function setSelectedServiceValues(values = []) {
             if (!serviceSelect) return;
             const selectedSet = new Set(values.map((val) => String(val)));
@@ -639,6 +681,7 @@
             });
         }
 
+        // Chip ini memberi ringkasan visual layanan yang sedang dipilih.
         function renderSelectedServiceChips() {
             if (!serviceSelectedChips || !servicePickerLabel || !serviceSelect) return;
             const selectedValues = getSelectedServiceValues();
@@ -667,6 +710,7 @@
             `).join('');
         }
 
+        // Render ulang daftar checkbox sesuai pilihan yang tersimpan.
         function renderServicePickerOptions() {
             if (!servicePickerOptions || !serviceSelect) return;
 
@@ -684,6 +728,7 @@
             }).join('');
         }
 
+        // Aturan "all" diperlakukan khusus supaya tidak bercampur dengan layanan tertentu.
         function toggleServiceSelection(value, checked) {
             const current = new Set(getSelectedServiceValues().map((val) => String(val)));
             const normalized = String(value);
@@ -709,6 +754,7 @@
             renderSelectedServiceChips();
         }
 
+        // Tombol dan panel dipasang event sekali, lalu ditutup otomatis saat klik di luar panel.
         function initServicePicker() {
             if (!serviceSelect || !servicePickerBtn || !servicePickerPanel || !servicePickerOptions) return;
 
@@ -733,6 +779,7 @@
             });
         }
 
+        // Jam di header dibuat live agar operator selalu melihat waktu setempat yang akurat.
         function updateDosenClock() {
             const now = new Date();
             if (currentDateDosen) {
@@ -755,6 +802,7 @@
             }
         }
 
+        // Escape string sebelum disisipkan ke HTML hasil render dinamis.
         function escapeHtml(value) {
             return String(value ?? '')
                 .replaceAll('&', '&amp;')
@@ -764,6 +812,7 @@
                 .replaceAll("'", '&#039;');
         }
 
+        // Notifikasi toast dipakai saat ada antrean baru masuk untuk dosen.
         function showPejabatToast(meta = {}) {
             if (!pejabatToastContainer) return;
             const nomor = meta?.nomor_antrian ? `#${meta.nomor_antrian}` : null;
@@ -800,6 +849,7 @@
             }, 7000);
         }
 
+        // Nada singkat sebagai penanda ada antrean baru atau status berubah.
         function playPejabatNotifSound(eventType = 'default') {
             const AudioCtx = window.AudioContext || window.webkitAudioContext;
             if (!AudioCtx) return;
@@ -824,6 +874,7 @@
             });
         }
 
+        // Pisahkan antrean aktif dan selesai agar masing-masing punya tampilan dan aksi sendiri.
         function renderDosenQueues(queues = []) {
             if (!activeQueueList || !completedQueueList) return;
 
@@ -891,6 +942,7 @@
             }
         }
 
+        // Perbarui angka ringkasan agar tetap konsisten dengan isi daftar antrean.
         function renderDosenStats(stats = {}) {
             activeQueueCount = Number(stats.active ?? 0);
             if (statActiveQueues) {
@@ -908,12 +960,14 @@
             updateQueueCarryoverBadge();
         }
 
+        // Badge ini hanya tampil saat ruangan ditutup tetapi masih ada antrean yang belum selesai.
         function updateQueueCarryoverBadge() {
             if (!queueCarryoverBadge) return;
             const shouldShow = currentStatus === 'closed' && activeQueueCount > 0;
             queueCarryoverBadge.classList.toggle('hidden', !shouldShow);
         }
 
+        // Riwayat juga bisa difilter per tanggal tanpa reload halaman.
         function renderDosenHistoryQueues(queues = []) {
             if (!historyQueueList || !historyQueueCount) return;
             historyQueuesCache = Array.isArray(queues) ? queues : [];
@@ -961,6 +1015,7 @@
             }).join('');
         }
 
+        // Tombol aksi dinonaktifkan saat request sedang dikirim supaya tidak double submit.
         function setSubmittingState(submitting) {
             isSubmitting = submitting;
             [...openBtns, ...closeBtns].forEach((btn) => {
@@ -971,6 +1026,7 @@
             });
         }
 
+        // Status ruang menentukan label tombol, badge, dan state form.
         function updateStatus(status) {
             currentStatus = status;
 
@@ -1001,6 +1057,7 @@
             updateQueueCarryoverBadge();
         }
 
+        // Kirim status buka/tutup berikut layanan yang dipilih ke backend.
         async function toggleQueue(status) {
             if (isSubmitting) return;
             const previousStatus = currentStatus;
@@ -1037,6 +1094,12 @@
 
             setSubmittingState(true);
             try {
+                const position = await getBrowserLocation();
+                const coords = position.coords ?? {};
+                payload.latitude = coords.latitude;
+                payload.longitude = coords.longitude;
+                payload.accuracy = coords.accuracy;
+
                 const res = await fetch("{{ route('queue.toggle') }}", {
                     method: 'POST',
                     headers: {
@@ -1061,11 +1124,13 @@
             } catch (e) {
                 console.error(e);
                 updateStatus(previousStatus);
+                alert(getLocationErrorMessage(e));
             } finally {
                 setSubmittingState(false);
             }
         }
 
+        // Sinkronkan status ruang terbaru dari server.
         async function syncOwnStatus() {
             try {
                 const res = await fetch("{{ route('queue.status') }}");
@@ -1079,6 +1144,7 @@
             }
         }
 
+        // Ambil ulang daftar antrean milik dosen agar tampilan aktif dan selesai tetap up to date.
         async function syncDosenQueues() {
             try {
                 const res = await fetch("{{ route('queue.my') }}");
@@ -1117,6 +1183,7 @@
             }
         }
 
+        // Update status antrean tertentu saat dosen memanggil atau menyelesaikan layanan.
         async function updateQueueStatus(queueId, action) {
             try {
                 const route = action === 'call' ?

@@ -248,6 +248,7 @@
     </div>
 
     <script>
+        // Escape teks agar data dari server aman disisipkan ke HTML dinamis.
         function escapeHtml(value) {
             return String(value ?? '')
                 .replaceAll('&', '&amp;')
@@ -257,6 +258,7 @@
                 .replaceAll("'", '&#039;');
         }
 
+        // Jam tampilan disegarkan tiap detik agar layar display selalu terlihat hidup.
         function updateClock() {
             const now = new Date();
             const dateOptions = {
@@ -277,6 +279,7 @@
             }) + ' WIB';
         }
 
+        // Render daftar antrean di panel kanan.
         function renderQueueItems(queues) {
             const ulQueue = document.getElementById('queue-list');
             if (!ulQueue) return;
@@ -312,6 +315,7 @@
             }).join('');
         }
 
+        // Render daftar dosen aktif beserta ringkasan antrean per dosen.
         function renderStaffItems(activeStaff, summaryMap = {}) {
             const ulStaff = document.getElementById('staff-status');
             if (!ulStaff) return;
@@ -393,6 +397,7 @@
             }).join('');
         }
 
+        // Ambil data display terbaru dari endpoint JSON, lalu isi semua kartu ringkasan.
         async function fetchDisplayData() {
             try {
                 const res = await fetch("{{ route('display.queues') }}");
@@ -418,14 +423,17 @@
             }
         }
 
+        // Helper kecil agar refresh realtime bisa dipanggil dari polling maupun event Echo.
         async function refreshDisplayRealtime() {
             await fetchDisplayData();
         }
 
+        // Clock lokal dan data antrean berjalan bersamaan supaya tampilan tetap akurat.
         setInterval(updateClock, 1000);
         updateClock();
         refreshDisplayRealtime();
 
+        // Jika websocket tersedia, layar langsung reaktif saat status antrean berubah.
         if (window.Echo) {
             window.Echo.channel('queue-status')
                 .listen('.queue.status.updated', () => {

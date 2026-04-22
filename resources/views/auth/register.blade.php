@@ -44,6 +44,7 @@
 </form>
 
 <script>
+    // Validasi sederhana di client untuk memastikan password dan konfirmasi sama sebelum form dikirim.
     function validateForm() {
         const password = document.getElementById('password').value;
         const passwordConfirmation = document.getElementById('password_confirmation').value;

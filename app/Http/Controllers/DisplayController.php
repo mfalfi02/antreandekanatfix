@@ -11,11 +11,15 @@ use Illuminate\Support\Carbon;
 
 class DisplayController extends Controller
 {
+    // Halaman display utama hanya butuh status global antrean yang tersimpan di setting.
     public function index()
     {
         $setting = SystemSetting::firstOrCreate(
             ['id' => 1],
-            ['queue_status' => 'closed']
+            [
+                'queue_status' => 'closed',
+                'radius_meters' => 300,
+            ]
         );
 
         return view('display.index', [
@@ -23,10 +27,12 @@ class DisplayController extends Controller
         ]);
     }
 
+    // API untuk display publik agar bisa menampilkan daftar antrean yang sedang berjalan.
     public function queues()
     {
         $todayJakarta = Carbon::now('Asia/Jakarta')->toDateString();
 
+        // Ambil antrean hari ini beserta relasi penting yang dibutuhkan UI.
         $queues = Queue::with(['user', 'service', 'dosen'])
             ->whereDate('created_at', $todayJakarta)
             ->get()
@@ -40,8 +46,10 @@ class DisplayController extends Controller
             ];
         });
 
+        // Map nama layanan agar mudah dipakai saat menyusun payload ruang aktif.
         $serviceNameMap = Service::query()->pluck('nama_layanan', 'id');
 
+        // Cari seluruh pejabat yang sedang buka atau melayani antrean pada hari ini.
         $activeStaff = RuangAntri::with(['dosen', 'service'])
             ->whereDate('tanggal_buka_ruang_antri', $todayJakarta)
             ->whereIn('status_ruang', ['open', 'occupied'])
@@ -97,6 +105,7 @@ class DisplayController extends Controller
                 ];
             });
 
+        // Ringkasan antrean per pejabat dipakai untuk panel statistik display.
         $dosenQueueSummary = User::query()
             ->where('role', 'pejabat')
             ->where('status', 'aktif')
@@ -147,6 +156,7 @@ class DisplayController extends Controller
             'dosen_queue_summary' => $dosenQueueSummary,
         ]);
     }
+    // Endpoint ringan untuk refresh data antrean tanpa payload tambahan.
     public function refresh()
     {
         $todayJakarta = Carbon::now('Asia/Jakarta')->toDateString();

@@ -60,6 +60,7 @@
             </div>
 
             <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+                {{-- Dua CTA utama: layar display untuk publik dan login untuk pengelola antrean. --}}
                 <a href="{{ route('display') }}" class="glass-card p-5">
                     <div class="flex items-start gap-3">
                         <span class="h-10 w-10 rounded-full bg-white/30 text-white flex items-center justify-center">

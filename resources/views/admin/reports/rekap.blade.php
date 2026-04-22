@@ -8,6 +8,7 @@
     </div>
 
     <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {{-- Kartu ringkasan utama yang mewakili kondisi sistem secara cepat. --}}
         <div class="rounded-xl border border-blue-100 bg-white p-5 shadow-sm">
             <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Total Pengguna</p>
             <p class="mt-2 text-3xl font-bold text-blue-700">{{ $totalUsers }}</p>
@@ -43,12 +44,14 @@
         <h2 class="text-lg font-semibold text-gray-800">Highlight Operasional</h2>
         <div class="mt-3 grid grid-cols-1 gap-3 text-sm text-gray-600 md:grid-cols-2">
             <div class="rounded-lg bg-gray-50 p-3">
+                {{-- Rasio dihitung aman dengan guard supaya tidak terjadi pembagian nol. --}}
                 Rasio antrean selesai terhadap ruang aktif:
                 <span class="font-semibold text-gray-800">
                     {{ $activeRuangAntriNow > 0 ? number_format($completedToday / $activeRuangAntriNow, 2) : '0.00' }}
                 </span>
             </div>
             <div class="rounded-lg bg-gray-50 p-3">
+                {{-- Rata-rata aktivitas juga dilindungi guard bila kategori layanan belum tersedia. --}}
                 Rata-rata aktivitas ruang per layanan:
                 <span class="font-semibold text-gray-800">
                     {{ $serviceCategories > 0 ? number_format($totalRuangAntriToday / $serviceCategories, 2) : '0.00' }}
