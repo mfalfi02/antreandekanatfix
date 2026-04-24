@@ -62,11 +62,11 @@ Route::get('/admin', function (Request $request) {
     }
 
     $availableDashboardYears = RuangAntri::query()
-        ->selectRaw('DISTINCT YEAR(tanggal_buka_ruang_antri) as year')
-        ->orderBy('year', 'desc')
-        ->pluck('year')
+        ->pluck('tanggal_buka_ruang_antri')
         ->filter()
-        ->map(fn ($year) => (int) $year)
+        ->map(fn ($date) => Carbon::parse($date, 'Asia/Jakarta')->year)
+        ->unique()
+        ->sortDesc()
         ->values()
         ->all();
 
