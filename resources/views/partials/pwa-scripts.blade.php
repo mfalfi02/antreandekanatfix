@@ -1,3 +1,4 @@
+{{-- Skrip PWA ini mengatur tombol install dan service worker agar aplikasi bisa dipasang ke perangkat --}}
 <div id="pwa-install-shell"
     style="position:fixed;right:16px;bottom:16px;z-index:9999;display:none;max-width:min(92vw,360px);">
     <button id="pwa-install-btn" type="button"

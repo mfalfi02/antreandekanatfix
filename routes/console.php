@@ -7,10 +7,12 @@ use App\Models\Queue;
 use App\Models\RuangAntri;
 use Illuminate\Support\Carbon;
 
+// Command bawaan Laravel untuk menampilkan kutipan inspirasi di CLI.
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
+// Backfill data historis agar queue lama punya kode dosen yang bisa dipakai laporan dan audit.
 Artisan::command('queues:backfill-kode-dosen {--date=} {--dry-run}', function () {
     $dateFilter = $this->option('date');
     $dryRun = (bool) $this->option('dry-run');
@@ -123,6 +125,7 @@ Artisan::command('queues:backfill-kode-dosen {--date=} {--dry-run}', function ()
     return self::SUCCESS;
 })->purpose('Backfill queues.kode_dosen untuk data historis berdasarkan ruang antrean');
 
+// Menata ulang nomor antrean per dosen agar urutan harian tetap konsisten.
 Artisan::command('queues:renumber-per-dosen {--date=} {--dry-run}', function () {
     $dateFilter = $this->option('date') ?: Carbon::now('Asia/Jakarta')->toDateString();
     $dryRun = (bool) $this->option('dry-run');
@@ -196,6 +199,7 @@ Artisan::command('queues:renumber-per-dosen {--date=} {--dry-run}', function () 
     return self::SUCCESS;
 })->purpose('Renumber queues.nomor_antrian per kode_dosen per hari');
 
+// Membersihkan antrean aktif lama yang sudah lewat tanggal hari ini supaya status tetap valid.
 Artisan::command('queues:cleanup-stale-active {--date=} {--kode-user=} {--kode-dosen=} {--dry-run}', function () {
     $dateFilter = $this->option('date') ?: Carbon::now('Asia/Jakarta')->toDateString();
     $kodeUser = trim((string) $this->option('kode-user'));

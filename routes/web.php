@@ -17,31 +17,23 @@ use App\Models\Service;
 use App\Models\SystemSetting;
 use App\Models\User;
 
-
-// Landing page publik yang mengarah ke display antrean atau login sistem.
+// Jalur publik: landing page dan display yang bisa dibuka tanpa login.
 Route::get('/', function () {
     return view('auth.welcome');
 })->name('welcome');
 
-
-// Route::get('/display',function() {
-//     return view ('display.index');})->name('display');
-// Route::get('/display/queues', [DisplayController::class, 'queues'])->name('display.queues');
-// Route::get('/api/display/active-pejabat', [DisplayController::class, 'activePejabat']);
-// Route::get('/api/display/queues', [DisplayController::class, 'queues']);
-// Display publik bersifat read-only dan mengandalkan endpoint JSON untuk update realtime.
 Route::get('/display', [DisplayController::class, 'index'])->name('display');
 Route::get('/display/refresh', [DisplayController::class, 'refresh'])->name('display.refresh');
 Route::get('/display/queues', [DisplayController::class, 'queues'])->name('display.queues');
 
-// Autentikasi dasar untuk masuk dan keluar dari sistem.
+// Jalur autentikasi untuk masuk dan keluar dari sistem.
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.submit');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 
+// Dashboard admin: ringkasan sistem, pengaturan lokasi, dan respons JSON saat dibutuhkan.
 Route::get('/admin', function (Request $request) {
-    // Dashboard admin mengumpulkan metrik inti, lalu menormalkan periode bulan/tahun yang dipilih user.
     $setting = SystemSetting::firstOrCreate(
         ['id' => 1],
         [
@@ -114,13 +106,11 @@ Route::get('/admin', function (Request $request) {
     ]);
 })->name('adm');
 
-// Simpan titik pusat geofence yang dipakai untuk memvalidasi lokasi saat buka/tarik antrean.
 Route::post('/admin/location', function (Request $request) {
     if (!auth()->check() || auth()->user()->role !== 'admin') {
         abort(403, 'Unauthorized');
     }
 
-    // Jika kolom geofence belum ada di database lama, buat dulu supaya simpan lokasi tidak gagal.
     if (!Schema::hasColumn('system_settings', 'center_latitude') || !Schema::hasColumn('system_settings', 'center_longitude') || !Schema::hasColumn('system_settings', 'radius_meters')) {
         Schema::table('system_settings', function (Illuminate\Database\Schema\Blueprint $table) {
             if (!Schema::hasColumn('system_settings', 'center_latitude')) {
@@ -165,14 +155,11 @@ Route::post('/admin/location', function (Request $request) {
     return redirect()->route('adm')->with('success', 'Pengaturan lokasi antrean berhasil disimpan.');
 })->name('adm.location.update');
 
-// Route::get('/dosen',function() {
-//     return view ('dosen.dashboard');})->name('dsn');
-// Semua route operasional dilindungi middleware agar hanya user yang sudah login yang bisa mengaksesnya.
+// Alur yang harus login terlebih dahulu sebelum mengakses dashboard dan operasi antrean.
 Route::middleware(['ceklogin'])->group(function () {
     Route::get('/dashboard', [AuthController::class, 'dosen'])->name('dsn');
     Route::get('/mahasiswa',[AuthController::class, 'mahasiswa'])->name('mhs');
 
-    // Queue lifecycle: join, buka/tutup ruang, panggil, dan selesaikan antrean.
     Route::post('/queue/join', [DashboardController::class, 'joinQueue'])->name('queue.join');
     Route::post('/queue/toggle', [QueueController::class, 'toggleQueue'])->name('queue.toggle');
     Route::post('/queue/{queue}/call', [QueueController::class, 'callQueue'])->name('queue.call');
@@ -181,21 +168,18 @@ Route::middleware(['ceklogin'])->group(function () {
     Route::get('/queue/my', [QueueController::class, 'myQueues'])->name('queue.my');
 });
 
-// Manajemen master data pengguna dan layanan.
+// Master data pengguna untuk admin.
 Route::get('/users', [UserController::class, 'index'])->name('users.index');
 Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
 Route::post('/users', [UserController::class, 'store'])->name('users.store');
 
-// Edit (tampilkan form) -> GET
 Route::get('/users/{kode}/edit', [UserController::class, 'edit'])->name('users.edit');
 
-// Update (simpan perubahan) -> PUT
 Route::put('/users/{kode}', [UserController::class, 'update'])->name('users.update');
 
-// Hapus -> DELETE
 Route::delete('/users/{kode}', [UserController::class, 'destroy'])->name('users.destroy');
 
-// CRUD Service
+// Master data layanan yang dipakai di antrean, dashboard, dan laporan.
 Route::get('/services', [ServiceController::class, 'index'])->name('services.index');
 Route::get('/services/create', [ServiceController::class, 'create'])->name('services.create');
 Route::post('/services', [ServiceController::class, 'store'])->name('services.store');
@@ -203,10 +187,10 @@ Route::get('/services/{service}/edit', [ServiceController::class, 'edit'])->name
 Route::put('/services/{service}', [ServiceController::class, 'update'])->name('services.update');
 Route::delete('/services/{service}', [ServiceController::class, 'destroy'])->name('services.destroy');
 
-// Laporan Statistik Service
+// Laporan layanan untuk ringkasan statistik dan distribusi data.
 Route::get('/reports/services', [ServiceController::class, 'serviceStats'])->name('services.stats');
 
-// Reports harian dan bulanan dipisah agar query dan export lebih mudah dipelihara.
+// Laporan admin untuk observasi harian, rekapan, dan export PDF/Excel.
 Route::get('/admin/reports/daily', [ServiceController::class, 'dailyReport'])->name('reports.daily');
 Route::get('/admin/reports/services', [ServiceController::class, 'serviceStats'])->name('reports.services');
 Route::get('/admin/reports/services/export/pdf', [ServiceController::class, 'exportServiceStatsPdf'])->name('reports.services.pdf');

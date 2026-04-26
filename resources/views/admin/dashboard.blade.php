@@ -255,8 +255,7 @@
 </head>
 
 <body class="p-4 md:p-7">
-
-    {{-- Header --}}
+    {{-- Header dashboard admin: pintu masuk ke ringkasan, status ruang, dan aksi utama --}}
     <div class="panel p-5 md:p-6 flex flex-col gap-3 md:flex-row md:justify-between md:items-center mb-6">
         <div>
             <h1 class="text-3xl font-bold text-gray-900">Dashboard Admin</h1>
@@ -278,7 +277,7 @@
         </div>
     </div>
 
-    {{-- Dashboard Content --}}
+    {{-- Area utama dashboard admin: statistik, daftar user, layanan, dan peta lokasi --}}
     <div class="min-h-screen">
         <div class="max-w-7xl mx-auto space-y-8">
 
@@ -289,7 +288,7 @@
                 </div>
             @endif
 
-            {{-- Panel ini dipakai untuk menentukan titik pusat dan radius validasi lokasi antrean. --}}
+            {{-- Pengaturan lokasi antrean --}}
             <div class="panel p-6">
                 @php
                     $locationSetting = $locationSetting ?? null;
@@ -393,8 +392,8 @@
                 </div>
             </div>
 
+            {{-- Sinkronisasi ruang antrean per periode --}}
             <div class="panel p-6">
-                {{-- Menyiapkan daftar bulan, tahun aktif, dan label periode yang sedang dipilih --}}
                 @php
                     $dashboardMonths = [
                         1 => 'Januari',
@@ -456,7 +455,7 @@
                     </button>
                 </form>
 
-                {{-- Tabel ini diisi ulang lewat JavaScript dari data sinkronisasi backend --}}
+                
                 <div class="admin-room-table-wrap overflow-x-auto rounded-xl border border-blue-100">
                     <table class="room-sync-table min-w-full text-sm">
                         <thead>
@@ -481,7 +480,8 @@
                 </div>
             </div>
 
-            {{-- Users Section --}}
+            
+            {{-- Manajemen pengguna --}}
             <div class="panel p-6">
                 <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-3">
                     <div>
@@ -499,14 +499,13 @@
                 </div>
 
                 @php
-                    // Menghitung jumlah pengguna per role untuk badge pada tab.
                     $roleCounts = collect($data['users'])->groupBy('role')->map->count();
                 @endphp
 
-                {{-- Tabs Navigation --}}
+                {{-- Filter role pengguna --}}
                 <div class="mb-4 border-b border-gray-200">
                     <nav class="-mb-px flex flex-wrap gap-2">
-                        {{-- Masing-masing tombol tab mewakili satu role pengguna --}}
+                        
                         @foreach (['admin', 'dosen', 'mahasiswa', 'pejabat'] as $roleTab)
                             <button class="tab-btn py-2 px-4 text-sm font-medium text-gray-600 hover:text-blue-600 {{ $loop->first ? 'is-active' : '' }}"
                                 data-tab="{{ $roleTab }}">
@@ -519,15 +518,15 @@
                     </nav>
                 </div>
 
-                {{-- Tab Content --}}
+                {{-- Daftar kartu pengguna --}}
                 <div>
-                    {{-- Konten dipisah per role, lalu difilter lagi agar hanya menampilkan pengguna yang cocok --}}
+                    
                     @foreach (['admin', 'dosen', 'mahasiswa', 'pejabat'] as $tabId)
                         <div class="tab-content {{ $loop->first ? '' : 'hidden' }}" id="{{ $tabId }}">
                             <div class="user-list-scroll">
                                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 user-item">
                                 @foreach ($data['users'] as $user)
-                                    {{-- Hanya tampilkan kartu pengguna jika role-nya sesuai tab aktif --}}
+                                    
                                     @if ($user->role === $tabId)
                                         <div class="p-4 flex flex-col justify-between user-card">
                                             <div>
@@ -541,21 +540,21 @@
                                                             <p class="font-semibold text-gray-900 user-name">{{ $user->name }}</p>
                                                             <p class="text-sm text-gray-500 user-kode">{{ $user->kode }}</p>
                                                             <p class="text-xs text-gray-500">{{ $user->email }}</p>
-                                                            {{-- Detail tambahan ditampilkan sesuai jenis role pengguna --}}
+                                                            
                                                             @if (in_array($user->role, ['dosen', 'pejabat'], true) && $user->jabatan)
                                                                 <p class="text-xs text-slate-600 inline-flex items-center gap-1 mt-0.5">
                                                                     <i class="fa-solid fa-id-badge text-slate-400"></i>
                                                                     {{ $user->jabatan }}
                                                                 </p>
                                                             @endif
-                                                            {{-- Pejabat mendapatkan informasi ruangan jika tersedia --}}
+                                                            
                                                             @if ($user->role === 'pejabat' && $user->ruangan)
                                                                 <p class="text-xs text-slate-600 inline-flex items-center gap-1 mt-0.5">
                                                                     <i class="fa-solid fa-door-open text-slate-400"></i>
                                                                     {{ $user->ruangan }}
                                                                 </p>
                                                             @endif
-                                                            {{-- Mahasiswa menampilkan label bawaan bila jabatan belum diisi --}}
+                                                            
                                                             @if ($user->role === 'mahasiswa')
                                                                 <p class="text-xs text-slate-600 inline-flex items-center gap-1 mt-0.5">
                                                                     <i class="fa-solid fa-user-graduate text-slate-400"></i>
@@ -566,7 +565,6 @@
                                                     </div>
                                                 </div>
                                                 @php
-                                                    // Menentukan badge status aktif atau nonaktif untuk pengguna.
                                                     $isAktif = $user->status === 'aktif';
                                                 @endphp
                                                 <span
@@ -576,7 +574,7 @@
                                                 </span>
                                             </div>
                                             <div class="flex justify-end mt-4 space-x-2">
-                                                {{-- Tombol edit dan hapus untuk setiap pengguna --}}
+                                                
                                                 <a href="{{ route('users.edit', $user->kode) }}"
                                                     title="Edit {{ $user->name }}"
                                                     class="user-action-btn border border-blue-200 text-blue-600 hover:bg-blue-50">
@@ -609,7 +607,8 @@
                 </div>
             </div>
 
-            {{-- Service Categories --}}
+            
+            {{-- Master data layanan --}}
             <div class="panel p-6">
                 <div class="flex flex-col sm:flex-row justify-between items-center mt-2 mb-4 gap-3">
                     <div>
@@ -627,7 +626,7 @@
                 </div>
 
                 <div class="space-y-4" id="serviceList">
-                    {{-- Setiap item layanan ditampilkan sebagai kartu dengan nama, deskripsi, dan estimasi waktu --}}
+                    
                     @foreach ($data['service'] as $service)
                         <div class="flex justify-between items-center p-4 service-card">
                             <div class="flex-1">
@@ -643,7 +642,7 @@
                                 </div>
                             </div>
                             <div class="flex items-center space-x-2 ml-4">
-                                {{-- Aksi edit dan hapus untuk masing-masing layanan --}}
+                                
                                 <a href="{{ route('services.edit', $service->id) }}"
                                     class="h-9 w-9 rounded-lg border border-blue-200 text-blue-600 hover:bg-blue-50 transition-colors inline-flex items-center justify-center">
                                     <i class="fa-solid fa-edit"></i>
@@ -664,7 +663,8 @@
             </div>
 
 
-            {{-- Reports & Analytics --}}
+            
+            {{-- Laporan dan analitik --}}
             <div class="panel p-6 mt-8">
                 <h2 class="text-xl font-semibold text-gray-900 mb-4">Laporan & Analitik</h2>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -691,12 +691,12 @@
         </div>
     </div>
 
+    {{-- Script interaktif admin untuk lokasi, sinkronisasi, tab, dan pencarian --}}
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
-    {{-- Script: Tabs --}}
+    {{-- State awal disiapkan dari PHP agar JavaScript tetap sinkron dengan data server --}}
     <script>
-        // Mengelola jam dan tanggal admin secara real-time.
         const currentDateAdmin = document.getElementById('current-date-admin');
         const currentTimeAdmin = document.getElementById('current-time-admin');
         const roomSyncBody = document.getElementById('room-sync-body');
@@ -719,7 +719,6 @@
         let autoSaveTimer = null;
         let isSavingLocation = false;
         @php
-            // Nilai awal disiapkan di PHP dulu supaya Blade tidak memecah ekspresi JSON saat compile.
             $initialLocation = [
                 'latitude' => old('center_latitude', $locationSetting?->center_latitude),
                 'longitude' => old('center_longitude', $locationSetting?->center_longitude),
@@ -728,7 +727,7 @@
         @endphp
         let initialLocation = @json($initialLocation);
 
-        // Rumus Haversine dipakai untuk menghitung jarak dua titik koordinat dalam meter.
+        // Helper jarak dipakai untuk menghitung selisih antara browser admin dan titik pusat.
         function haversineMeters(lat1, lng1, lat2, lng2) {
             const earthRadius = 6371000;
             const toRad = (value) => value * Math.PI / 180;
@@ -738,8 +737,6 @@
                 Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
             return 2 * earthRadius * Math.asin(Math.min(1, Math.sqrt(a)));
         }
-
-        // Format jarak agar mudah dibaca admin saat melihat preview lokasi.
         function formatDistance(meters) {
             if (!Number.isFinite(meters)) return '-';
             if (meters < 1000) {
@@ -747,8 +744,6 @@
             }
             return `${(meters / 1000).toFixed(2)} km`;
         }
-
-        // Ambil nilai input koordinat dan ubah ke angka aman untuk dipakai di peta maupun preview.
         function getLocationInputs() {
             const latitude = Number(locationLatitudeInput?.value);
             const longitude = Number(locationLongitudeInput?.value);
@@ -757,14 +752,10 @@
                 longitude: Number.isFinite(longitude) ? longitude : null,
             };
         }
-
-        // Ambil radius validasi dari input agar preview dan peta memakai angka yang sama.
         function getLocationRadius() {
             const radius = Number(locationRadiusInput?.value ?? 300);
             return Number.isFinite(radius) ? radius : 300;
         }
-
-        // Tentukan titik pusat yang layak dipakai untuk peta jika koordinat belum lengkap.
         function getMapFallbackCenter() {
             const center = getLocationInputs();
             if (center.latitude !== null && center.longitude !== null) {
@@ -777,8 +768,6 @@
 
             return [-6.200000, 106.816666];
         }
-
-        // Peta dipakai hanya sebagai visualisasi radius dan titik pusat lokasi yang dipilih admin.
         function ensureLocationMap() {
             if (!locationMapContainer || !window.L) return;
 
@@ -807,8 +796,6 @@
                 });
             }
         }
-
-        // Sinkronkan marker dan lingkar radius supaya visual peta selalu sesuai dengan input form.
         function updateLocationMap() {
             if (!locationMapContainer || !window.L) return;
 
@@ -875,8 +862,6 @@
             }
             locationMap.invalidateSize();
         }
-
-        // Perbarui ringkasan lokasi di panel kanan, termasuk jarak dari browser admin ke pusat.
         function updateLocationPreview() {
             const center = getLocationInputs();
             const radius = getLocationRadius();
@@ -916,8 +901,6 @@
 
             updateLocationMap();
         }
-
-        // Set status agar admin tahu perubahan lokasi sudah dikirim ke server atau masih menunggu.
         function setLocationStatus(message, tone = 'info') {
             if (!locationStatus) return;
 
@@ -930,13 +913,9 @@
             locationStatus.className = `mt-3 text-xs ${toneClass}`;
             locationStatus.textContent = message;
         }
-
-        // Ambil token CSRF dari form supaya request autosave tetap aman.
         function getLocationCsrfToken() {
             return locationSettingForm?.querySelector('input[name="_token"]')?.value ?? '';
         }
-
-        // Kumpulkan payload lokasi dari input form dan pastikan nilainya siap dikirim ke server.
         function buildLocationPayload() {
             const center = getLocationInputs();
             const radius = getLocationRadius();
@@ -951,8 +930,6 @@
                 radius_meters: radius,
             };
         }
-
-        // Kirim data lokasi ke backend tanpa reload halaman agar autosave terasa lebih halus.
         async function saveLocationSetting({ silent = false, reason = 'manual' } = {}) {
             if (!locationSettingForm || isSavingLocation) return false;
 
@@ -1007,8 +984,6 @@
                 isSavingLocation = false;
             }
         }
-
-        // Autosave dibuat dengan debounce supaya input tidak mengirim request terlalu sering.
         function scheduleLocationAutoSave(reason = 'auto') {
             if (!locationSettingForm) return;
 
@@ -1017,8 +992,6 @@
                 saveLocationSetting({ silent: true, reason });
             }, 900);
         }
-
-        // Mengembalikan input ke lokasi awal yang tersimpan saat halaman dibuka.
         function resetLocationToInitial() {
             if (!locationLatitudeInput || !locationLongitudeInput || !locationRadiusInput) return;
 
@@ -1048,8 +1021,6 @@
                 scheduleLocationAutoSave('reset');
             }
         }
-
-        // Browser Geolocation API membantu admin mengambil koordinat pusat lokasi dari tempat ia berdiri.
         function getBrowserLocation() {
             return new Promise((resolve, reject) => {
                 if (!navigator.geolocation) {
@@ -1068,8 +1039,6 @@
                 );
             });
         }
-
-        // Ubah kode error GPS menjadi pesan yang lebih mudah dipahami admin.
         function getLocationErrorMessage(error) {
             switch (Number(error?.code)) {
                 case 1:
@@ -1082,8 +1051,6 @@
                     return error?.message ?? 'Gagal membaca lokasi perangkat.';
             }
         }
-
-        // Coba baca lokasi browser saat halaman dibuka supaya preview jarak langsung terisi.
         async function hydrateBrowserLocationForPreview() {
             try {
                 const position = await getBrowserLocation();
@@ -1102,12 +1069,9 @@
                     locationStatus.textContent = `Lokasi browser terbaca. Accuracy: ${Math.round(coords.accuracy ?? 0)} meter.`;
                 }
             } catch (error) {
-                // Kalau izin lokasi belum diberikan, preview tetap bekerja untuk titik pusat.
                 console.info('Browser location preview skipped:', error?.message ?? error);
             }
         }
-
-        // Isi field latitude dan longitude dari lokasi browser saat ini.
         async function fillCurrentLocation() {
             if (!useBrowserLocationBtn || !locationLatitudeInput || !locationLongitudeInput) return;
 
@@ -1166,8 +1130,7 @@
                 await saveLocationSetting({ silent: false, reason: 'manual' });
             });
         }
-
-        // Memperbarui tampilan tanggal dan jam di header dashboard.
+        // Jam admin dibuat hidup agar tampilan selalu terasa aktual.
         function updateAdminClock() {
             const now = new Date();
             if (currentDateAdmin) {
@@ -1189,14 +1152,11 @@
                 }) + ' WIB';
             }
         }
-
-        // Mengambil status antrean per pengguna sesuai periode yang dipilih.
+        // Sinkronisasi ruang membaca ulang status per pejabat dari backend.
         async function syncAdminQueueStatus() {
             try {
                 const periodForm = document.getElementById('roomPeriodForm');
                 const params = new URLSearchParams();
-
-                // Jika form periode terisi, kirim bulan dan tahun ke backend.
                 if (periodForm) {
                     const formData = new FormData(periodForm);
                     const month = formData.get('month');
@@ -1216,13 +1176,11 @@
                 console.error(error);
             }
         }
-
-        // Merender baris tabel sinkronisasi berdasarkan data yang diterima dari backend.
+        // Render tabel sinkronisasi ruang berdasarkan data terbaru.
         function renderRoomSyncRows(rows) {
             if (!roomSyncBody) return;
             const formatTime = (value) => value ? `${value} WIB` : '-';
             const statusBadge = (status, label) => {
-                // Badge status dibuat berbeda agar mudah dibaca admin.
                 if (status === 'open') {
                     return `<span class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700"><i class="fa-solid fa-door-open"></i>${label ?? 'Antrean Dibuka'}</span>`;
                 }
@@ -1231,8 +1189,6 @@
                 }
                 return `<span class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-rose-100 text-rose-700"><i class="fa-solid fa-door-closed"></i>${label ?? 'Antrean Ditutup'}</span>`;
             };
-
-            // Jika data kosong, tampilkan pesan kosong agar user tahu tidak ada hasil.
             if (!Array.isArray(rows) || rows.length === 0) {
                 roomSyncBody.innerHTML = `
                     <tr>
@@ -1243,8 +1199,6 @@
                 `;
                 return;
             }
-
-            // Susun ulang semua baris tabel agar sinkron dengan data terbaru.
             roomSyncBody.innerHTML = rows.map((item) => `
                 <tr class="border-b border-blue-50">
                     <td class="px-3 py-3">
@@ -1264,8 +1218,6 @@
                 </tr>
             `).join('');
         }
-
-        // Jalankan sinkronisasi dan jam segera saat halaman dibuka.
         updateLocationPreview();
         hydrateBrowserLocationForPreview();
         syncAdminQueueStatus();
@@ -1275,23 +1227,17 @@
         if (useBrowserLocationBtn) {
             useBrowserLocationBtn.addEventListener('click', fillCurrentLocation);
         }
-
-        // Jika Echo tersedia, dengarkan event perubahan queue untuk refresh otomatis.
         if (window.Echo) {
             window.Echo.channel('queue-status')
                 .listen('.queue.status.updated', () => {
                     syncAdminQueueStatus();
                 });
         }
-
-        // === Tab Navigation ===
-        // Tab digunakan untuk memisahkan daftar pengguna berdasarkan role.
         const tabs = document.querySelectorAll('.tab-btn');
         const contents = document.querySelectorAll('.tab-content');
 
         tabs.forEach(tab => {
             tab.addEventListener('click', () => {
-                // Nonaktifkan semua tab, lalu tampilkan konten tab yang dipilih.
                 tabs.forEach(t => t.classList.remove('is-active', 'text-blue-600'));
                 contents.forEach(c => c.classList.add('hidden'));
 
@@ -1299,9 +1245,6 @@
                 document.getElementById(tab.dataset.tab).classList.remove('hidden');
             });
         });
-
-        // === Search Users ===
-        // Pencarian pengguna memfilter kartu berdasarkan nama atau kode.
         document.getElementById('searchUser').addEventListener('input', function() {
             const query = this.value.toLowerCase();
             document.querySelectorAll('.user-card').forEach(card => {
@@ -1310,9 +1253,6 @@
                 card.style.display = (name.includes(query) || kode.includes(query)) ? '' : 'none';
             });
         });
-
-        // === Search Services ===
-        // Pencarian layanan memfilter kartu berdasarkan nama dan deskripsi.
         document.getElementById('searchService').addEventListener('input', function() {
             const query = this.value.toLowerCase();
             document.querySelectorAll('.service-card').forEach(card => {

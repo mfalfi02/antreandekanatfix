@@ -3,10 +3,10 @@
 @section('content')
 <div class="space-y-6">
     @php
-        // Normalisasi tanggal ke zona waktu server operasional agar filter harian selalu konsisten.
         $reportDate = \Carbon\Carbon::parse($date)->setTimezone('Asia/Jakarta')->locale('id');
     @endphp
 
+    {{-- Header laporan harian yang mengarahkan user ke tanggal lain atau filter tanggal tertentu --}}
     <div class="rounded-2xl bg-gradient-to-r from-slate-800 via-slate-700 to-slate-600 p-6 text-white shadow-lg">
         <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
@@ -47,8 +47,8 @@
         </div>
     </div>
 
+    {{-- Ringkasan angka utama supaya admin langsung paham volume antrean dan sesi ruang pada tanggal ini --}}
     @php
-        // Hitung metrik utama sekali di server supaya kartu ringkasan tidak perlu proses tambahan di browser.
         $totalQueues = $queues->count();
         $totalRoomSessions = $roomSessions->count();
         $activeRooms = $roomSessions->whereIn('status_ruang', ['open', 'occupied'])->count();
@@ -69,6 +69,7 @@
         </div>
     </div>
 
+    {{-- Tabel detail antrean untuk menelusuri siapa datang, layanan apa, dan dilayani oleh siapa --}}
     <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         <h3 class="mb-4 text-lg font-semibold text-gray-800">Antrean Masuk</h3>
         <div class="overflow-x-auto">
@@ -101,6 +102,7 @@
         </div>
     </div>
 
+    {{-- Tabel sinkronisasi ruang yang menunjukkan arah status buka/tutup dan waktu yang tersimpan di server --}}
     <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         <h3 class="mb-4 text-lg font-semibold text-gray-800">Sinkronisasi Ruang Antrean</h3>
         <div class="overflow-x-auto">
@@ -125,7 +127,7 @@
                             <td class="px-4 py-3 text-gray-600">{{ $room->service->nama_layanan ?? 'Semua Jenis Layanan' }}</td>
                             <td class="px-4 py-3">
                                 @php
-                                    // Mapping status dipakai untuk memberi warna label yang langsung terbaca.
+                                    // Status ruang dipetakan ke warna label agar arah statusnya cepat terbaca admin.
                                     $statusClass = match ($room->status_ruang) {
                                         'open' => 'bg-emerald-100 text-emerald-700',
                                         'occupied' => 'bg-amber-100 text-amber-700',

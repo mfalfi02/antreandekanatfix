@@ -13,7 +13,9 @@ use Illuminate\Support\Carbon;
 
 class DashboardController extends Controller
 {
-    // Pengantre mengambil nomor antrean untuk dosen atau pejabat yang sedang buka layanan.
+    /**
+     * Menerima request pengambilan antrean dari dashboard mahasiswa/dosen, lalu mengembalikan JSON dan event realtime.
+     */
     public function joinQueue(Request $request)
     {
         $user = Auth::user();
@@ -39,7 +41,7 @@ class DashboardController extends Controller
             'accuracy' => 'nullable|numeric|min:0',
         ]);
 
-        // Cegah user mengambil antrean dari luar radius yang sudah ditentukan admin.
+        // Validasi geofence ini mengarahkan request ke error JSON kalau user berada di luar area layanan.
         if ($response = app(GeofenceService::class)->validateRequest($request, 'mengambil antrean')) {
             return $response;
         }
@@ -48,9 +50,8 @@ class DashboardController extends Controller
         $queue = null;
         $deanRoomStatus = 'closed';
 
-        // Semua cek dan pembuatan antrean dibungkus transaksi agar data tetap konsisten.
+        // Transaksi ini memastikan urutan pengecekan, nomor antrean, dan insert queue tetap konsisten.
         DB::transaction(function () use ($request, $user, $todayJakarta, &$queue, &$deanRoomStatus) {
-            // Cegah satu pengguna mengambil antrean aktif dua kali ke pejabat yang sama.
             $activeQueueToSameDean = Queue::query()
                 ->where('kode_user', $user->kode)
                 ->where('kode_dosen', $request->dean_id)
@@ -66,7 +67,6 @@ class DashboardController extends Controller
                 ], 422));
             }
 
-            // Ambil status ruang layanan terakhir pada hari ini untuk dosen yang dipilih.
             $deanRoom = RuangAntri::query()
                 ->where('kode_dosen', $request->dean_id)
                 ->whereDate('tanggal_buka_ruang_antri', $todayJakarta)
@@ -76,7 +76,6 @@ class DashboardController extends Controller
 
             $deanRoomStatus = $deanRoom?->status_ruang ?? 'closed';
 
-            // Default dianggap tutup kalau belum pernah buka antrean hari ini.
             if (!in_array($deanRoomStatus, ['open', 'occupied'], true)) {
                 abort(response()->json([
                     'status' => 'error',
@@ -84,7 +83,6 @@ class DashboardController extends Controller
                 ], 422));
             }
 
-            // Cocokkan layanan yang diminta dengan layanan yang sedang dibuka.
             $openedServiceIds = is_array($deanRoom?->service_ids) ? $deanRoom->service_ids : [];
             $openedServiceIds = array_values(array_unique(array_map('intval', array_filter(
                 $openedServiceIds,
@@ -105,8 +103,6 @@ class DashboardController extends Controller
                 ], 422));
             }
 
-            // Nomor antrean dihitung per dosen untuk hari berjalan.
-            // Gunakan count agar tidak ikut loncat akibat data historis outlier.
             $existingCount = Queue::query()
                 ->where('kode_dosen', $request->dean_id)
                 ->whereDate('created_at', $todayJakarta)
@@ -122,7 +118,7 @@ class DashboardController extends Controller
             ]);
         });
 
-        // Broadcast agar dashboard lain dan display publik ikut refresh.
+        // Event ini mengalir ke listener realtime agar dashboard lain dan display publik ikut update.
         try {
             event(new QueueStatusUpdated($request->dean_id, $deanRoomStatus ?? 'open', [
                 'event' => 'queue_joined',

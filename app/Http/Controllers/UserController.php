@@ -8,20 +8,26 @@ use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
-    // Tampilkan daftar semua pengguna untuk admin.
+    /**
+     * Mengirim data user ke halaman daftar admin agar pembacaannya tetap terpusat di view.
+     */
     public function index()
     {
         $users = User::all();
         return view('admin.users.index', compact('users'));
     }
 
-    // Tampilkan form pembuatan user baru.
+    /**
+     * Mengarah ke form tambah user untuk menyiapkan input sebelum disimpan ke database.
+     */
     public function create()
     {
-        return view('admin.users.create'); // halaman form tambah user
+        return view('admin.users.create');
     }
 
-    // Simpan user baru setelah semua validasi lolos.
+    /**
+     * Menyimpan user baru lalu mengembalikan alur ke daftar pengguna supaya admin bisa lanjut memantau data.
+     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -49,14 +55,18 @@ class UserController extends Controller
         return redirect()->route('users.index')->with('success', 'User berhasil ditambahkan!');
     }
 
-    // Tampilkan form edit berdasarkan kode unik user.
+    /**
+     * Mengambil data user berdasarkan kode lalu mengarah ke form edit.
+     */
     public function edit($kode)
     {
         $user = User::where('kode', $kode)->firstOrFail();
         return view('admin.users.edit', compact('user'));
     }
 
-    // Update data user dan ganti password bila diisi.
+    /**
+     * Memperbarui data user lalu mengembalikan respon ke daftar pengguna agar perubahan langsung terlihat.
+     */
     public function update(Request $request, $kode)
     {
         $user = User::where('kode', $kode)->firstOrFail();
@@ -99,7 +109,9 @@ class UserController extends Controller
         return redirect()->route('users.index')->with('success', 'Pengguna berhasil diperbarui!');
     }
 
-    // Hapus user berdasarkan kode unik.
+    /**
+     * Menghapus user dari master data lalu mengembalikan admin ke daftar pengguna.
+     */
     public function destroy($kode)
     {
         $user = User::where('kode', $kode)->firstOrFail();

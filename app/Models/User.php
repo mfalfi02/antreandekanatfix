@@ -10,20 +10,23 @@ class User extends Authenticatable
 {
     use HasFactory, Notifiable;
 
-    protected $primaryKey = 'kode'; // karena primary key-nya string
-    public $incrementing = false; // non-integer PK
-    protected $keyType = 'string'; // tipe data string
+    /**
+     * Menjadikan kode user sebagai identitas utama agar login, relasi, dan dashboard mengarah ke data yang sama.
+     */
+    protected $primaryKey = 'kode';
+    public $incrementing = false;
+    protected $keyType = 'string';
 
     protected $fillable = [
-    'kode',
-    'name',
-    'email',
-    'role',
-    'password',
-    'jabatan',
-    'ruangan',
-    'status',
-];
+        'kode',
+        'name',
+        'email',
+        'role',
+        'password',
+        'jabatan',
+        'ruangan',
+        'status',
+    ];
 
 
     protected $hidden = [
@@ -32,16 +35,18 @@ class User extends Authenticatable
     ];
 
     public function getAuthIdentifierName()
-{
-    return 'kode';
-}
-public function username()
-{
-    return 'kode';
-}
+    {
+        return 'kode';
+    }
 
+    public function username()
+    {
+        return 'kode';
+    }
 
-    // Relasi: satu user bisa punya banyak antrean
+    /**
+     * Menghubungkan user ke antrean yang mereka buat supaya dashboard dan laporan bisa menelusuri riwayatnya.
+     */
     public function queues()
     {
         return $this->hasMany(Queue::class, 'kode_user', 'kode');

@@ -84,6 +84,7 @@
     </style>
 </head>
 <body>
+    {{-- Data di bawah ini dipakai untuk membangun isi file Excel agar ringkasan bisa diekspor --}}
     @php
         $generatedAt = \Carbon\Carbon::now('Asia/Jakarta')->locale('id')->translatedFormat('d F Y H:i');
         $totalLayanan = $services->count();
@@ -91,6 +92,7 @@
         $topService = $services->sortByDesc('mahasiswa_count')->first();
     @endphp
 
+    {{-- Header laporan ini menjelaskan periode dan waktu pembuatan file --}}
     <div class="header">
         <h1>Laporan Bulanan Statistik Layanan</h1>
         <p class="muted">Periode {{ $periodLabel ?? '-' }}</p>
@@ -119,6 +121,7 @@
         </tr>
     </table>
 
+    {{-- Distribusi layanan menunjukkan beban pemakaian tiap layanan pada periode ini --}}
     <div class="section">
         <h2>Distribusi Layanan</h2>
         <table class="table">
@@ -143,6 +146,7 @@
         </table>
     </div>
 
+    {{-- Ringkasan ruang antrean dipakai untuk melihat pola buka dan tutup ruangan --}}
     <div class="section">
         <h2>Ringkasan Ruang Antrean</h2>
         <table class="summary">

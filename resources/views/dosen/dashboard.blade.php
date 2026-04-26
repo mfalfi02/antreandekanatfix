@@ -238,10 +238,10 @@
 </head>
 
 <body class="p-4 md:p-7">
-
+    {{-- Header dashboard pejabat yang mengarah ke ringkasan status ruang dan aksi logout --}}
     <div class="max-w-7xl mx-auto space-y-6">
 
-        {{-- Header --}}
+        {{-- Ringkasan status ruang dan kontrol logout sebagai titik awal pemantauan --}}
         <div class="panel p-5 md:p-6 flex flex-col gap-3 md:flex-row md:justify-between md:items-center">
             <div>
                 <h1 class="text-3xl font-bold text-gray-900">Dashboard Pejabat</h1>
@@ -275,7 +275,7 @@
             </div>
         </div>
 
-        {{-- Kontrol Antrean --}}
+        {{-- Kontrol antrean utama yang mengarah ke buka, tutup, dan pilihan layanan --}}
         <div class="panel p-6 relative z-30 overflow-visible">
             <h2 class="text-xl font-semibold text-gray-900 flex items-center gap-2 mb-4">
                 <i class="fa-solid fa-play-circle text-gray-600"></i> Kontrol Antrean
@@ -340,7 +340,7 @@
             </div>
         </div>
 
-        {{-- Statistik --}}
+        
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div class="panel metric-card metric-blue p-6 flex items-center gap-4">
                 <i class="fa-solid fa-users text-3xl text-gray-600"></i>
@@ -375,9 +375,10 @@
             </div>
         </div>
 
-        {{-- Antrean Aktif dan Selesai --}}
+        
+        {{-- Daftar antrean aktif, selesai, dan riwayat untuk melihat alur layanan hari ini --}}
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {{-- Antrean Aktif --}}
+            
             <div class="panel p-6">
                 <div class="flex justify-between mb-4">
                     <h2 class="text-xl font-semibold text-gray-900">Antrean Aktif</h2>
@@ -430,7 +431,7 @@
                 </div>
             </div>
 
-            {{-- Antrean Selesai --}}
+            
             <div class="panel p-6">
                 <h2 class="text-xl font-semibold text-gray-900 mb-4">Selesai</h2>
                 <div id="completed-queue-list" class="space-y-3 max-h-96 overflow-y-auto">
@@ -502,7 +503,9 @@
 
     <div id="pejabat-toast-container" class="fixed top-4 right-4 z-[70] space-y-2 pointer-events-none"></div>
 
+    {{-- Script interaktif pejabat yang mengarah ke geolocation, service picker, polling, dan realtime --}}
     <script>
+        // Elemen UI utama yang dipakai untuk update status dan daftar antrean pada layar ini.
         const currentDateDosen = document.getElementById('current-date-dosen');
         const currentTimeDosen = document.getElementById('current-time-dosen');
         const roomStatus = document.getElementById('room-status');
@@ -539,14 +542,12 @@
         const statCurrentQueue = document.getElementById('stat-current-queue');
         const statServiceEstimate = document.getElementById('stat-service-estimate');
         let historyQueuesCache = @json($data['historyQueues'] ?? []);
-        // Status ruang dipakai untuk menentukan apakah tombol buka atau tutup yang aktif.
         let currentStatus = "{{ $data['queue_status'] ?? 'closed' }}";
         let isSubmitting = false;
         let activeQueueCount = Number(@json($data['activeQueues'] ?? 0));
         const notifiedQueueJoinedIds = new Set();
         let queuePollingInitialized = false;
-
-        // Browser Geolocation API dipakai untuk memastikan pejabat berada di area layanan saat membuka antrean.
+        // Browser geolocation dipakai untuk validasi lokasi sebelum request buka antrean dikirim.
         function getBrowserLocation() {
             return new Promise((resolve, reject) => {
                 if (!navigator.geolocation) {
@@ -565,8 +566,6 @@
                 );
             });
         }
-
-        // Pesan error geolocation dibuat lebih ramah agar operator tahu langkah yang perlu dilakukan.
         function getLocationErrorMessage(error) {
             switch (Number(error?.code)) {
                 case 1:
@@ -579,8 +578,6 @@
                     return error?.message ?? 'Gagal membaca lokasi perangkat.';
             }
         }
-
-        // Format waktu server ke HH:MM supaya bisa dibandingkan dan dikirim balik ke backend dengan konsisten.
         function getCurrentTimeHHMM() {
             const parts = new Intl.DateTimeFormat('id-ID', {
                 timeZone: 'Asia/Jakarta',
@@ -592,8 +589,6 @@
             const m = parts.find(p => p.type === 'minute')?.value ?? '00';
             return `${h}:${m}`;
         }
-
-        // Normalisasi input waktu Indonesia ke format 24 jam "HH:MM".
         function normalizeIndoTime(value) {
             const raw = (value || '').trim();
             if (!raw) return '';
@@ -610,8 +605,6 @@
 
             return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
         }
-
-        // Simpan waktu tutup ke hidden input setelah divalidasi.
         function setExpectedCloseValue(timeValue) {
             const normalized = normalizeIndoTime(timeValue);
             if (!normalized) {
@@ -622,8 +615,6 @@
             if (expectedCloseInput) expectedCloseInput.value = normalized;
             return normalized;
         }
-
-        // Gabungkan pilihan jam dan menit menjadi satu nilai yang siap dikirim.
         function syncExpectedCloseValue() {
             if (!expectedCloseHourInput || !expectedCloseMinuteInput) return '';
 
@@ -633,8 +624,6 @@
             const combined = `${hour}:${minute}`;
             return setExpectedCloseValue(combined);
         }
-
-        // Default jam tutup dibuat 2 jam setelah waktu sekarang agar operator tidak perlu mengisi manual dari nol.
         function getDefaultExpectedCloseTime() {
             const currentTime = getCurrentTimeHHMM();
             const [hourPart, minutePart] = currentTime.split(':');
@@ -664,14 +653,10 @@
         if (expectedCloseMinuteInput) {
             expectedCloseMinuteInput.addEventListener('change', () => syncExpectedCloseValue());
         }
-
-        // Picker layanan berbasis checkbox agar bisa memilih satu atau lebih layanan sekaligus.
         function getSelectedServiceValues() {
             if (!serviceSelect) return [];
             return Array.from(serviceSelect.selectedOptions).map((opt) => opt.value);
         }
-
-        // Sinkronkan nilai checkbox dengan elemen select tersembunyi yang tetap menjadi sumber data form.
         function setSelectedServiceValues(values = []) {
             if (!serviceSelect) return;
             const selectedSet = new Set(values.map((val) => String(val)));
@@ -680,8 +665,6 @@
                 opt.selected = selectedSet.has(String(opt.value));
             });
         }
-
-        // Chip ini memberi ringkasan visual layanan yang sedang dipilih.
         function renderSelectedServiceChips() {
             if (!serviceSelectedChips || !servicePickerLabel || !serviceSelect) return;
             const selectedValues = getSelectedServiceValues();
@@ -709,8 +692,6 @@
                 </span>
             `).join('');
         }
-
-        // Render ulang daftar checkbox sesuai pilihan yang tersimpan.
         function renderServicePickerOptions() {
             if (!servicePickerOptions || !serviceSelect) return;
 
@@ -727,8 +708,6 @@
                 `;
             }).join('');
         }
-
-        // Aturan "all" diperlakukan khusus supaya tidak bercampur dengan layanan tertentu.
         function toggleServiceSelection(value, checked) {
             const current = new Set(getSelectedServiceValues().map((val) => String(val)));
             const normalized = String(value);
@@ -753,8 +732,6 @@
             renderServicePickerOptions();
             renderSelectedServiceChips();
         }
-
-        // Tombol dan panel dipasang event sekali, lalu ditutup otomatis saat klik di luar panel.
         function initServicePicker() {
             if (!serviceSelect || !servicePickerBtn || !servicePickerPanel || !servicePickerOptions) return;
 
@@ -778,8 +755,7 @@
                 servicePickerPanel.classList.add('hidden');
             });
         }
-
-        // Jam di header dibuat live agar operator selalu melihat waktu setempat yang akurat.
+        // Jam header disegarkan real-time agar pejabat melihat waktu lokal yang akurat sebagai acuan aksi.
         function updateDosenClock() {
             const now = new Date();
             if (currentDateDosen) {
@@ -801,8 +777,6 @@
                 }) + ' WIB';
             }
         }
-
-        // Escape string sebelum disisipkan ke HTML hasil render dinamis.
         function escapeHtml(value) {
             return String(value ?? '')
                 .replaceAll('&', '&amp;')
@@ -811,8 +785,7 @@
                 .replaceAll('"', '&quot;')
                 .replaceAll("'", '&#039;');
         }
-
-        // Notifikasi toast dipakai saat ada antrean baru masuk untuk dosen.
+        // Toast dipakai untuk memberi notifikasi saat antrean baru masuk ke pejabat.
         function showPejabatToast(meta = {}) {
             if (!pejabatToastContainer) return;
             const nomor = meta?.nomor_antrian ? `#${meta.nomor_antrian}` : null;
@@ -848,8 +821,6 @@
                 setTimeout(() => toast.remove(), 300);
             }, 7000);
         }
-
-        // Nada singkat sebagai penanda ada antrean baru atau status berubah.
         function playPejabatNotifSound(eventType = 'default') {
             const AudioCtx = window.AudioContext || window.webkitAudioContext;
             if (!AudioCtx) return;
@@ -873,8 +844,6 @@
                 osc.stop(end + 0.01);
             });
         }
-
-        // Pisahkan antrean aktif dan selesai agar masing-masing punya tampilan dan aksi sendiri.
         function renderDosenQueues(queues = []) {
             if (!activeQueueList || !completedQueueList) return;
 
@@ -941,8 +910,6 @@
                 }).join('');
             }
         }
-
-        // Perbarui angka ringkasan agar tetap konsisten dengan isi daftar antrean.
         function renderDosenStats(stats = {}) {
             activeQueueCount = Number(stats.active ?? 0);
             if (statActiveQueues) {
@@ -959,15 +926,11 @@
             }
             updateQueueCarryoverBadge();
         }
-
-        // Badge ini hanya tampil saat ruangan ditutup tetapi masih ada antrean yang belum selesai.
         function updateQueueCarryoverBadge() {
             if (!queueCarryoverBadge) return;
             const shouldShow = currentStatus === 'closed' && activeQueueCount > 0;
             queueCarryoverBadge.classList.toggle('hidden', !shouldShow);
         }
-
-        // Riwayat juga bisa difilter per tanggal tanpa reload halaman.
         function renderDosenHistoryQueues(queues = []) {
             if (!historyQueueList || !historyQueueCount) return;
             historyQueuesCache = Array.isArray(queues) ? queues : [];
@@ -1014,8 +977,6 @@
                 `;
             }).join('');
         }
-
-        // Tombol aksi dinonaktifkan saat request sedang dikirim supaya tidak double submit.
         function setSubmittingState(submitting) {
             isSubmitting = submitting;
             [...openBtns, ...closeBtns].forEach((btn) => {
@@ -1025,8 +986,6 @@
                 btn.classList.toggle('cursor-not-allowed', submitting);
             });
         }
-
-        // Status ruang menentukan label tombol, badge, dan state form.
         function updateStatus(status) {
             currentStatus = status;
 
@@ -1056,8 +1015,7 @@
 
             updateQueueCarryoverBadge();
         }
-
-        // Kirim status buka/tutup berikut layanan yang dipilih ke backend.
+        // Mengirim status buka/tutup ruang berikut layanan dan jam perkiraan ke backend.
         async function toggleQueue(status) {
             if (isSubmitting) return;
             const previousStatus = currentStatus;
@@ -1129,8 +1087,6 @@
                 setSubmittingState(false);
             }
         }
-
-        // Sinkronkan status ruang terbaru dari server.
         async function syncOwnStatus() {
             try {
                 const res = await fetch("{{ route('queue.status') }}");
@@ -1143,8 +1099,7 @@
                 console.error(e);
             }
         }
-
-        // Ambil ulang daftar antrean milik dosen agar tampilan aktif dan selesai tetap up to date.
+        // Memuat ulang antrean aktif dan riwayat milik pejabat agar dashboard tetap sinkron.
         async function syncDosenQueues() {
             try {
                 const res = await fetch("{{ route('queue.my') }}");
@@ -1182,8 +1137,6 @@
                 console.error(e);
             }
         }
-
-        // Update status antrean tertentu saat dosen memanggil atau menyelesaikan layanan.
         async function updateQueueStatus(queueId, action) {
             try {
                 const route = action === 'call' ?
@@ -1250,7 +1203,6 @@
         setInterval(syncDosenQueues, 5000);
         updateDosenClock();
         setInterval(updateDosenClock, 1000);
-        // Laravel Echo realtime
         if (window.Echo) {
             window.Echo.channel('queue-status')
                 .listen('.queue.status.updated', (e) => {

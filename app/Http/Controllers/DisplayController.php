@@ -11,7 +11,9 @@ use Illuminate\Support\Carbon;
 
 class DisplayController extends Controller
 {
-    // Halaman display utama hanya butuh status global antrean yang tersimpan di setting.
+    /**
+     * Mengarahkan browser ke halaman display publik dengan status antrean global.
+     */
     public function index()
     {
         $setting = SystemSetting::firstOrCreate(
@@ -27,12 +29,14 @@ class DisplayController extends Controller
         ]);
     }
 
-    // API untuk display publik agar bisa menampilkan daftar antrean yang sedang berjalan.
+    /**
+     * Mengembalikan JSON data antrean, pejabat aktif, dan ringkasan ke layar display.
+     */
     public function queues()
     {
+        // Data ini mengarah ke display/index dan dipakai polling atau websocket untuk merender layar publik.
         $todayJakarta = Carbon::now('Asia/Jakarta')->toDateString();
 
-        // Ambil antrean hari ini beserta relasi penting yang dibutuhkan UI.
         $queues = Queue::with(['user', 'service', 'dosen'])
             ->whereDate('created_at', $todayJakarta)
             ->get()
@@ -46,10 +50,10 @@ class DisplayController extends Controller
             ];
         });
 
-        // Map nama layanan agar mudah dipakai saat menyusun payload ruang aktif.
+        // Nama layanan di-cache dulu supaya payload aktif staff bisa disusun tanpa query berulang.
         $serviceNameMap = Service::query()->pluck('nama_layanan', 'id');
 
-        // Cari seluruh pejabat yang sedang buka atau melayani antrean pada hari ini.
+        // Bagian ini mengarahkan status ruang aktif ke card display yang tampil di layar publik.
         $activeStaff = RuangAntri::with(['dosen', 'service'])
             ->whereDate('tanggal_buka_ruang_antri', $todayJakarta)
             ->whereIn('status_ruang', ['open', 'occupied'])
@@ -105,7 +109,7 @@ class DisplayController extends Controller
                 ];
             });
 
-        // Ringkasan antrean per pejabat dipakai untuk panel statistik display.
+        // Ringkasan per pejabat dipakai untuk panel statistik di display publik.
         $dosenQueueSummary = User::query()
             ->where('role', 'pejabat')
             ->where('status', 'aktif')
@@ -156,7 +160,10 @@ class DisplayController extends Controller
             'dosen_queue_summary' => $dosenQueueSummary,
         ]);
     }
-    // Endpoint ringan untuk refresh data antrean tanpa payload tambahan.
+
+    /**
+     * Mengembalikan JSON ringkas untuk refresh data antrean tanpa payload tambahan.
+     */
     public function refresh()
     {
         $todayJakarta = Carbon::now('Asia/Jakarta')->toDateString();

@@ -16,6 +16,9 @@ class QueueStatusUpdated implements ShouldBroadcastNow
     public string $queueStatusLabel;
     public array $meta;
 
+    /**
+     * Membawa status antrean ke event realtime agar dashboard dan display publik ikut sinkron.
+     */
     public function __construct(string $userKode, string $queueStatus, array $meta = [])
     {
         $this->userKode = $userKode;
@@ -28,11 +31,17 @@ class QueueStatusUpdated implements ShouldBroadcastNow
         $this->meta = $meta;
     }
 
+    /**
+     * Mengirim event ke channel publik queue-status untuk listener realtime.
+     */
     public function broadcastOn(): Channel
     {
         return new Channel('queue-status');
     }
 
+    /**
+     * Menetapkan nama event agar frontend bisa mendengar perubahan status secara konsisten.
+     */
     public function broadcastAs(): string
     {
         return 'queue.status.updated';

@@ -9,6 +9,9 @@ class Queue extends Model
 {
     use HasFactory;
 
+    /**
+     * Menyimpan data inti antrean yang mengalir ke dashboard mahasiswa, dosen, display publik, dan laporan.
+     */
     protected $fillable = [
         'kode_user',
         'kode_dosen',
@@ -17,19 +20,25 @@ class Queue extends Model
         'status',
     ];
 
-    // Relasi ke User
+    /**
+     * Menghubungkan antrean ke user pengantre agar nama dan identitasnya bisa ditampilkan di UI.
+     */
     public function user()
     {
         return $this->belongsTo(User::class, 'kode_user', 'kode');
     }
 
-    // Relasi ke Service
+    /**
+     * Menghubungkan antrean ke layanan yang dipilih supaya estimasi dan label layanan bisa dirender.
+     */
     public function service()
     {
         return $this->belongsTo(Service::class, 'service_id');
     }
 
-    // Dosen/pejabat tujuan yang dipilih saat ambil antrean
+    /**
+     * Menghubungkan antrean ke dosen atau pejabat tujuan agar status ruang dan laporan dapat ditelusuri.
+     */
     public function dosen()
     {
         return $this->belongsTo(User::class, 'kode_dosen', 'kode');

@@ -1,3 +1,4 @@
+{{-- Metadata PWA ini mengarahkan browser ke icon, manifest, dan tema aplikasi --}}
 @php
     $themeColor = $themeColor ?? '#2563eb';
     $appleTouchIcon = $appleTouchIcon ?? asset('pwa/icons/icon-180x180.png');

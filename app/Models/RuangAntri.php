@@ -37,6 +37,9 @@ class RuangAntri extends Model
         return $this->belongsTo(User::class, 'kode_dosen', 'kode');
     }
 
+    /**
+     * Menghubungkan ruang antrean ke layanan utama yang sedang dibuka di ruangan ini.
+     */
     public function service()
     {
         return $this->belongsTo(Service::class, 'service_id');

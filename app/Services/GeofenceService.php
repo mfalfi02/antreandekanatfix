@@ -8,7 +8,9 @@ use Illuminate\Http\Request;
 
 class GeofenceService
 {
-    // Ambil record setting pusat lokasi yang dipakai bersama oleh seluruh validasi antrean.
+    /**
+     * Mengambil atau membuat setting geofence utama yang dipakai semua alur validasi lokasi.
+     */
     public function getSetting(): SystemSetting
     {
         return SystemSetting::firstOrCreate(
@@ -20,7 +22,9 @@ class GeofenceService
         );
     }
 
-    // Geofence hanya aktif jika koordinat pusat dan radius sudah diisi admin.
+    /**
+     * Mengecek apakah titik pusat dan radius sudah siap dipakai untuk validasi lokasi.
+     */
     public function isConfigured(SystemSetting $setting): bool
     {
         return $setting->center_latitude !== null
@@ -28,7 +32,9 @@ class GeofenceService
             && (int) $setting->radius_meters > 0;
     }
 
-    // Hitung jarak dua titik koordinat dalam meter menggunakan rumus Haversine.
+    /**
+     * Menghitung jarak meter dari dua koordinat untuk menentukan posisi user terhadap radius.
+     */
     public function distanceMeters(float $lat1, float $lng1, float $lat2, float $lng2): float
     {
         $earthRadius = 6371000;
@@ -47,12 +53,13 @@ class GeofenceService
         return $earthRadius * $c;
     }
 
-    // Validasi lokasi untuk aksi yang membutuhkan user berada di area kampus/dekat lokasi antrean.
+    /**
+     * Memvalidasi request berbasis lokasi dan mengembalikan JSON error jika user di luar area layanan.
+     */
     public function validateRequest(Request $request, string $actionLabel): ?JsonResponse
     {
         $setting = $this->getSetting();
         if (!$this->isConfigured($setting)) {
-            // Kalau admin belum mengisi koordinat, sistem tetap berjalan tanpa geofence agar antrean tidak terblokir total.
             return null;
         }
 

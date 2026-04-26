@@ -7,18 +7,16 @@ use Illuminate\Support\ServiceProvider;
 class AppServiceProvider extends ServiceProvider
 {
     /**
-     * Register any application services.
+     * Mendaftarkan layanan aplikasi jika nanti ada binding atau singleton yang perlu dipasang.
      */
     public function register(): void
     {
-        //
     }
 
     /**
-     * Bootstrap any application services.
+     * Menyiapkan aplikasi saat boot agar tempat inisialisasi global tetap terpusat.
      */
     public function boot(): void
     {
-        //
     }
 }

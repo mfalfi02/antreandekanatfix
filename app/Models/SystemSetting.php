@@ -6,10 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 
 class SystemSetting extends Model
 {
+    /**
+     * Menyimpan pengaturan global antrean, termasuk status ruang dan titik geofence yang dipakai lintas fitur.
+     */
     protected $table = 'system_settings';
 
     protected $fillable = [
-        // Status global antrean dan titik geofence dipakai oleh admin serta validasi request.
         'queue_status',
         'center_latitude',
         'center_longitude',

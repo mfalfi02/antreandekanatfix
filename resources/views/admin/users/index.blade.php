@@ -4,6 +4,7 @@
 
 @section('content')
 <div class="max-w-5xl mx-auto py-10 px-6">
+    {{-- Header halaman ini mengarahkan admin ke daftar atau form tambah pengguna --}}
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-2xl font-bold text-gray-800">Daftar Pengguna</h1>
 
@@ -24,6 +25,7 @@
         <div class="bg-green-100 text-green-800 p-3 rounded-lg shadow mb-4">{{ session('success') }}</div>
     @endif
 
+    {{-- Tabel di bawah ini menampilkan data user dari controller dan mengarah ke aksi edit/hapus --}}
     <div class="overflow-x-auto bg-white rounded-xl shadow-md p-4">
         <table class="w-full table-auto border-collapse">
             <thead>
@@ -38,6 +40,7 @@
             <tbody class="divide-y">
                 @foreach($users as $user)
                     @php
+                        // Status dan badge role dipakai agar identitas dan kondisi akun cepat terbaca admin.
                         $role = ucfirst($user->role);
                         $status = $user->status == 'aktif' ? 'Aktif' : 'Tidak Aktif';
                         $badgeClass = $user->status == 'aktif' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
@@ -79,6 +82,7 @@
                             <span class="px-2 py-1 rounded-full text-xs font-semibold {{ $badgeClass }}">{{ $status }}</span>
                         </td>
                         <td class="px-4 py-2 space-x-2">
+                            {{-- Aksi edit mengarah ke form update, sedangkan hapus mengarah ke destroy --}}
                             <a href="{{ route('users.edit', $user->kode) }}"
                                 class="inline-flex items-center bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600">
                                 Edit

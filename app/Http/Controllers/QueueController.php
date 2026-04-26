@@ -12,12 +12,16 @@ use App\Services\GeofenceService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Carbon;
 
+/**
+ * Menangani siklus antrean pejabat dan mengarahkan hasilnya ke JSON respons, event realtime, atau state ruang yang tersimpan.
+ */
 class QueueController extends Controller
 {
-    // Membuka, menutup, atau mengubah status ruang antrean milik pejabat.
+    /**
+     * Mengubah status ruang antrean pejabat lalu mengembalikan JSON untuk dashboard, display, dan listener realtime.
+     */
     public function toggleQueue(Request $request)
     {
-        // Normalisasi jam input supaya format yang masuk ke validasi tetap seragam.
         $request->merge([
             'expected_jam_buka' => $this->normalizeIndoTime($request->input('expected_jam_buka')),
             'expected_jam_tutup' => $this->normalizeIndoTime($request->input('expected_jam_tutup')),
@@ -45,7 +49,6 @@ class QueueController extends Controller
         }
 
         $status = $request->status;
-        // Validasi lokasi hanya diperlukan saat ruang akan dibuka atau diubah ke status melayani.
         if (in_array($status, ['open', 'occupied'], true)) {
             if ($response = app(GeofenceService::class)->validateRequest($request, 'membuka antrean')) {
                 return $response;
@@ -61,7 +64,6 @@ class QueueController extends Controller
         $today = $now->toDateString();
         $nowTime = $now->format('H:i:s');
 
-        // Saat antrean dibuka, layanan dan perkiraan jam tutup wajib valid.
         if (in_array($status, ['open', 'occupied'], true) && $serviceScope !== 'all' && count($selectedServiceIds) === 0) {
             return response()->json([
                 'success' => false,
@@ -78,7 +80,6 @@ class QueueController extends Controller
 
         $ruang = null;
         if ($status === 'closed') {
-            // Saat menutup, prioritaskan menutup sesi aktif (jam_tutup masih null)
             $ruang = RuangAntri::query()
                 ->where('kode_dosen', $user->kode)
                 ->whereNull('jam_tutup_ruang_antri')
@@ -86,7 +87,6 @@ class QueueController extends Controller
                 ->first();
         }
 
-        // Jika sesi hari ini belum ada, buat record baru untuk ruang antrean.
         if (!$ruang) {
             $ruang = RuangAntri::firstOrNew([
                 'kode_dosen' => $user->kode,
@@ -95,7 +95,6 @@ class QueueController extends Controller
         }
 
         $ruang->status_ruang = $status;
-        // Status open dan occupied dianggap sebagai sesi layanan yang sedang berjalan.
         if (in_array($status, ['open', 'occupied'], true)) {
             if ($serviceScope === 'all') {
                 $ruang->service_id = null;
@@ -123,7 +122,6 @@ class QueueController extends Controller
             $ruang->jam_tutup_ruang_antri = null;
         }
 
-        // Saat closed, simpan jam tutup supaya histori sesi tetap lengkap.
         if ($status === 'closed') {
             if (!$ruang->jam_buka_ruang_antri) {
                 $ruang->jam_buka_ruang_antri = $nowTime;
@@ -139,7 +137,6 @@ class QueueController extends Controller
 
         $ruang->save();
 
-        // Kirim event realtime agar dashboard lain segera ikut sinkron.
         try {
             event(new QueueStatusUpdated($user->kode, $status, [
                 'event' => 'room_status_toggled',
@@ -163,7 +160,9 @@ class QueueController extends Controller
         ]);
     }
 
-    // Kembalikan status antrean untuk satu pejabat atau ringkasan semua pejabat aktif.
+    /**
+     * Mengembalikan JSON status satu pejabat atau ringkasan semua pejabat aktif untuk dipakai dashboard dan polling client.
+     */
     public function status(Request $request)
     {
         $kode = $request->query('kode');
@@ -173,7 +172,6 @@ class QueueController extends Controller
 
         $period = $this->resolveStatusPeriod($request);
 
-        // Jika ada kode dosen, kembalikan detail satu pejabat saja.
         if ($kode) {
             $detail = $this->statusDetailForUser($kode, $period);
 
@@ -187,7 +185,6 @@ class QueueController extends Controller
             ]);
         }
 
-        // Jika tidak ada kode tertentu, kembalikan ringkasan semua pejabat aktif.
         $statuses = $this->statusesForPejabat($period);
         $globalStatus = $this->globalStatusFromCollection(collect($statuses)->pluck('queue_status'));
 
@@ -204,7 +201,9 @@ class QueueController extends Controller
         ]);
     }
 
-    // Panggil antrean aktif milik pejabat yang sedang login.
+    /**
+     * Memproses panggilan antrean milik pejabat yang sedang login lalu mengirim JSON dan event ke UI lain.
+     */
     public function callQueue(Queue $queue)
     {
         $user = Auth::user();
@@ -229,7 +228,6 @@ class QueueController extends Controller
         $queue->loadMissing(['service:id,nama_layanan', 'user:kode,name']);
         $queue->update(['status' => 'diproses']);
 
-        // Jika ruang masih aktif, statusnya menjadi occupied ketika antrean dipanggil.
         $today = Carbon::now('Asia/Jakarta')->toDateString();
         $ruang = RuangAntri::query()
             ->where('kode_dosen', $user->kode)
@@ -239,7 +237,6 @@ class QueueController extends Controller
 
         $nextRoomStatus = 'closed';
         if ($ruang) {
-            // Jika ruangan sudah ditutup manual, jangan auto-buka lagi saat memanggil antrean sisa.
             if ($ruang->status_ruang !== 'closed') {
                 $ruang->status_ruang = 'occupied';
                 $ruang->save();
@@ -268,7 +265,9 @@ class QueueController extends Controller
         ]);
     }
 
-    // Tandai antrean selesai dan sesuaikan status ruang jika masih ada antrean aktif lain.
+    /**
+     * Menandai antrean selesai, memperbarui status ruang, lalu mengirim hasilnya ke dashboard dan listener realtime.
+     */
     public function completeQueue(Queue $queue)
     {
         $user = Auth::user();
@@ -307,7 +306,6 @@ class QueueController extends Controller
         $nextRoomStatus = $hasInProgress ? 'occupied' : 'open';
 
         if ($ruang) {
-            // Jika ruangan sudah ditutup manual, pertahankan closed walau masih ada proses penyelesaian antrean.
             if ($ruang->status_ruang !== 'closed') {
                 $ruang->status_ruang = $nextRoomStatus;
                 $ruang->save();
@@ -332,7 +330,9 @@ class QueueController extends Controller
         ]);
     }
 
-    // Ambil antrean milik user yang sedang login untuk dashboard masing-masing role.
+    /**
+     * Menarik daftar antrean milik user yang login dan mengarahkannya ke dashboard role masing-masing dalam bentuk JSON.
+     */
     public function myQueues()
     {
         $user = Auth::user();
@@ -345,7 +345,6 @@ class QueueController extends Controller
 
         $today = Carbon::now('Asia/Jakarta')->toDateString();
 
-        // Pejabat melihat antrean yang masuk ke ruang miliknya sendiri.
         if ($user->role === 'pejabat') {
             $queues = Queue::query()
                 ->with(['user', 'service'])
@@ -376,7 +375,6 @@ class QueueController extends Controller
             ]);
         }
 
-        // Mahasiswa dan dosen melihat antrean yang mereka ambil sebagai pengantre.
         if (in_array($user->role, ['mahasiswa', 'dosen'], true)) {
             $queues = Queue::query()
                 ->with(['service', 'dosen'])
@@ -391,7 +389,6 @@ class QueueController extends Controller
                 ->latest('created_at')
                 ->get();
 
-            // Estimasi tunggu dihitung dari total estimasi service pengantre aktif sebelumnya (per dosen, hari ini).
             $activeByDosen = Queue::query()
                 ->with('service:id,est')
                 ->whereDate('created_at', $today)
@@ -430,13 +427,17 @@ class QueueController extends Controller
         ]);
     }
 
-    // Cek apakah user yang login memang pejabat.
+    /**
+     * Menentukan apakah user login boleh masuk ke alur pejabat dan membuka aksi ruang antrean.
+     */
     private function isPejabat(?User $user): bool
     {
         return $user && $user->role === 'pejabat';
     }
 
-    // Ambil detail status ruang layanan untuk satu pejabat pada periode tertentu.
+    /**
+     * Mengambil detail status ruang pejabat untuk dipakai sebagai sumber data JSON pada dashboard dan API status.
+     */
     private function statusDetailForUser(string $kode, ?array $period = null): array
     {
         $query = RuangAntri::query()
@@ -463,7 +464,9 @@ class QueueController extends Controller
         ];
     }
 
-    // Ubah daftar status pejabat menjadi array respons API untuk frontend.
+    /**
+     * Mengubah koleksi status pejabat menjadi array JSON yang langsung bisa dirender frontend.
+     */
     private function statusesForPejabat(?array $period = null): array
     {
         $users = User::query()
@@ -486,7 +489,9 @@ class QueueController extends Controller
         })->values()->all();
     }
 
-    // Validasi dan bentuk periode bulan-tahun dari query string.
+    /**
+     * Memvalidasi periode dari query string agar report dan status hanya mengarah ke bulan/tahun yang sah.
+     */
     private function resolveStatusPeriod(Request $request): ?array
     {
         $month = (int) $request->query('month', 0);
@@ -508,7 +513,9 @@ class QueueController extends Controller
         ];
     }
 
-    // Label bulan bahasa Indonesia untuk tampilan.
+    /**
+     * Mengubah angka bulan menjadi label bahasa Indonesia untuk heading report dan response period.
+     */
     private function monthLabel(int $month): string
     {
         return match ($month) {
@@ -528,7 +535,9 @@ class QueueController extends Controller
         };
     }
 
-    // Tentukan status global dari kumpulan status per pejabat.
+    /**
+     * Menentukan status global untuk dashboard gabungan sebelum dikirim ke UI utama.
+     */
     private function globalStatusFromCollection($statuses): string
     {
         if ($statuses->contains('occupied')) {
@@ -542,7 +551,9 @@ class QueueController extends Controller
         return 'closed';
     }
 
-    // Ubah status teknis menjadi label yang mudah dibaca di UI.
+    /**
+     * Mengubah status teknis menjadi label UI agar output JSON lebih mudah dibaca user.
+     */
     private function labelForStatus(string $status): string
     {
         return match ($status) {
@@ -552,6 +563,9 @@ class QueueController extends Controller
         };
     }
 
+    /**
+     * Membentuk payload layanan yang dikirim ke frontend saat status ruang berubah.
+     */
     private function formatServicePayload(string $status, $services): ?array
     {
         if ($services->count() > 0) {
@@ -574,7 +588,9 @@ class QueueController extends Controller
         return null;
     }
 
-    // Ambil daftar layanan yang sedang dibuka pada satu ruang antrean.
+    /**
+     * Mengambil daftar layanan yang dipilih dari request sebelum data ruang disimpan atau dipublish.
+     */
     private function resolveSelectedServiceIds(Request $request, string $serviceScope): array
     {
         if ($serviceScope === 'all') {
@@ -598,7 +614,9 @@ class QueueController extends Controller
         return $serviceIds;
     }
 
-    // Bentuk payload layanan dari data ruang antrean.
+    /**
+     * Mengambil layanan aktif pada ruang antrean supaya payload status mengarah ke nama layanan yang benar.
+     */
     private function resolveRoomServices(?RuangAntri $ruang)
     {
         if (!$ruang) {
@@ -627,7 +645,9 @@ class QueueController extends Controller
             ->values();
     }
 
-    // Format jam buka dan tutup untuk dikirim ke frontend.
+    /**
+     * Menyusun payload waktu yang dikirim ke frontend, display, dan sinkronisasi dashboard.
+     */
     private function formatWaktuPayload(RuangAntri $ruang): array
     {
         return [
@@ -639,7 +659,9 @@ class QueueController extends Controller
         ];
     }
 
-    // Normalisasi input jam agar konsisten sebelum divalidasi dan disimpan.
+    /**
+     * Menormalkan input waktu Indonesia agar valid sebelum dipakai menyimpan status ruang.
+     */
     private function normalizeIndoTime(?string $value): ?string
     {
         if (!$value) {

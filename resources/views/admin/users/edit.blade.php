@@ -3,24 +3,29 @@
 @section('title', 'Edit Pengguna')
 
 @section('content')
+{{-- Link kembali ini mengarahkan admin ke daftar pengguna jika ingin membatalkan perubahan --}}
 <a href="{{ route('users.index') }}" class="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium transition-colors">
     <i class="fa-solid fa-arrow-left mr-2"></i> Kembali
 </a>
 
+{{-- Form edit ini mengirim payload ke users.update agar data user yang dipilih bisa diperbarui --}}
 <div class="max-w-3xl mx-auto bg-white/60 backdrop-blur-md shadow-xl rounded-2xl overflow-hidden mt-10 border border-blue-100">
     
-    {{-- Header --}}
+    
+    {{-- Header form menjelaskan bahwa halaman ini dipakai untuk memperbarui data pengguna --}}
     <div class="bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-500 p-6 text-center text-white">
         <h2 class="text-3xl font-extrabold">Edit Pengguna</h2>
         <p class="text-sm text-blue-100 mt-1">Perbarui informasi pengguna sesuai kebutuhan</p>
     </div>
 
-    {{-- Form --}}
+    
+    {{-- Payload form berikut diteruskan ke controller untuk update dan validasi server --}}
     <form action="{{ route('users.update', $user->kode) }}" method="POST" class="p-8 space-y-6">
         @csrf
         @method('PUT')
 
-        {{-- Kode --}}
+        
+        {{-- Identitas utama user yang akan dipakai login dan relasi data --}}
         <div>
             <label class="block text-sm font-semibold text-gray-700 mb-1">Kode</label>
             <input type="text" name="kode" value="{{ old('kode', $user->kode) }}" 
@@ -31,7 +36,8 @@
             @enderror
         </div>
 
-        {{-- Nama --}}
+        
+        {{-- Nama user yang tampil di dashboard dan laporan --}}
         <div>
             <label class="block text-sm font-semibold text-gray-700 mb-1">Nama</label>
             <input type="text" name="name" value="{{ old('name', $user->name) }}" 
@@ -42,7 +48,8 @@
             @enderror
         </div>
 
-        {{-- Email --}}
+        
+        {{-- Email dipakai sebagai data kontak dan informasi tambahan --}}
         <div>
             <label class="block text-sm font-semibold text-gray-700 mb-1">Email</label>
             <input type="email" name="email" value="{{ old('email', $user->email) }}" 
@@ -52,7 +59,8 @@
             @enderror
         </div>
 
-        {{-- Password --}}
+        
+        {{-- Password hanya diisi jika admin ingin mengganti sandi --}}
         <div>
             <label class="block text-sm font-semibold text-gray-700 mb-1">Password <span class="text-gray-400 text-xs">(Kosongkan jika tidak ingin diubah)</span></label>
             <input type="password" name="password" 
@@ -62,13 +70,15 @@
             @enderror
         </div>
 
+        {{-- Konfirmasi password dipakai agar perubahan sandi aman dan konsisten --}}
         <div>
             <label class="block text-sm font-semibold text-gray-700 mb-1">Konfirmasi Password <span class="text-gray-400 text-xs">(Isi jika password diubah)</span></label>
             <input type="password" name="password_confirmation"
                 class="w-full border border-blue-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
         </div>
 
-        {{-- Role --}}
+        
+        {{-- Role menentukan dashboard tujuan dan field tambahan yang wajib diisi --}}
         <div>
             <label class="block text-sm font-semibold text-gray-700 mb-1 inline-flex items-center gap-2"><i class="fa-solid fa-user-tag text-slate-400"></i>Role</label>
             <select name="role" id="role" class="w-full border border-blue-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" required>
@@ -86,7 +96,8 @@
             @enderror
         </div>
 
-        {{-- Jabatan (untuk dosen/pejabat) --}}
+        
+        {{-- Jabatan dipakai untuk dosen dan pejabat agar identitas jabatan tetap terlihat --}}
         <div id="jabatan-fields" class="{{ in_array(old('role', $user->role), ['dosen','pejabat']) ? '' : 'hidden' }}">
             <label class="block text-sm font-semibold text-gray-700 mb-1 inline-flex items-center gap-2"><i class="fa-solid fa-id-badge text-slate-400"></i>Jabatan</label>
             <input type="text" name="jabatan" value="{{ old('jabatan', $user->jabatan) }}" 
@@ -96,7 +107,8 @@
             @enderror
         </div>
 
-        {{-- Ruangan (khusus pejabat) --}}
+        
+        {{-- Ruangan hanya muncul untuk pejabat karena dipakai dalam alur layanan dan laporan --}}
         <div id="ruangan-fields" class="{{ old('role', $user->role) === 'pejabat' ? '' : 'hidden' }}">
             <label class="block text-sm font-semibold text-gray-700 mb-1 inline-flex items-center gap-2">
                 <i class="fa-solid fa-door-open text-slate-400"></i>Ruangan <span id="ruangan-required-label" class="text-red-500 {{ old('role', $user->role) === 'pejabat' ? '' : 'hidden' }}">*</span>
@@ -109,7 +121,8 @@
             @enderror
         </div>
 
-        {{-- Status --}}
+        
+        {{-- Status menentukan apakah akun langsung aktif atau disimpan nonaktif --}}
         <div>
             <label class="block text-sm font-semibold text-gray-700 mb-1">Status</label>
             <select name="status" class="w-full border border-blue-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
@@ -121,7 +134,8 @@
             @enderror
         </div>
 
-        {{-- Submit --}}
+        
+        {{-- Tombol submit meneruskan perubahan ke controller update --}}
         <div class="pt-4">
             <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-lg font-semibold shadow-lg hover:shadow-xl hover:scale-[1.02] transform transition">
                 <i class="fa-solid fa-user-pen mr-2"></i> Perbarui Pengguna
@@ -131,6 +145,7 @@
 </div>
 
 <script>
+// Script ini mengarahkan tampilan field tambahan berdasarkan role yang dipilih.
 const editRoleField = document.getElementById('role');
 const editJabatanField = document.getElementById('jabatan-fields');
 const editRuanganField = document.getElementById('ruangan-fields');

@@ -12,28 +12,37 @@ use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Carbon;
 use App\Exports\MonthlyServiceReportExport;
 
+/**
+ * Mengelola master layanan dan mengarahkan data laporan ke view, PDF, atau Excel sesuai aksi admin.
+ */
 class ServiceController extends Controller
 {
-    // Menampilkan daftar layanan yang tersedia di dashboard admin.
+    /**
+     * Mengirim daftar layanan ke view index admin untuk ditampilkan di dashboard.
+     */
     public function index()
     {
         $services = Service::all();
         return view('admin.services.index', compact('services'));
     }
 
-    // Menampilkan form untuk membuat layanan baru.
+    /**
+     * Mengarahkan admin ke form pembuatan layanan baru.
+     */
     public function create()
     {
         return view('admin.services.create');
     }
 
-    // Simpan layanan baru setelah validasi selesai.
+    /**
+     * Menyimpan layanan baru lalu mengembalikan user ke halaman daftar layanan.
+     */
     public function store(Request $request)
     {
         $request->validate([
             'nama_layanan' => 'required|string|max:255',
             'deskripsi' => 'nullable|string',
-            'est' => 'required|integer|min:1', // estimasi waktu dalam menit
+            'est' => 'required|integer|min:1',
             'status' => 'required|in:aktif,nonaktif',
         ]);
 
@@ -47,13 +56,17 @@ class ServiceController extends Controller
         return redirect()->route('services.index')->with('success', 'Layanan berhasil ditambahkan!');
     }
 
-    // Menampilkan form edit untuk satu layanan.
+    /**
+     * Mengarahkan admin ke form edit layanan yang dipilih.
+     */
     public function edit(Service $service)
     {
         return view('admin.services.edit', compact('service'));
     }
 
-    // Perbarui data layanan yang sudah ada.
+    /**
+     * Memperbarui data layanan lalu mengembalikan admin ke daftar layanan.
+     */
     public function update(Request $request, Service $service)
     {
         $request->validate([
@@ -73,14 +86,18 @@ class ServiceController extends Controller
         return redirect()->route('services.index')->with('success', 'Layanan berhasil diperbarui!');
     }
 
-    // Hapus layanan dari master data.
+    /**
+     * Menghapus layanan dari master data lalu mengembalikan admin ke daftar layanan.
+     */
     public function destroy(Service $service)
     {
         $service->delete();
         return redirect()->route('services.index')->with('success', 'Layanan berhasil dihapus!');
     }
 
-    // Bangun laporan bulanan yang dipakai untuk statistik layanan dan ekspor.
+    /**
+     * Mengirim report bulanan ke view statistik layanan untuk ditampilkan di browser.
+     */
     public function serviceStats(Request $request)
     {
         $report = $this->buildMonthlyServiceReport($request);
@@ -88,6 +105,9 @@ class ServiceController extends Controller
         return view('admin.reports.services', $report);
     }
 
+    /**
+     * Mengirim report bulanan ke generator PDF agar hasilnya bisa diunduh.
+     */
     public function exportServiceStatsPdf(Request $request)
     {
         $report = $this->buildMonthlyServiceReport($request);
@@ -99,6 +119,9 @@ class ServiceController extends Controller
             ->download($fileName);
     }
 
+    /**
+     * Mengirim report bulanan ke generator Excel agar hasilnya bisa diunduh.
+     */
     public function exportServiceStatsExcel(Request $request)
     {
         $report = $this->buildMonthlyServiceReport($request);
@@ -108,7 +131,9 @@ class ServiceController extends Controller
         return Excel::download(new MonthlyServiceReportExport($report), $fileName);
     }
 
-    // Kumpulkan semua data laporan bulanan dalam satu struktur array.
+    /**
+     * Menyusun seluruh data laporan bulanan sebelum dikirim ke view, PDF, atau Excel.
+     */
     private function buildMonthlyServiceReport(Request $request): array
     {
         $nowJakarta = Carbon::now('Asia/Jakarta');
@@ -139,14 +164,12 @@ class ServiceController extends Controller
             ->all();
 
         if (count($availableYears) === 0) {
-            // Jika belum ada data, tetap tampilkan rentang tahun yang masuk akal.
             $availableYears = range(max(2020, $nowJakarta->year - 5), $nowJakarta->year + 1);
         } elseif (!in_array($selectedYear, $availableYears, true)) {
             $availableYears[] = $selectedYear;
             rsort($availableYears);
         }
 
-        // Statistik jumlah antrean per layanan pada periode terpilih.
         $services = Service::query()
             ->leftJoin('queues', 'services.id', '=', 'queues.service_id')
             ->select('services.id', 'services.nama_layanan')
@@ -161,7 +184,6 @@ class ServiceController extends Controller
 
         $labels = $services->pluck('nama_layanan');
         $data = $services->pluck('mahasiswa_count');
-        // Statistik ruang antrean per pejabat dipakai untuk tabel rekap bulanan.
         $roomMonthlyStats = RuangAntri::query()
             ->leftJoin('users', 'ruang_antri.kode_dosen', '=', 'users.kode')
             ->selectRaw('ruang_antri.kode_dosen')
@@ -177,7 +199,6 @@ class ServiceController extends Controller
             ->orderByDesc('total_sesi')
             ->get();
 
-        // Detail sesi dipakai untuk menampilkan jadwal buka dan tutup secara lengkap.
         $roomMonthlySessions = RuangAntri::query()
             ->leftJoin('users', 'ruang_antri.kode_dosen', '=', 'users.kode')
             ->selectRaw('ruang_antri.kode_dosen')
@@ -195,7 +216,6 @@ class ServiceController extends Controller
             ->get()
             ->groupBy('kode_dosen');
 
-        // Tempelkan daftar jadwal buka/tutup ke tiap baris statistik ruang.
         $roomMonthlyStats = $roomMonthlyStats->map(function ($item) use ($roomMonthlySessions) {
             $sessions = $roomMonthlySessions->get($item->kode_dosen, collect());
             $item->open_schedules = $sessions
@@ -222,7 +242,6 @@ class ServiceController extends Controller
             return $item;
         });
 
-        // Ringkasan angka utama untuk bagian header laporan.
         $roomSummary = [
             'total_sesi' => (int) $roomMonthlyStats->sum('total_sesi'),
             'total_buka' => (int) $roomMonthlyStats->sum('total_buka'),
@@ -246,12 +265,13 @@ class ServiceController extends Controller
         ];
     }
 
-    // Rekap laporan umum untuk ringkasan dashboard admin.
+    /**
+     * Mengirim ringkasan operasional harian ke view rekap admin.
+     */
     public function rekapReport()
     {
         $totalUsers = User::count();
         $serviceCategories = Service::count();
-        // Hitung data harian dan status ruang aktif untuk ringkasan cepat.
         $completedToday = Queue::whereDate('updated_at', today())
                                 ->where('status', 'Selesai')
                                 ->count();
@@ -269,7 +289,9 @@ class ServiceController extends Controller
         ));
     }
 
-    // Laporan harian antrean untuk melihat detail aktivitas di satu tanggal tertentu.
+    /**
+     * Mengirim laporan harian antrean ke view report dengan tanggal yang dipilih user.
+     */
     public function dailyReport(Request $request)
     {
         $nowJakarta = Carbon::now('Asia/Jakarta');
@@ -310,7 +332,9 @@ class ServiceController extends Controller
         ]);
     }
 
-    // Cocokkan antrean dengan sesi ruang layanan yang sedang aktif pada jam tersebut.
+    /**
+     * Mencocokkan antrean dengan sesi ruang layanan aktif supaya view report menampilkan dosen pelayan yang tepat.
+     */
     private function resolveServingDosen(Queue $queue, $roomSessions): string
     {
         if (!$queue->service_id) {

@@ -184,6 +184,7 @@
 
 <body class="p-4 md:p-7">
     <div class="max-w-7xl mx-auto space-y-6">
+        {{-- Header display publik yang mengarahkan pengunjung ke informasi antrean utama --}}
         <header class="panel px-5 py-5 md:px-7 md:py-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
                 <p class="text-xs font-semibold uppercase tracking-[0.2em] text-blue-600">Layanan Antrean Dekanat</p>
@@ -205,6 +206,7 @@
             </div>
         </header>
 
+        {{-- Ringkasan utama yang menunjukkan total antrean, dosen aktif, dan antrean berjalan --}}
         <section class="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
             <div class="panel metric-card metric-blue p-4 md:p-5">
                 <p class="text-xs text-slate-500">Total Antrean Hari Ini</p>
@@ -224,6 +226,7 @@
             </div>
         </section>
 
+        {{-- Daftar dosen aktif dan status antrean hari ini --}}
         <section class="grid grid-cols-1 xl:grid-cols-2 gap-6">
             <div class="panel p-5 md:p-6">
                 <h2 class="text-lg font-bold text-slate-900 flex items-center mb-4">
@@ -247,8 +250,9 @@
         </section>
     </div>
 
+    {{-- Script display yang mengarah ke polling data, jam real-time, dan refresh websocket --}}
     <script>
-        // Escape teks agar data dari server aman disisipkan ke HTML dinamis.
+        // Elemen utama dipakai untuk mengisi layar publik secara dinamis dari response JSON.
         function escapeHtml(value) {
             return String(value ?? '')
                 .replaceAll('&', '&amp;')
@@ -257,8 +261,7 @@
                 .replaceAll('"', '&quot;')
                 .replaceAll("'", '&#039;');
         }
-
-        // Jam tampilan disegarkan tiap detik agar layar display selalu terlihat hidup.
+        // Jam ditampilkan live supaya layar publik terasa selalu aktif.
         function updateClock() {
             const now = new Date();
             const dateOptions = {
@@ -278,8 +281,7 @@
                 timeZone: 'Asia/Jakarta'
             }) + ' WIB';
         }
-
-        // Render daftar antrean di panel kanan.
+        // Render daftar antrean hari ini ke panel kanan display publik.
         function renderQueueItems(queues) {
             const ulQueue = document.getElementById('queue-list');
             if (!ulQueue) return;
@@ -314,8 +316,7 @@
                 `;
             }).join('');
         }
-
-        // Render daftar dosen aktif beserta ringkasan antrean per dosen.
+        // Render pejabat aktif beserta ringkasan antreannya ke panel kiri display publik.
         function renderStaffItems(activeStaff, summaryMap = {}) {
             const ulStaff = document.getElementById('staff-status');
             if (!ulStaff) return;
@@ -396,8 +397,7 @@
                 `;
             }).join('');
         }
-
-        // Ambil data display terbaru dari endpoint JSON, lalu isi semua kartu ringkasan.
+        // Memuat data dari endpoint JSON display dan mengisi semua kartu ringkasan.
         async function fetchDisplayData() {
             try {
                 const res = await fetch("{{ route('display.queues') }}");
@@ -422,18 +422,13 @@
                 console.error(error);
             }
         }
-
-        // Helper kecil agar refresh realtime bisa dipanggil dari polling maupun event Echo.
+        // Helper kecil supaya refresh bisa dipanggil dari polling maupun event realtime.
         async function refreshDisplayRealtime() {
             await fetchDisplayData();
         }
-
-        // Clock lokal dan data antrean berjalan bersamaan supaya tampilan tetap akurat.
         setInterval(updateClock, 1000);
         updateClock();
         refreshDisplayRealtime();
-
-        // Jika websocket tersedia, layar langsung reaktif saat status antrean berubah.
         if (window.Echo) {
             window.Echo.channel('queue-status')
                 .listen('.queue.status.updated', () => {

@@ -194,9 +194,10 @@
 </head>
 
 <body class="p-4 md:p-7">
+    {{-- Header dashboard mahasiswa dan dosen yang mengarah ke ringkasan akun dan jam lokal --}}
     <div class="max-w-7xl mx-auto space-y-6">
 
-        {{-- HEADER --}}
+        {{-- Ringkasan akun dan jam lokal yang jadi titik awal navigasi user --}}
         <div class="panel p-5 md:p-6 flex flex-col gap-3 md:flex-row md:justify-between md:items-center">
             <div>
                 <h1 class="text-3xl font-bold text-gray-900">
@@ -221,7 +222,7 @@
             </div>
         </div>
 
-        {{-- STATUS PEJABAT --}}
+        {{-- Status pejabat yang sedang membuka antrean agar user tahu tujuan pilihannya --}}
         <div class="panel p-6 mt-6">
             <div class="mb-4">
                 <h2 class="text-xl font-semibold text-gray-900">Status Dosen Dekanat</h2>
@@ -293,7 +294,7 @@
             </div>
         </div>
 
-        {{-- BAGIAN PENGONTROL UNTUK PEJABAT --}}
+        
         @if ($data['user']->role === 'pejabat')
             <div class="panel p-6">
                 <h2 class="text-xl font-semibold text-gray-900 flex items-center gap-2 mb-4">
@@ -324,7 +325,7 @@
                 </div>
             </div>
 
-            {{-- Statistik --}}
+            
             <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div class="panel p-6 flex items-center gap-4">
                     <i class="fa-solid fa-users text-3xl text-gray-600"></i>
@@ -344,15 +345,13 @@
             </div>
         @endif
 
-        {{-- FORM ANTREAN UNTUK MAHASISWA DAN DOSEN --}}
+        
         @if (in_array($data['user']->role, ['mahasiswa', 'dosen']))
             @if (in_array($data['user']->role, ['mahasiswa', 'dosen']))
                 @php
-                    // Ambil antrean aktif pertama supaya kartu "Nomor Antrean Anda Saat Ini" selalu menampilkan antrian yang masih berjalan.
                     $currentQueue = collect($data['myQueues'] ?? [])->first(function ($queue) {
                         return in_array($queue->status ?? '', ['menunggu', 'diproses'], true);
                     });
-                    // Ubah status teknis menjadi label yang lebih mudah dibaca di UI.
                     $currentQueueStatus = match ($currentQueue->status ?? null) {
                         'diproses' => 'Melayani',
                         'menunggu' => 'Menunggu',
@@ -396,8 +395,9 @@
                 </div>
             @endif
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {{-- Ambil Antrean --}}
+        {{-- Form ambil antrean dan daftar antrean aktif sebagai jalur utama mengambil nomor --}}
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                
                 <div class="panel p-6">
                     <h2 class="text-xl font-semibold text-gray-900 mb-4">Ambil Nomor Antrean</h2>
                     <div class="space-y-4">
@@ -432,7 +432,7 @@
                     </div>
                 </div>
 
-                {{-- Status Antrean --}}
+                
                 <div class="panel p-6">
                     <div class="flex items-center justify-between mb-4">
                         <h2 class="text-xl font-semibold text-gray-900">Antrean Hari Ini</h2>
@@ -524,8 +524,9 @@
         </div>
     </div>
 
+    {{-- Script interaktif yang mengarahkan polling, geolocation, dan notifikasi ke UI --}}
     <script>
-        // Elemen UI yang diperbarui lewat polling dan event realtime.
+        // Elemen UI yang sering diperbarui dari polling dan event realtime ke halaman ini.
         const currentDateMahasiswa = document.getElementById('current-date-mahasiswa');
         const currentTimeMahasiswa = document.getElementById('current-time-mahasiswa');
         const queueCallToastContainer = document.getElementById('queue-call-toast-container');
@@ -554,7 +555,6 @@
         const csrfToken = "{{ csrf_token() }}";
         const currentUserKode = "{{ $data['user']->kode }}";
         const currentUserRole = "{{ $data['user']->role }}";
-        // Cache status dosen dan layanan yang dibuka agar filter layanan bisa disesuaikan tanpa reload halaman.
         const deanStatusMap = @json($data['pejabat_statuses'] ?? []);
         const deanServiceIdsMap = {};
         const allServiceOptions = serviceSelect ? Array.from(serviceSelect.options).map((opt) => ({
@@ -567,8 +567,7 @@
         let previousQueueCache = @json($data['historyQueues'] ?? []);
         let activeQueueDeanSet = new Set();
         let isJoiningQueue = false;
-
-        // Browser Geolocation API dipakai untuk mengambil titik lokasi user sebelum request dikirim.
+        // Browser geolocation dipakai sebelum request ambil antrean dikirim ke backend.
         function getBrowserLocation() {
             return new Promise((resolve, reject) => {
                 if (!navigator.geolocation) {
@@ -587,8 +586,6 @@
                 );
             });
         }
-
-        // Ubah kode error geolocation menjadi pesan yang lebih mudah dipahami user.
         function getLocationErrorMessage(error) {
             switch (Number(error?.code)) {
                 case 1:
@@ -608,8 +605,6 @@
             joinQueueBtn.classList.toggle('opacity-60', disabled);
             joinQueueBtn.classList.toggle('cursor-not-allowed', disabled);
         }
-
-        // Tombol ambil antrean dikunci jika mahasiswa masih punya antrean aktif pada dosen yang sama.
         function updateJoinQueueAvailability() {
             if (!joinQueueBtn) return;
             if (isJoiningQueue) return;
@@ -629,8 +624,7 @@
             joinQueueLockHint.textContent = '';
             joinQueueLockHint.classList.add('hidden');
         }
-
-        // Sinkronkan status dosen, layanan yang aktif, dan estimasi tutup dari server.
+        // Sinkronisasi status pejabat dan layanan aktif dari backend ke daftar di layar.
         async function syncQueueStatus() {
             try {
                 const res = await fetch("{{ route('queue.status') }}");
@@ -677,8 +671,7 @@
                 console.error(error);
             }
         }
-
-        // Batasi pilihan layanan berdasarkan status dan layanan yang sedang dibuka oleh dosen terpilih.
+        // Opsi layanan disesuaikan dengan dosen yang sedang dipilih agar request tidak salah tujuan.
         function syncServiceOptionsForSelectedDean() {
             if (!serviceSelect || !deanSelect) return;
 
@@ -689,13 +682,11 @@
             let filteredOptions = allServiceOptions;
 
             if (deanId && !['open', 'occupied'].includes(status)) {
-                // Ruangan dosen tutup: tetap tampil opsi, tapi informasikan lewat hint.
                 filteredOptions = allServiceOptions;
                 if (serviceFilterHint) {
                     serviceFilterHint.textContent = 'Dosen ini sedang menutup antrean.';
                 }
             } else if (deanId && openedServiceIds.length > 0) {
-                // Dosen membuka layanan tertentu: tampilkan placeholder + layanan yang dibuka.
                 filteredOptions = allServiceOptions.filter((opt) =>
                     opt.value === '' || openedServiceIds.includes(Number(opt.value))
                 );
@@ -703,7 +694,6 @@
                     serviceFilterHint.textContent = 'Layanan difilter sesuai layanan yang dibuka dosen.';
                 }
             } else {
-                // Dosen membuka semua layanan.
                 filteredOptions = allServiceOptions;
                 if (serviceFilterHint) {
                     serviceFilterHint.textContent = deanId ? 'Dosen membuka semua jenis layanan.' : 'Pilih dosen terlebih dahulu.';
@@ -753,8 +743,7 @@
                 }) + ' WIB';
             }
         }
-
-        // Toast dipakai untuk memberi notifikasi singkat saat antrean dipanggil.
+        // Toast dipakai untuk memberi notifikasi singkat saat antrean dipanggil ke user.
         function showQueueCallToast(meta = {}) {
             if (!queueCallToastContainer) return;
 
@@ -789,8 +778,6 @@
                 setTimeout(() => toast.remove(), 300);
             }, 6000);
         }
-
-        // Bunyi pendek ini menjadi penanda audio agar panggilan tidak terlewat.
         function playQueueCallSound() {
             const AudioCtx = window.AudioContext || window.webkitAudioContext;
             if (!AudioCtx) return;
@@ -814,8 +801,6 @@
                 osc.stop(end + 0.01);
             });
         }
-
-        // Modal dipakai sebagai notifikasi yang lebih besar jika toast tidak langsung terlihat.
         function showQueueCallModal(meta = {}) {
             if (!queueCallModal) return;
             const nomor = meta.nomor_antrian ? `#${meta.nomor_antrian}` : '#-';
@@ -835,8 +820,6 @@
             queueCallModal.classList.add('hidden');
             queueCallModal.classList.remove('flex');
         }
-
-        // Render ulang daftar antrean milik user dari hasil polling terakhir.
         function renderMyQueueList(rows = []) {
             if (!myQueueList) return;
             if (!Array.isArray(rows) || rows.length === 0) {
@@ -875,8 +858,6 @@
                 `;
             }).join('');
         }
-
-        // Riwayat hari sebelumnya bisa difilter per tanggal di sisi client.
         function renderPreviousQueueList(rows = []) {
             if (!previousQueueList || !previousQueueCount) return;
             previousQueueCache = Array.isArray(rows) ? rows : [];
@@ -928,8 +909,6 @@
                 `;
             }).join('');
         }
-
-        // Ringkasan ini selalu menampilkan antrean aktif pertama yang ditemukan.
         function renderCurrentQueueInfo(rows = []) {
             if (!currentQueueNumberEl || !currentQueueStatusEl || !currentQueueServiceEl || !currentQueueDosenEl || !currentQueueEstimateEl) return;
 
@@ -950,8 +929,6 @@
             currentQueueDosenEl.textContent = activeQueue.dosen?.name ?? '-';
             currentQueueEstimateEl.textContent = `${Number(activeQueue.estimated_wait_minutes ?? 0)} menit`;
         }
-
-        // Fallback notifikasi jika websocket tidak sempat mengirim event realtime.
         function detectQueueCalledFromPolling(rows = []) {
             if (!['mahasiswa', 'dosen'].includes(currentUserRole)) return;
 
@@ -965,9 +942,6 @@
 
                 if (!queuePollingInitialized) return;
                 if (notifiedQueueIds.has(queueId)) return;
-
-                // Fallback notifikasi jika realtime websocket tidak terkirim:
-                // trigger saat status antrean mahasiswa berubah ke "diproses".
                 if (currStatus === 'diproses' && prevStatus !== 'diproses') {
                     notifiedQueueIds.add(queueId);
                     showQueueCallToast({
@@ -984,8 +958,6 @@
                 }
             });
         }
-
-        // Polling periodik menjaga tampilan daftar antrean tetap segar tanpa refresh halaman.
         async function syncMyQueues() {
             if (!myQueueList) return;
             try {
@@ -1011,8 +983,6 @@
                 console.error(error);
             }
         }
-
-        // Validasi ringan dilakukan di client sebelum request join dikirim ke server.
         async function joinQueue() {
             if (!joinQueueBtn) return;
 

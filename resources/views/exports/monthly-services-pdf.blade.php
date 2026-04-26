@@ -113,6 +113,7 @@
     </style>
 </head>
 <body>
+    {{-- Data di halaman ini disiapkan khusus untuk export PDF laporan bulanan --}}
     @php
         $logoPath = public_path('images/logosistem.jpeg');
         $logoData = file_exists($logoPath)
@@ -124,6 +125,7 @@
         $topService = $services->sortByDesc('mahasiswa_count')->first();
     @endphp
 
+    {{-- Layout PDF dibuat rapat agar tetap terbaca saat dicetak --}}
     <div class="page">
         <div class="header">
             <div class="header-cell" style="width: 72%;">
@@ -170,6 +172,7 @@
             </tr>
         </table>
 
+        {{-- Tabel ini menampilkan distribusi layanan dalam format PDF yang lebih padat --}}
         <div class="section">
             <h2>Distribusi Layanan</h2>
             <table class="table">
@@ -194,6 +197,7 @@
             </table>
         </div>
 
+        {{-- Ringkasan ruang antrean di PDF membantu pembaca melihat pola operasional harian/bulanan --}}
         <div class="section">
             <h2>Ringkasan Ruang Antrean</h2>
             <table class="summary">

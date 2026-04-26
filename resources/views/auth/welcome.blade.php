@@ -48,6 +48,7 @@
 
 <body class="p-4 md:p-8">
     <div class="min-h-[calc(100vh-2rem)] max-w-5xl mx-auto grid place-items-center">
+        {{-- Halaman ini mengarahkan pengunjung ke display publik atau form login --}}
         <div class="glass-panel w-full p-6 md:p-10 text-white">
             <div class="text-center max-w-2xl mx-auto">
                 <img src="{{ asset('images/logosistem.jpeg') }}" alt="Logo Sistem"
@@ -59,8 +60,9 @@
                 <p class="mt-2 text-sm text-cyan-50/80">Pantau antrean realtime atau masuk ke sistem untuk pengelolaan layanan.</p>
             </div>
 
+            {{-- Dua jalur utama: buka layar display atau masuk ke sistem --}}
             <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-                {{-- Dua CTA utama: layar display untuk publik dan login untuk pengelola antrean. --}}
+                
                 <a href="{{ route('display') }}" class="glass-card p-5">
                     <div class="flex items-start gap-3">
                         <span class="h-10 w-10 rounded-full bg-white/30 text-white flex items-center justify-center">

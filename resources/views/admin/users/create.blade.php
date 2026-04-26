@@ -4,26 +4,25 @@
 
 @section('content')
 <div class="max-w-3xl mx-auto mt-10">
-
-    {{-- Kembali --}}
+    {{-- Link ini mengarah kembali ke daftar pengguna setelah batal atau selesai membuat data --}}
     <a href="{{ route('users.index') }}" class="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium transition-colors mb-6">
         <i class="fa-solid fa-arrow-left mr-2"></i> Kembali
     </a>
 
-    {{-- Card Form --}}
+    {{-- Kartu form ini mengirim data ke users.store untuk membuat akun baru --}}
     <div class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
 
-        {{-- Header --}}
+        {{-- Header form menjelaskan bahwa halaman ini dipakai untuk menambah user baru --}}
         <div class="bg-gradient-to-r from-blue-600 to-indigo-500 p-6 text-center text-white">
             <h2 class="text-2xl font-semibold">Tambah Pengguna Baru</h2>
             <p class="text-sm text-blue-100 mt-1">Lengkapi form berikut sesuai role yang dipilih</p>
         </div>
 
-        {{-- Form --}}
+        {{-- Form utama menyiapkan field yang nanti diteruskan ke controller create user --}}
         <form action="{{ route('users.store') }}" method="POST" class="p-6 space-y-5">
             @csrf
 
-            {{-- Kode --}}
+            {{-- Input identitas dasar user --}}
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Kode</label>
                 <input type="text" name="kode" value="{{ old('kode') }}"
@@ -32,7 +31,7 @@
                 @error('kode') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
             </div>
 
-            {{-- Nama --}}
+            {{-- Nama user yang akan tampil di dashboard dan laporan --}}
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Nama</label>
                 <input type="text" name="name" value="{{ old('name') }}"
@@ -41,7 +40,7 @@
                 @error('name') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
             </div>
 
-            {{-- Email --}}
+            {{-- Email dipakai sebagai data kontak dan identitas tambahan --}}
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
                 <input type="email" name="email" value="{{ old('email') }}"
@@ -50,7 +49,7 @@
                 @error('email') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
             </div>
 
-            {{-- Password & Konfirmasi --}}
+            {{-- Password dan konfirmasi diarahkan ke validasi server saat submit --}}
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
@@ -68,7 +67,7 @@
                 </div>
             </div>
 
-            {{-- Role --}}
+            {{-- Role menentukan arah dashboard dan field tambahan yang perlu diisi --}}
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1 inline-flex items-center gap-2"><i class="fa-solid fa-user-tag text-slate-400"></i>Role</label>
                 <select name="role" id="role"
@@ -86,7 +85,7 @@
                 @error('role') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
             </div>
 
-            {{-- Jabatan --}}
+            {{-- Jabatan hanya relevan untuk dosen dan pejabat --}}
             <div id="jabatan-fields" class="{{ in_array(old('role'), ['dosen', 'pejabat'], true) ? '' : 'hidden' }}">
                 <label class="block text-sm font-medium text-gray-700 mb-1 inline-flex items-center gap-2"><i class="fa-solid fa-id-badge text-slate-400"></i>Jabatan</label>
                 <input type="text" name="jabatan" value="{{ old('jabatan') }}"
@@ -94,7 +93,7 @@
                 @error('jabatan') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
             </div>
 
-            {{-- Ruangan --}}
+            {{-- Ruangan hanya diwajibkan jika role yang dipilih adalah pejabat --}}
             <div id="ruangan-fields" class="{{ old('role') === 'pejabat' ? '' : 'hidden' }}">
                 <label class="block text-sm font-medium text-gray-700 mb-1 inline-flex items-center gap-2">
                     <i class="fa-solid fa-door-open text-slate-400"></i>Ruangan <span id="ruangan-required-label" class="text-red-500 {{ old('role') === 'pejabat' ? '' : 'hidden' }}">*</span>
@@ -105,7 +104,7 @@
                 @error('ruangan') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
             </div>
 
-            {{-- Status --}}
+            {{-- Status menentukan apakah akun langsung aktif atau disimpan nonaktif --}}
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
                 <select name="status"
@@ -116,7 +115,7 @@
                 @error('status') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
             </div>
 
-            {{-- Submit --}}
+            {{-- Tombol submit mengarahkan payload ke users.store --}}
             <div>
                 <button type="submit"
                     class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-lg font-medium shadow hover:shadow-lg hover:scale-[1.02] transition">
@@ -128,6 +127,7 @@
 </div>
 
 <script>
+// Script ini hanya mengatur tampilan field tambahan berdasarkan role yang dipilih.
 const roleField = document.getElementById('role');
 const jabatanField = document.getElementById('jabatan-fields');
 const ruanganField = document.getElementById('ruangan-fields');

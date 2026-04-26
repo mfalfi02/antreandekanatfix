@@ -7,7 +7,7 @@ use PHPUnit\Framework\TestCase;
 class ExampleTest extends TestCase
 {
     /**
-     * A basic test example.
+     * Contoh test unit sederhana untuk menjaga struktur suite tetap lengkap.
      */
     public function test_that_true_is_true(): void
     {

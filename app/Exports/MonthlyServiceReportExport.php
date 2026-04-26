@@ -8,10 +8,16 @@ use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 
 class MonthlyServiceReportExport implements FromArray, ShouldAutoSize
 {
+    /**
+     * Menyimpan payload laporan yang nanti diubah menjadi baris Excel.
+     */
     public function __construct(private array $report)
     {
     }
 
+    /**
+     * Mengubah ringkasan laporan menjadi array supaya hasil export masuk ke file Excel.
+     */
     public function array(): array
     {
         $generatedAt = Carbon::now('Asia/Jakarta')->locale('id')->translatedFormat('d F Y H:i');

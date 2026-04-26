@@ -2,6 +2,7 @@
 
 @section('content')
 <div class="space-y-6">
+    {{-- Header report yang mengarahkan admin untuk memfilter bulan, pindah periode, atau mengekspor data --}}
     <div class="rounded-2xl bg-gradient-to-r from-blue-700 via-cyan-700 to-teal-700 p-6 text-white shadow-lg">
         <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
@@ -11,7 +12,7 @@
                 </p>
             </div>
 
-            {{-- Filter periode bulanan dijalankan lewat query string supaya bisa dibagikan dan di-bookmark. --}}
+            {{-- Filter periode bulanan yang mengarah ke laporan, PDF, dan Excel untuk periode yang sama --}}
             <form method="GET" action="{{ route('reports.services') }}"
                 class="flex flex-col gap-2 rounded-xl bg-white/10 p-3 backdrop-blur sm:flex-row sm:items-end">
                 <div>
@@ -69,13 +70,14 @@
         </a>
     </div>
 
+    {{-- Ringkasan utama untuk memberi konteks cepat sebelum admin membaca tabel detail --}}
     @php
-        // Ringkasan ini dihitung dari koleksi yang sudah disiapkan controller.
         $totalLayanan = $services->count();
         $totalMahasiswa = $services->sum('mahasiswa_count');
         $topService = $services->sortByDesc('mahasiswa_count')->first();
     @endphp
 
+    {{-- Kartu ringkasan layanan dan sesi ruang yang tersimpan untuk periode terpilih --}}
     <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
         <div class="rounded-xl border border-blue-100 bg-white p-5 shadow-sm">
             <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Total Layanan</p>
@@ -92,6 +94,7 @@
         </div>
     </div>
 
+    {{-- Kartu ringkasan tambahan yang menunjukkan aktivitas ruang per dosen --}}
     <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
         <div class="rounded-xl border border-sky-100 bg-white p-5 shadow-sm">
             <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Total Sesi Ruangan</p>
@@ -111,12 +114,14 @@
         </div>
     </div>
 
+    {{-- Grafik distribusi layanan yang dibaca dari data hasil olahan controller --}}
     <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         <h2 class="mb-4 text-lg font-semibold text-gray-800">Grafik Layanan</h2>
-        {{-- Canvas ini diisi Chart.js dari data layanan yang sudah diolah server. --}}
+        
         <canvas id="serviceChart" height="110"></canvas>
     </div>
 
+    {{-- Tabel layanan yang mengarahkan admin ke rincian jumlah mahasiswa per layanan --}}
     <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         <h2 class="mb-4 text-lg font-semibold text-gray-800">Rincian Per Layanan</h2>
         <div class="overflow-x-auto">
@@ -143,6 +148,7 @@
         </div>
     </div>
 
+    {{-- Tabel sesi buka/tutup yang membantu admin menelusuri aktivitas ruang per dosen --}}
     <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         <h2 class="mb-4 text-lg font-semibold text-gray-800">Laporan Bulanan Buka/Tutup Ruangan per Dosen</h2>
         <div class="overflow-x-auto">
@@ -200,11 +206,11 @@
     </div>
 </div>
 
-{{-- Pastikan Chart.js ter-include (boleh ditempatkan di layout/app.blade.php) --}}
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-    // Fallback menjaga chart tetap aman meski controller belum mengirim data.
+    // Data grafik diambil dari controller lalu dipakai langsung oleh Chart.js di browser.
     const labels = @json($labels ?? []);
     const dataset = @json($data ?? []);
 
