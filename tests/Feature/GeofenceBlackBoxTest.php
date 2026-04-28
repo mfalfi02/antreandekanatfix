@@ -13,6 +13,9 @@ class GeofenceBlackBoxTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * Memastikan admin bisa menyimpan setting geofence yang dipakai validasi lokasi antrean.
+     */
     public function test_admin_can_save_geofence_setting(): void
     {
         $admin = $this->makeUser('ADM001', 'admin');
@@ -34,6 +37,9 @@ class GeofenceBlackBoxTest extends TestCase
         ]);
     }
 
+    /**
+     * Memastikan role non-admin ditolak saat mencoba mengubah geofence.
+     */
     public function test_non_admin_cannot_save_geofence_setting(): void
     {
         $user = $this->makeUser('PJB001', 'pejabat');
@@ -47,6 +53,9 @@ class GeofenceBlackBoxTest extends TestCase
             ->assertForbidden();
     }
 
+    /**
+     * Memastikan antrean bisa dibuka saat lokasi perangkat masih berada di dalam radius.
+     */
     public function test_queue_can_be_opened_when_location_is_inside_radius(): void
     {
         $pejabat = $this->makeUser('PJB001', 'pejabat');
@@ -79,6 +88,9 @@ class GeofenceBlackBoxTest extends TestCase
             ]);
     }
 
+    /**
+     * Memastikan pembukaan antrean ditolak kalau perangkat berada di luar radius.
+     */
     public function test_queue_is_rejected_when_location_is_outside_radius(): void
     {
         $pejabat = $this->makeUser('PJB001', 'pejabat');
@@ -109,6 +121,9 @@ class GeofenceBlackBoxTest extends TestCase
             ]);
     }
 
+    /**
+     * Memastikan validasi lokasi memberi error jika koordinat GPS belum terbaca.
+     */
     public function test_queue_is_rejected_when_gps_coordinates_are_missing(): void
     {
         $pejabat = $this->makeUser('PJB001', 'pejabat');
@@ -138,6 +153,9 @@ class GeofenceBlackBoxTest extends TestCase
             ]);
     }
 
+    /**
+     * Memastikan alur fallback tetap bisa berjalan ketika geofence belum dikonfigurasi.
+     */
     public function test_queue_can_open_without_geofence_configuration(): void
     {
         $pejabat = $this->makeUser('PJB001', 'pejabat');
@@ -167,6 +185,9 @@ class GeofenceBlackBoxTest extends TestCase
             ]);
     }
 
+    /**
+     * Menyiapkan user uji untuk skenario geofence black-box.
+     */
     private function makeUser(string $kode, string $role): User
     {
         return User::create([
@@ -181,6 +202,9 @@ class GeofenceBlackBoxTest extends TestCase
         ]);
     }
 
+    /**
+     * Menyiapkan service uji untuk request toggle queue.
+     */
     private function makeService(string $name): Service
     {
         return Service::create([

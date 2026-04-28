@@ -115,10 +115,39 @@
     </div>
 
     {{-- Grafik distribusi layanan yang dibaca dari data hasil olahan controller --}}
-    <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h2 class="mb-4 text-lg font-semibold text-gray-800">Grafik Layanan</h2>
-        
-        <canvas id="serviceChart" height="110"></canvas>
+    <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div class="mb-4 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+                <h2 class="text-lg font-semibold text-slate-800">Grafik Layanan</h2>
+                <p class="mt-1 text-sm text-slate-500">Urutan dibuat dari layanan paling ramai agar pola pemakaian cepat terbaca.</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                <span class="inline-flex items-center rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
+                    <i class="fa-solid fa-chart-column mr-1.5"></i> {{ $totalLayanan }} layanan
+                </span>
+                <span class="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                    <i class="fa-solid fa-users mr-1.5"></i> {{ $totalMahasiswa }} mahasiswa
+                </span>
+            </div>
+        </div>
+
+        <div class="relative overflow-hidden rounded-2xl border border-slate-100 bg-gradient-to-br from-slate-50 via-white to-cyan-50 p-4">
+            <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(14,165,233,.12),transparent_32%),radial-gradient(circle_at_bottom_left,rgba(59,130,246,.10),transparent_30%)]"></div>
+
+            @if (($chartSeries ?? collect())->count() > 0)
+                <div class="relative min-h-[360px]">
+                    <div id="serviceChart"></div>
+                </div>
+            @else
+                <div class="relative flex h-[240px] flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-white/70 text-center">
+                    <div class="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-sky-50 text-sky-600">
+                        <i class="fa-solid fa-chart-simple text-xl"></i>
+                    </div>
+                    <p class="text-sm font-semibold text-slate-700">Belum ada data layanan pada periode ini.</p>
+                    <p class="mt-1 text-sm text-slate-500">Begitu data masuk, grafik akan tampil otomatis di sini.</p>
+                </div>
+            @endif
+        </div>
     </div>
 
     {{-- Tabel layanan yang mengarahkan admin ke rincian jumlah mahasiswa per layanan --}}
@@ -150,56 +179,78 @@
 
     {{-- Tabel sesi buka/tutup yang membantu admin menelusuri aktivitas ruang per dosen --}}
     <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h2 class="mb-4 text-lg font-semibold text-gray-800">Laporan Bulanan Buka/Tutup Ruangan per Dosen</h2>
+        <div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+                <h2 class="text-lg font-semibold text-gray-800">Laporan Bulanan Buka/Tutup Ruangan per Sesi</h2>
+                <p class="mt-1 text-sm text-gray-500">Setiap sesi buka ditampilkan dalam satu baris agar riwayat dosen tidak menumpuk.</p>
+                <p class="mt-2 inline-flex items-center rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">
+                    <i class="fa-solid fa-triangle-exclamation mr-1.5"></i>
+                    Sesi tanpa jam tutup akan dianggap tutup otomatis saat ganti hari.
+                </p>
+            </div>
+
+            <div class="w-full lg:w-96">
+                <label for="searchDosen" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    Cari nama dosen
+                </label>
+                <div class="relative">
+                    <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </span>
+                    <input
+                        type="text"
+                        id="searchDosen"
+                        class="w-full rounded-lg border border-slate-200 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                        placeholder="Ketik nama dosen..."
+                    >
+                </div>
+            </div>
+        </div>
+
         <div class="overflow-x-auto">
-            <table class="min-w-full text-sm">
+            <table class="min-w-full text-sm" id="roomSessionTable">
                 <thead>
                     <tr class="border-b bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
                         <th class="px-4 py-3">Nama Dosen</th>
-                        <th class="px-4 py-3 text-right">Total Sesi</th>
-                        <th class="px-4 py-3 text-right">Total Buka</th>
-                        <th class="px-4 py-3">Tanggal & Jam Buka</th>
-                        <th class="px-4 py-3">Tanggal & Jam Tutup</th>
+                        <th class="px-4 py-3">Sesi Buka</th>
+                        <th class="px-4 py-3">Sesi Tutup</th>
+                        <th class="px-4 py-3">Status</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
-                    @forelse ($roomMonthlyStats as $item)
-                        <tr class="hover:bg-blue-50/40 transition">
+                    @forelse ($roomMonthlySessionRows ?? [] as $item)
+                        <tr class="hover:bg-blue-50/40 transition" data-dosen-name="{{ strtolower($item->dosen_name ?? '') }}">
                             <td class="px-4 py-3 font-medium text-gray-700">{{ $item->dosen_name }}</td>
-                            <td class="px-4 py-3 text-right font-semibold text-slate-700">{{ $item->total_sesi }}</td>
-                            <td class="px-4 py-3 text-right font-semibold text-emerald-700">{{ $item->total_buka }}</td>
                             <td class="px-4 py-3">
-                                @if (!empty($item->open_schedules) && count($item->open_schedules) > 0)
-                                    <div class="flex flex-wrap gap-1.5">
-                                        @foreach ($item->open_schedules as $schedule)
-                                            <span class="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">
-                                                {{ $schedule }}
-                                            </span>
-                                        @endforeach
-                                    </div>
+                                <span class="inline-flex items-center rounded-full bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-700">
+                                    {{ $item->open_label ?? '-' }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3">
+                                @if (!empty($item->close_label) && $item->close_label !== '-')
+                                    <span class="inline-flex items-center rounded-full bg-rose-50 px-2.5 py-1 text-xs font-medium text-rose-700">
+                                        {{ $item->close_label }}
+                                    </span>
                                 @else
-                                    <span class="text-xs text-gray-400">Tidak ada data buka.</span>
+                                    <span class="text-xs text-gray-400">-</span>
                                 @endif
                             </td>
                             <td class="px-4 py-3">
-                                @if (!empty($item->close_schedules) && count($item->close_schedules) > 0)
-                                    <div class="flex flex-wrap gap-1.5">
-                                        @foreach ($item->close_schedules as $schedule)
-                                            <span class="inline-flex items-center rounded-full bg-rose-50 px-2.5 py-1 text-xs font-medium text-rose-700">
-                                                {{ $schedule }}
-                                            </span>
-                                        @endforeach
-                                    </div>
+                                @if (($item->status_label ?? '') === 'Tutup')
+                                    <span class="inline-flex items-center rounded-full bg-rose-50 px-2.5 py-1 text-xs font-medium text-rose-700">Tutup</span>
                                 @else
-                                    <span class="text-xs text-gray-400">Tidak ada data tutup.</span>
+                                    <span class="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">Masih Buka</span>
                                 @endif
                             </td>
                         </tr>
                     @empty
                         <tr>
-                        <td colspan="5" class="px-4 py-6 text-center text-gray-500">Belum ada data buka/tutup ruangan pada periode ini.</td>
-                    </tr>
+                            <td colspan="4" class="px-4 py-6 text-center text-gray-500">Belum ada data buka/tutup ruangan pada periode ini.</td>
+                        </tr>
                     @endforelse
+                    <tr id="roomSessionEmptySearch" class="hidden">
+                        <td colspan="4" class="px-4 py-6 text-center text-gray-500">Tidak ada dosen yang cocok dengan pencarian.</td>
+                    </tr>
                 </tbody>
             </table>
         </div>
@@ -207,48 +258,143 @@
 </div>
 
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 
 <script>
-    // Data grafik diambil dari controller lalu dipakai langsung oleh Chart.js di browser.
-    const labels = @json($labels ?? []);
-    const dataset = @json($data ?? []);
+    // Data grafik diambil dari controller lalu dirender sebagai radial bar agar tampil lebih modern.
+    const labels = @json($chartLabels ?? $labels ?? []);
+    const series = @json($chartSeries ?? []);
+    const counts = @json($chartData ?? $data ?? []);
+    const totalMahasiswa = @json($chartTotal ?? ($chartData ?? collect())->sum());
+    const chartEl = document.getElementById('serviceChart');
 
-    const ctx = document.getElementById('serviceChart').getContext('2d');
-    new Chart(ctx, {
-        type: 'bar',
-        data: {
+    if (chartEl && series.length) {
+        const colors = ['#0ea5e9', '#2563eb', '#14b8a6', '#8b5cf6', '#f59e0b', '#334155'];
+
+        const chart = new ApexCharts(chartEl, {
+            chart: {
+                type: 'radialBar',
+                height: 380,
+                toolbar: { show: false },
+                sparkline: { enabled: false },
+                fontFamily: '"Plus Jakarta Sans", sans-serif',
+            },
+            series: series,
             labels: labels,
-            datasets: [{
-                label: 'Jumlah Mahasiswa per Layanan',
-                data: dataset,
-                backgroundColor: 'rgba(14, 116, 144, 0.75)',
-                borderColor: 'rgba(14, 116, 144, 1)',
-                borderWidth: 1,
-                borderRadius: 8
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    labels: {
-                        color: '#334155'
+            colors: colors.slice(0, series.length),
+            plotOptions: {
+                radialBar: {
+                    startAngle: -135,
+                    endAngle: 135,
+                    offsetY: 0,
+                    hollow: {
+                        margin: 10,
+                        size: '28%',
+                        background: 'transparent',
+                    },
+                    track: {
+                        background: '#e2e8f0',
+                        strokeWidth: '90%',
+                        margin: 8,
+                    },
+                    dataLabels: {
+                        name: {
+                            show: true,
+                            fontSize: '14px',
+                            fontWeight: 700,
+                            color: '#334155',
+                        },
+                        value: {
+                            show: true,
+                            fontSize: '22px',
+                            fontWeight: 800,
+                            color: '#0f172a',
+                            formatter: function (val) {
+                                return `${val}%`;
+                            }
+                        },
+                        total: {
+                            show: true,
+                            label: 'Total Mahasiswa',
+                            fontSize: '13px',
+                            fontWeight: 700,
+                            color: '#64748b',
+                            formatter: function () {
+                                return totalMahasiswa;
+                            }
+                        }
                     }
                 }
             },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: { color: '#64748b' },
-                    grid: { color: 'rgba(148, 163, 184, 0.25)' }
+            stroke: {
+                lineCap: 'round',
+            },
+            legend: {
+                show: true,
+                position: 'bottom',
+                fontSize: '13px',
+                fontWeight: 600,
+                markers: {
+                    width: 10,
+                    height: 10,
+                    radius: 999
                 },
-                x: {
-                    ticks: { color: '#64748b' },
-                    grid: { display: false }
+                itemMargin: {
+                    horizontal: 10,
+                    vertical: 6
+                },
+                labels: {
+                    colors: '#334155'
+                },
+                formatter: function (seriesName, opts) {
+                    const count = counts[opts.seriesIndex] ?? 0;
+                    const percent = series[opts.seriesIndex] ?? 0;
+                    return `${seriesName} (${count} | ${percent}%)`;
+                }
+            },
+            tooltip: {
+                enabled: true,
+                y: {
+                    formatter: function (value, opts) {
+                        const count = counts[opts.seriesIndex] ?? 0;
+                        return `${count} mahasiswa (${value}%)`;
+                    }
+                }
+            },
+            states: {
+                hover: {
+                    filter: {
+                        type: 'lighten',
+                        value: 0.1
+                    }
                 }
             }
-        }
-    });
+        });
+
+        chart.render();
+    }
+
+    const searchInput = document.getElementById('searchDosen');
+    const sessionRows = Array.from(document.querySelectorAll('#roomSessionTable tbody tr[data-dosen-name]'));
+    const emptySearchRow = document.getElementById('roomSessionEmptySearch');
+
+    if (searchInput && sessionRows.length) {
+        const filterRows = () => {
+            const keyword = searchInput.value.trim().toLowerCase();
+            let visibleCount = 0;
+
+            sessionRows.forEach((row) => {
+                const match = row.dataset.dosenName.includes(keyword);
+                row.classList.toggle('hidden', !match);
+                if (match) visibleCount += 1;
+            });
+
+            if (emptySearchRow) {
+                emptySearchRow.classList.toggle('hidden', visibleCount > 0 || keyword.length === 0);
+            }
+        };
+
+        searchInput.addEventListener('input', filterRows);
+    }
 </script>
 @endsection

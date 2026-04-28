@@ -182,8 +182,26 @@ class ServiceController extends Controller
             ->orderBy('services.nama_layanan')
             ->get();
 
-        $labels = $services->pluck('nama_layanan');
-        $data = $services->pluck('mahasiswa_count');
+        $chartServices = $services->sortByDesc('mahasiswa_count')->values();
+        $chartItems = $chartServices->take(5)->values();
+
+        if ($chartServices->count() > 5) {
+            $othersCount = (int) $chartServices->slice(5)->sum('mahasiswa_count');
+
+            if ($othersCount > 0) {
+                $chartItems->push((object) [
+                    'nama_layanan' => 'Lainnya',
+                    'mahasiswa_count' => $othersCount,
+                ]);
+            }
+        }
+
+        $chartTotal = (int) $chartItems->sum('mahasiswa_count');
+        $labels = $chartItems->pluck('nama_layanan');
+        $data = $chartItems->pluck('mahasiswa_count');
+        $chartSeries = $chartTotal > 0
+            ? $chartItems->map(fn ($service) => round(($service->mahasiswa_count / $chartTotal) * 100, 1))
+            : collect();
         $roomMonthlyStats = RuangAntri::query()
             ->leftJoin('users', 'ruang_antri.kode_dosen', '=', 'users.kode')
             ->selectRaw('ruang_antri.kode_dosen')
@@ -216,8 +234,64 @@ class ServiceController extends Controller
             ->get()
             ->groupBy('kode_dosen');
 
-        $roomMonthlyStats = $roomMonthlyStats->map(function ($item) use ($roomMonthlySessions) {
+        $todayJakartaDate = Carbon::now('Asia/Jakarta')->toDateString();
+        $roomMonthlySessionRows = $roomMonthlySessions
+            ->flatMap(function ($sessions) use ($todayJakartaDate) {
+                return $sessions
+                    ->filter(fn ($row) => !empty($row->jam_buka_ruang_antri))
+                    ->map(function ($row) use ($todayJakartaDate) {
+                        $openDate = Carbon::parse($row->tanggal_buka_ruang_antri)
+                            ->locale('id')
+                            ->translatedFormat('d M Y');
+                        $isAutoClosed = empty($row->jam_tutup_ruang_antri)
+                            && Carbon::parse($row->tanggal_buka_ruang_antri)->toDateString() < $todayJakartaDate;
+                        $closeDate = $row->updated_at
+                            ? Carbon::parse($row->updated_at)->setTimezone('Asia/Jakarta')->locale('id')->translatedFormat('d M Y')
+                            : Carbon::parse($row->tanggal_buka_ruang_antri)->locale('id')->translatedFormat('d M Y');
+                        $closeLabel = !empty($row->jam_tutup_ruang_antri)
+                            ? $closeDate . ' • ' . $row->jam_tutup_ruang_antri . ' WIB'
+                            : ($isAutoClosed
+                                ? Carbon::parse($row->tanggal_buka_ruang_antri)
+                                    ->addDay()
+                                    ->locale('id')
+                                    ->translatedFormat('d M Y') . ' • 00:00 WIB (auto tutup)'
+                                : '-');
+
+                        return (object) [
+                            'kode_dosen' => $row->kode_dosen,
+                            'dosen_name' => $row->dosen_name,
+                            'tanggal_buka_ruang_antri' => $row->tanggal_buka_ruang_antri,
+                            'jam_buka_ruang_antri' => $row->jam_buka_ruang_antri,
+                            'jam_tutup_ruang_antri' => $row->jam_tutup_ruang_antri,
+                            'tanggal_tutup_ruang_antri' => !empty($row->jam_tutup_ruang_antri)
+                                ? ($row->updated_at
+                                    ? Carbon::parse($row->updated_at)->setTimezone('Asia/Jakarta')->toDateString()
+                                    : $row->tanggal_buka_ruang_antri)
+                                : ($isAutoClosed
+                                    ? Carbon::parse($row->tanggal_buka_ruang_antri)->addDay()->toDateString()
+                                    : null),
+                            'open_label' => $openDate . ' • ' . $row->jam_buka_ruang_antri . ' WIB',
+                            'close_label' => $closeLabel,
+                            'status_label' => !empty($row->jam_tutup_ruang_antri) || $isAutoClosed
+                                ? 'Tutup'
+                                : 'Masih Buka',
+                            'is_auto_closed' => $isAutoClosed,
+                        ];
+                    });
+            })
+            ->values();
+
+        $roomMonthlyStats = $roomMonthlyStats->map(function ($item) use ($roomMonthlySessions, $todayJakartaDate) {
             $sessions = $roomMonthlySessions->get($item->kode_dosen, collect());
+            $openCount = $sessions->filter(fn ($row) => !empty($row->jam_buka_ruang_antri))->count();
+            $closeCount = $sessions->filter(function ($row) use ($todayJakartaDate) {
+                if (!empty($row->jam_tutup_ruang_antri)) {
+                    return true;
+                }
+
+                return Carbon::parse($row->tanggal_buka_ruang_antri)->toDateString() < $todayJakartaDate;
+            })->count();
+
             $item->open_schedules = $sessions
                 ->filter(fn ($row) => !empty($row->jam_buka_ruang_antri))
                 ->map(function ($row) {
@@ -229,15 +303,31 @@ class ServiceController extends Controller
                 ->unique()
                 ->values();
             $item->close_schedules = $sessions
-                ->filter(fn ($row) => !empty($row->jam_tutup_ruang_antri))
+                ->filter(function ($row) use ($todayJakartaDate) {
+                    if (!empty($row->jam_tutup_ruang_antri)) {
+                        return true;
+                    }
+
+                    return Carbon::parse($row->tanggal_buka_ruang_antri)->toDateString() < $todayJakartaDate;
+                })
                 ->map(function ($row) {
-                    $tgl = $row->updated_at
-                        ? Carbon::parse($row->updated_at)->setTimezone('Asia/Jakarta')->locale('id')->translatedFormat('d M Y')
-                        : Carbon::parse($row->tanggal_buka_ruang_antri)->locale('id')->translatedFormat('d M Y');
-                    return $tgl . ' • ' . $row->jam_tutup_ruang_antri . ' WIB';
+                    if (!empty($row->jam_tutup_ruang_antri)) {
+                        $tgl = $row->updated_at
+                            ? Carbon::parse($row->updated_at)->setTimezone('Asia/Jakarta')->locale('id')->translatedFormat('d M Y')
+                            : Carbon::parse($row->tanggal_buka_ruang_antri)->locale('id')->translatedFormat('d M Y');
+                        return $tgl . ' • ' . $row->jam_tutup_ruang_antri . ' WIB';
+                    }
+
+                    return Carbon::parse($row->tanggal_buka_ruang_antri)
+                        ->addDay()
+                        ->locale('id')
+                        ->translatedFormat('d M Y') . ' • 00:00 WIB (auto tutup)';
                 })
                 ->unique()
                 ->values();
+            $item->total_sesi = (int) $sessions->count();
+            $item->total_buka = (int) $openCount;
+            $item->total_tutup = (int) $closeCount;
 
             return $item;
         });
@@ -251,6 +341,10 @@ class ServiceController extends Controller
 
         return [
             'services' => $services,
+            'chartLabels' => $labels,
+            'chartData' => $data,
+            'chartSeries' => $chartSeries,
+            'chartTotal' => $chartTotal,
             'labels' => $labels,
             'data' => $data,
             'periodLabel' => $periodLabel,
@@ -260,6 +354,7 @@ class ServiceController extends Controller
             'previousPeriod' => $previousPeriod,
             'nextPeriod' => $nextPeriod,
             'roomMonthlyStats' => $roomMonthlyStats,
+            'roomMonthlySessionRows' => $roomMonthlySessionRows,
             'roomSummary' => $roomSummary,
             'exportFileSuffix' => $period->format('Y-m'),
         ];

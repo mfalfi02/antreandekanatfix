@@ -15,6 +15,9 @@ class DisplayAndReportTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * Memastikan halaman display publik tetap bisa dibuka tanpa login.
+     */
     public function test_public_display_pages_are_accessible(): void
     {
         $this->get(route('display'))->assertOk();
@@ -22,6 +25,9 @@ class DisplayAndReportTest extends TestCase
         $this->get(route('display.refresh'))->assertOk();
     }
 
+    /**
+     * Memastikan dashboard admin dan halaman laporan tetap dapat diakses oleh admin.
+     */
     public function test_admin_dashboard_and_reports_are_accessible(): void
     {
         $admin = $this->makeUser('ADM001', 'admin');
@@ -32,6 +38,9 @@ class DisplayAndReportTest extends TestCase
         $this->actingAs($admin)->get(route('reports.rekap'))->assertOk();
     }
 
+    /**
+     * Memastikan endpoint display queue mengirim struktur data aktif yang dipakai layar publik.
+     */
     public function test_queue_display_api_returns_active_data(): void
     {
         [$pejabat, $service] = $this->seedActiveQueueData();
@@ -54,6 +63,9 @@ class DisplayAndReportTest extends TestCase
             ]);
     }
 
+    /**
+     * Menyiapkan data room aktif, setting geofence, dan user agar display punya payload yang realistis.
+     */
     private function seedActiveQueueData(): array
     {
         $pejabat = $this->makeUser('PJB001', 'pejabat');
@@ -82,6 +94,9 @@ class DisplayAndReportTest extends TestCase
         return [$pejabat, $service];
     }
 
+    /**
+     * Menyiapkan user uji dengan role tertentu untuk kebutuhan display dan report.
+     */
     private function makeUser(string $kode, string $role): User
     {
         return User::create([
@@ -96,6 +111,9 @@ class DisplayAndReportTest extends TestCase
         ]);
     }
 
+    /**
+     * Menyiapkan service uji sebagai sumber data queue dan laporan.
+     */
     private function makeService(string $name): Service
     {
         return Service::create([

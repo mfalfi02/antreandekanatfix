@@ -63,7 +63,7 @@
                     class="mx-auto mb-3 w-16 h-16 object-contain">
                 <p class="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-100">Login Sistem</p>
                 <h1 class="mt-2 text-2xl md:text-3xl font-extrabold">Sistem Antrean Dekanat</h1>
-                <p class="mt-1 text-sm text-cyan-50/90">Masuk untuk mengelola antrean sesuai role Anda.</p>
+                <p class="mt-1 text-sm text-cyan-50/90">Silahkan Masuk Sesuai Role Anda.</p>
             </div>
 
             <form action="{{ route('login.submit') }}" method="POST" class="space-y-4">

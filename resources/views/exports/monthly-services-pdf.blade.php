@@ -10,6 +10,7 @@
             font-size: 11px;
             line-height: 1.45;
             margin: 0;
+            background: #f8fbff;
         }
         .page {
             padding: 24px 28px;
@@ -20,6 +21,13 @@
             margin-bottom: 16px;
             border-bottom: 2px solid #dbeafe;
             padding-bottom: 14px;
+        }
+        .header-banner {
+            background: linear-gradient(90deg, #1d4ed8 0%, #0891b2 55%, #0f766e 100%);
+            color: #fff;
+            border-radius: 10px;
+            padding: 14px 16px;
+            margin-bottom: 14px;
         }
         .header-cell {
             display: table-cell;
@@ -45,6 +53,10 @@
             color: #475569;
             font-size: 10px;
         }
+        .meta strong {
+            color: #0f172a;
+            font-size: 11px;
+        }
         .summary {
             width: 100%;
             border-collapse: collapse;
@@ -54,6 +66,7 @@
             border: 1px solid #dbe4f0;
             padding: 9px 10px;
             vertical-align: top;
+            background: #fff;
         }
         .summary .label {
             color: #64748b;
@@ -66,6 +79,18 @@
             font-weight: bold;
             margin-top: 4px;
             color: #0f172a;
+        }
+        .summary .accent-blue {
+            border-top: 3px solid #3b82f6;
+        }
+        .summary .accent-teal {
+            border-top: 3px solid #14b8a6;
+        }
+        .summary .accent-amber {
+            border-top: 3px solid #f59e0b;
+        }
+        .summary .accent-indigo {
+            border-top: 3px solid #6366f1;
         }
         .section {
             margin-bottom: 18px;
@@ -94,12 +119,24 @@
             text-transform: uppercase;
             letter-spacing: .04em;
         }
+        .table tr:nth-child(even) td {
+            background: #fafcff;
+        }
         .table td.num,
         .table th.num {
             text-align: right;
         }
         .muted {
             color: #64748b;
+        }
+        .notice {
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            color: #92400e;
+            border-radius: 8px;
+            padding: 9px 10px;
+            margin-bottom: 10px;
+            font-size: 10px;
         }
         .badge {
             display: inline-block;
@@ -109,6 +146,14 @@
             color: #1d4ed8;
             font-size: 9px;
             margin: 0 4px 4px 0;
+        }
+        .badge-green {
+            background: #ecfdf5;
+            color: #047857;
+        }
+        .badge-rose {
+            background: #fff1f2;
+            color: #be123c;
         }
     </style>
 </head>
@@ -127,47 +172,41 @@
 
     {{-- Layout PDF dibuat rapat agar tetap terbaca saat dicetak --}}
     <div class="page">
-        <div class="header">
-            <div class="header-cell" style="width: 72%;">
-                <table style="border-collapse: collapse;">
-                    <tr>
-                        <td style="width: 78px; padding-right: 12px; vertical-align: middle;">
-                            @if ($logoData)
-                                <img src="{{ $logoData }}" alt="Logo Sistem" class="logo">
-                            @endif
-                        </td>
-                        <td style="vertical-align: middle;">
-                            <div class="title">Laporan Bulanan Statistik Layanan</div>
-                            <div class="subtitle">Periode {{ $periodLabel ?? '-' }} (WIB)</div>
-                            <div class="subtitle">Sistem Antrean Dekanat Universitas Widya Dharma</div>
-                        </td>
-                    </tr>
-                </table>
-            </div>
-            <div class="header-cell meta">
-                <div>Dibuat pada</div>
-                <div><strong>{{ $generatedAt }} WIB</strong></div>
-            </div>
+        <div class="header-banner">
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                    <td style="width: 72px; vertical-align: middle; padding-right: 12px;">
+                        @if ($logoData)
+                            <img src="{{ $logoData }}" alt="Logo Sistem" class="logo">
+                        @endif
+                    </td>
+                    <td style="vertical-align: middle;">
+                        <div class="title" style="color: #fff; margin-bottom: 2px;">Laporan Bulanan Statistik Layanan</div>
+                        <div class="subtitle" style="color: rgba(255,255,255,.88);">Periode {{ $periodLabel ?? '-' }} (WIB)</div>
+                        <div class="subtitle" style="color: rgba(255,255,255,.78);">Sistem Antrean Dekanat Universitas Widya Dharma</div>
+                    </td>
+                    <td class="meta" style="color: rgba(255,255,255,.9); text-align: right; vertical-align: middle;">
+                        <div>Dibuat pada</div>
+                        <div><strong style="color: #fff;">{{ $generatedAt }} WIB</strong></div>
+                    </td>
+                </tr>
+            </table>
         </div>
 
         <table class="summary">
             <tr>
-                <td>
+                <td class="accent-blue">
                     <div class="label">Total Layanan</div>
                     <div class="value">{{ $totalLayanan }}</div>
                 </td>
-                <td>
+                <td class="accent-teal">
                     <div class="label">Total Mahasiswa</div>
                     <div class="value">{{ $totalMahasiswa }}</div>
                 </td>
-                <td>
+                <td class="accent-amber">
                     <div class="label">Layanan Terbanyak</div>
                     <div class="value" style="font-size: 13px;">{{ $topService->nama_layanan ?? '-' }}</div>
                     <div class="subtitle">{{ $topService->mahasiswa_count ?? 0 }} mahasiswa</div>
-                </td>
-                <td>
-                    <div class="label">Dosen Terlibat</div>
-                    <div class="value">{{ $roomSummary['total_dosen'] ?? 0 }}</div>
                 </td>
             </tr>
         </table>
@@ -197,64 +236,41 @@
             </table>
         </div>
 
-        {{-- Ringkasan ruang antrean di PDF membantu pembaca melihat pola operasional harian/bulanan --}}
+        {{-- Detail sesi buka/tutup per baris dipertahankan agar audit trail tetap jelas --}}
         <div class="section">
-            <h2>Ringkasan Ruang Antrean</h2>
-            <table class="summary">
-                <tr>
-                    <td>
-                        <div class="label">Total Sesi Ruangan</div>
-                        <div class="value">{{ $roomSummary['total_sesi'] ?? 0 }}</div>
-                    </td>
-                    <td>
-                        <div class="label">Total Buka Ruangan</div>
-                        <div class="value">{{ $roomSummary['total_buka'] ?? 0 }}</div>
-                    </td>
-                    <td>
-                        <div class="label">Total Tutup Ruangan</div>
-                        <div class="value">{{ $roomSummary['total_tutup'] ?? 0 }}</div>
-                    </td>
-                </tr>
-            </table>
-
+            <h2>Detail Sesi Buka/Tutup per Baris</h2>
             <table class="table">
                 <thead>
                     <tr>
                         <th>Nama Dosen</th>
-                        <th class="num" style="width: 80px;">Sesi</th>
-                        <th class="num" style="width: 80px;">Buka</th>
-                        <th>Jadwal Buka</th>
-                        <th>Jadwal Tutup</th>
+                        <th>Sesi Buka</th>
+                        <th>Sesi Tutup</th>
+                        <th style="width: 90px;">Status</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse ($roomMonthlyStats as $item)
+                    @forelse ($roomMonthlySessionRows ?? [] as $item)
                         <tr>
                             <td>{{ $item->dosen_name }}</td>
-                            <td class="num">{{ $item->total_sesi }}</td>
-                            <td class="num">{{ $item->total_buka }}</td>
+                            <td>{{ $item->open_label ?? '-' }}</td>
                             <td>
-                                @if (!empty($item->open_schedules) && count($item->open_schedules) > 0)
-                                    @foreach ($item->open_schedules as $schedule)
-                                        <span class="badge">{{ $schedule }}</span>
-                                    @endforeach
+                                @if (!empty($item->close_label) && $item->close_label !== '-')
+                                    <span class="badge badge-rose">{{ $item->close_label }}</span>
                                 @else
-                                    <span class="muted">Tidak ada data buka.</span>
+                                    <span class="muted">-</span>
                                 @endif
                             </td>
                             <td>
-                                @if (!empty($item->close_schedules) && count($item->close_schedules) > 0)
-                                    @foreach ($item->close_schedules as $schedule)
-                                        <span class="badge">{{ $schedule }}</span>
-                                    @endforeach
+                                @if (($item->status_label ?? '') === 'Tutup')
+                                    <span class="badge badge-rose">Tutup</span>
                                 @else
-                                    <span class="muted">Tidak ada data tutup.</span>
+                                    <span class="badge badge-green">Masih Buka</span>
                                 @endif
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="muted">Belum ada data buka/tutup ruangan pada periode ini.</td>
+                            <td colspan="4" class="muted">Belum ada data sesi buka/tutup pada periode ini.</td>
                         </tr>
                     @endforelse
                 </tbody>

@@ -99,27 +99,23 @@
         <p class="small">Dibuat pada {{ $generatedAt }} WIB</p>
     </div>
 
-    <table class="summary">
-        <tr>
-            <td>
-                <div class="label">Total Layanan</div>
-                <div class="value">{{ $totalLayanan }}</div>
+        <table class="summary">
+            <tr>
+                <td>
+                    <div class="label">Total Layanan</div>
+                    <div class="value">{{ $totalLayanan }}</div>
             </td>
             <td>
                 <div class="label">Total Mahasiswa</div>
                 <div class="value">{{ $totalMahasiswa }}</div>
             </td>
-            <td>
-                <div class="label">Layanan Terbanyak</div>
-                <div class="value" style="font-size: 14px;">{{ $topService->nama_layanan ?? '-' }}</div>
-                <div class="small">{{ $topService->mahasiswa_count ?? 0 }} mahasiswa</div>
-            </td>
-            <td>
-                <div class="label">Dosen Terlibat</div>
-                <div class="value">{{ $roomSummary['total_dosen'] ?? 0 }}</div>
-            </td>
-        </tr>
-    </table>
+                <td>
+                    <div class="label">Layanan Terbanyak</div>
+                    <div class="value" style="font-size: 14px;">{{ $topService->nama_layanan ?? '-' }}</div>
+                    <div class="small">{{ $topService->mahasiswa_count ?? 0 }} mahasiswa</div>
+                </td>
+            </tr>
+        </table>
 
     {{-- Distribusi layanan menunjukkan beban pemakaian tiap layanan pada periode ini --}}
     <div class="section">
@@ -146,64 +142,29 @@
         </table>
     </div>
 
-    {{-- Ringkasan ruang antrean dipakai untuk melihat pola buka dan tutup ruangan --}}
+    {{-- Detail sesi buka/tutup tetap dipertahankan agar audit data tidak hilang --}}
     <div class="section">
-        <h2>Ringkasan Ruang Antrean</h2>
-        <table class="summary">
-            <tr>
-                <td>
-                    <div class="label">Total Sesi Ruangan</div>
-                    <div class="value">{{ $roomSummary['total_sesi'] ?? 0 }}</div>
-                </td>
-                <td>
-                    <div class="label">Total Buka Ruangan</div>
-                    <div class="value">{{ $roomSummary['total_buka'] ?? 0 }}</div>
-                </td>
-                <td>
-                    <div class="label">Total Tutup Ruangan</div>
-                    <div class="value">{{ $roomSummary['total_tutup'] ?? 0 }}</div>
-                </td>
-            </tr>
-        </table>
-
+        <h2>Detail Sesi Buka/Tutup per Baris</h2>
         <table class="table">
             <thead>
                 <tr>
                     <th>Nama Dosen</th>
-                    <th class="num">Total Sesi</th>
-                    <th class="num">Total Buka</th>
-                    <th>Jadwal Buka</th>
-                    <th>Jadwal Tutup</th>
+                    <th>Sesi Buka</th>
+                    <th>Sesi Tutup</th>
+                    <th>Status</th>
                 </tr>
             </thead>
             <tbody>
-                @forelse ($roomMonthlyStats as $item)
+                @forelse ($roomMonthlySessionRows ?? [] as $item)
                     <tr>
                         <td>{{ $item->dosen_name }}</td>
-                        <td class="num">{{ $item->total_sesi }}</td>
-                        <td class="num">{{ $item->total_buka }}</td>
-                        <td>
-                            @if (!empty($item->open_schedules) && count($item->open_schedules) > 0)
-                                @foreach ($item->open_schedules as $schedule)
-                                    <span class="badge">{{ $schedule }}</span>
-                                @endforeach
-                            @else
-                                <span class="muted">Tidak ada data buka.</span>
-                            @endif
-                        </td>
-                        <td>
-                            @if (!empty($item->close_schedules) && count($item->close_schedules) > 0)
-                                @foreach ($item->close_schedules as $schedule)
-                                    <span class="badge">{{ $schedule }}</span>
-                                @endforeach
-                            @else
-                                <span class="muted">Tidak ada data tutup.</span>
-                            @endif
-                        </td>
+                        <td>{{ $item->open_label ?? '-' }}</td>
+                        <td>{{ $item->close_label ?? '-' }}</td>
+                        <td>{{ $item->status_label ?? '-' }}</td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="5">Belum ada data buka/tutup ruangan pada periode ini.</td>
+                        <td colspan="4">Belum ada data sesi buka/tutup pada periode ini.</td>
                     </tr>
                 @endforelse
             </tbody>

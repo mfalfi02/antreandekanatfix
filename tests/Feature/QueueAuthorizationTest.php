@@ -14,6 +14,9 @@ class QueueAuthorizationTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * Memastikan hanya pejabat yang boleh membuka atau menutup antrean.
+     */
     public function test_pejabat_can_toggle_queue(): void
     {
         $pejabat = $this->makeUser('PJB001', 'pejabat');
@@ -38,6 +41,9 @@ class QueueAuthorizationTest extends TestCase
             ]);
     }
 
+    /**
+     * Memastikan dosen biasa dan mahasiswa tidak bisa toggle antrean.
+     */
     public function test_non_pejabat_cannot_toggle_queue(): void
     {
         $service = Service::create([
@@ -64,6 +70,9 @@ class QueueAuthorizationTest extends TestCase
             ->assertForbidden();
     }
 
+    /**
+     * Memastikan call dan complete hanya bisa dijalankan oleh pejabat.
+     */
     public function test_non_pejabat_cannot_call_or_complete_queue(): void
     {
         $pejabat = $this->makeUser('PJB001', 'pejabat');
@@ -93,6 +102,9 @@ class QueueAuthorizationTest extends TestCase
             ->assertForbidden();
     }
 
+    /**
+     * Memastikan hanya mahasiswa atau dosen yang bisa masuk ke antrean.
+     */
     public function test_only_mahasiswa_or_dosen_can_join_queue(): void
     {
         $pejabat = $this->makeUser('PJB001', 'pejabat');
@@ -130,6 +142,9 @@ class QueueAuthorizationTest extends TestCase
             ->assertJson(['status' => 'ok']);
     }
 
+    /**
+     * Menyiapkan user uji untuk pengujian otorisasi antrean.
+     */
     private function makeUser(string $kode, string $role): User
     {
         return User::create([

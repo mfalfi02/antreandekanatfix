@@ -12,6 +12,9 @@ class MasterDataCrudTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * Memastikan alur CRUD user tetap jalan dari simpan, ubah, sampai hapus.
+     */
     public function test_user_create_update_and_delete_flow_works(): void
     {
         $admin = $this->makeUser('ADM001', 'admin');
@@ -67,6 +70,9 @@ class MasterDataCrudTest extends TestCase
         ]);
     }
 
+    /**
+     * Memastikan alur CRUD layanan tetap konsisten untuk master data service.
+     */
     public function test_service_create_update_and_delete_flow_works(): void
     {
         $admin = $this->makeUser('ADM001', 'admin');
@@ -107,6 +113,9 @@ class MasterDataCrudTest extends TestCase
         ]);
     }
 
+    /**
+     * Menyiapkan user uji agar operasi CRUD bisa dijalankan sebagai admin.
+     */
     private function makeUser(string $kode, string $role): User
     {
         return User::create([

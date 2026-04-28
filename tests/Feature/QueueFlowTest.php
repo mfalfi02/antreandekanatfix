@@ -15,6 +15,9 @@ class QueueFlowTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * Memastikan mahasiswa bisa masuk antrean ketika lokasi masih di dalam radius.
+     */
     public function test_mahasiswa_can_join_queue_inside_radius(): void
     {
         [$pejabat, $service] = $this->seedOpenRoomWithGeofence();
@@ -38,6 +41,9 @@ class QueueFlowTest extends TestCase
         ]);
     }
 
+    /**
+     * Memastikan dosen juga mengikuti alur join antrean yang sama.
+     */
     public function test_dosen_can_join_queue_inside_radius(): void
     {
         [$pejabat, $service] = $this->seedOpenRoomWithGeofence();
@@ -54,6 +60,9 @@ class QueueFlowTest extends TestCase
             ->assertJsonPath('status', 'ok');
     }
 
+    /**
+     * Memastikan join queue ditolak kalau perangkat berada di luar radius layanan.
+     */
     public function test_queue_join_is_rejected_outside_radius(): void
     {
         [$pejabat, $service] = $this->seedOpenRoomWithGeofence();
@@ -72,6 +81,9 @@ class QueueFlowTest extends TestCase
             ]);
     }
 
+    /**
+     * Memastikan pejabat bisa memanggil dan menyelesaikan antrean dari dashboard.
+     */
     public function test_pejabat_can_call_and_complete_queue(): void
     {
         [$pejabat, $service] = $this->seedOpenRoomWithGeofence();
@@ -106,6 +118,9 @@ class QueueFlowTest extends TestCase
         ]);
     }
 
+    /**
+     * Memastikan endpoint status dan antrean pribadi mengembalikan data yang dipakai frontend.
+     */
     public function test_queue_status_and_my_queue_endpoints_return_data(): void
     {
         [$pejabat, $service] = $this->seedOpenRoomWithGeofence();
@@ -130,12 +145,18 @@ class QueueFlowTest extends TestCase
             ->assertJsonPath('kode_dosen', $pejabat->kode);
     }
 
+    /**
+     * Memastikan guest dialihkan ke login saat mencoba akses queue flow.
+     */
     public function test_guest_is_redirected_from_queue_routes(): void
     {
         $this->postJson(route('queue.join'), [])
             ->assertRedirect(route('login'));
     }
 
+    /**
+     * Menyiapkan room aktif dengan geofence agar skenario join queue realistis.
+     */
     private function seedOpenRoomWithGeofence(): array
     {
         $pejabat = $this->makeUser('PJB001', 'pejabat');
@@ -164,6 +185,9 @@ class QueueFlowTest extends TestCase
         return [$pejabat, $service];
     }
 
+    /**
+     * Menyiapkan user uji untuk skenario queue flow.
+     */
     private function makeUser(string $kode, string $role): User
     {
         return User::create([
@@ -178,6 +202,9 @@ class QueueFlowTest extends TestCase
         ]);
     }
 
+    /**
+     * Menyiapkan service uji sebagai target antrean.
+     */
     private function makeService(string $name): Service
     {
         return Service::create([

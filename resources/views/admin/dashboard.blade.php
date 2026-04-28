@@ -296,7 +296,7 @@
                 <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-4">
                     <div>
                         <h2 class="text-xl font-semibold text-gray-900">Pengaturan Lokasi Antrean</h2>
-                        <p class="text-sm text-gray-500">Titik ini dipakai saat user membuka atau mengambil antrean dari browser.</p>
+                        <p class="text-sm text-gray-500">Ambil Titik Kordinat untuk menentukan radius sistem.</p>
                     </div>
                     <div class="text-sm text-gray-600">
                         <p class="font-semibold text-gray-800">Radius aktif</p>
@@ -1221,6 +1221,7 @@
         updateLocationPreview();
         hydrateBrowserLocationForPreview();
         syncAdminQueueStatus();
+        setInterval(syncAdminQueueStatus, 5000);
         updateAdminClock();
         setInterval(updateAdminClock, 1000);
 

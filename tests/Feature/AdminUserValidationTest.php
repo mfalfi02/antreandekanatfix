@@ -11,6 +11,9 @@ class AdminUserValidationTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * Memastikan user berperan pejabat wajib mengisi ruangan saat membuat akun.
+     */
     public function test_store_pejabat_requires_ruangan(): void
     {
         $response = $this->from(route('users.create'))
@@ -30,6 +33,9 @@ class AdminUserValidationTest extends TestCase
             ->assertSessionHasErrors('ruangan');
     }
 
+    /**
+     * Memastikan user non-pejabat boleh menyimpan form tanpa ruangan.
+     */
     public function test_store_non_pejabat_can_have_empty_ruangan(): void
     {
         $response = $this->post(route('users.store'), [
@@ -53,6 +59,9 @@ class AdminUserValidationTest extends TestCase
         ]);
     }
 
+    /**
+     * Memastikan perubahan role dari pejabat ke non-pejabat membersihkan nilai ruangan.
+     */
     public function test_update_non_pejabat_clears_ruangan(): void
     {
         $user = User::create([
