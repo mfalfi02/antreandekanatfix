@@ -392,68 +392,28 @@
                 </div>
             </div>
 
-            {{-- Sinkronisasi ruang antrean per periode --}}
+            {{-- Sinkronisasi ruang antrean harian --}}
             <div class="panel p-6">
                 @php
-                    $dashboardMonths = [
-                        1 => 'Januari',
-                        2 => 'Februari',
-                        3 => 'Maret',
-                        4 => 'April',
-                        5 => 'Mei',
-                        6 => 'Juni',
-                        7 => 'Juli',
-                        8 => 'Agustus',
-                        9 => 'September',
-                        10 => 'Oktober',
-                        11 => 'November',
-                        12 => 'Desember',
-                    ];
-                    $selectedDashboardMonth = $dashboardMonth ?? now()->month;
-                    $selectedDashboardYear = $dashboardYear ?? now()->year;
-                    $availableDashboardYears = $availableDashboardYears ?? [now()->year];
-                    $dashboardPeriodLabel = $dashboardPeriodLabel ?? ($dashboardMonths[$selectedDashboardMonth] . ' ' . $selectedDashboardYear);
+                    $todayJakarta = now('Asia/Jakarta')->locale('id');
+                    $dashboardTodayLabel = $todayJakarta->translatedFormat('l, d F Y');
                 @endphp
 
                 <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-4">
                     <div>
-                        <h2 class="text-xl font-semibold text-gray-900">Sinkronisasi Ruang Antrean per Periode</h2>
-                        <p class="text-sm text-gray-500">Monitoring status room dan waktu layanan dosen per bulan.</p>
+                        <h2 class="text-xl font-semibold text-gray-900">Sinkronisasi Ruang Antrean Hari Ini</h2>
+                        <p class="text-sm text-gray-500">Monitoring status room dan waktu layanan dosen untuk hari ini.</p>
                     </div>
                     <div class="flex flex-col sm:flex-row sm:items-center gap-2">
                         <span class="text-xs px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 font-semibold">Auto Sync</span>
-                        <span class="text-xs px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 font-semibold">Periode {{ $dashboardPeriodLabel }}</span>
+                        <span class="text-xs px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 font-semibold">Hari Ini</span>
                     </div>
                 </div>
 
-                <form id="roomPeriodForm" method="GET" action="{{ route('adm') }}"
-                    class="flex flex-col md:flex-row md:items-end gap-3 mb-4">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1">
-                        <label class="block">
-                            <span class="mb-1.5 block text-sm font-medium text-slate-700">Bulan</span>
-                            <select name="month" class="soft-input w-full px-3 py-2 text-sm">
-                                @foreach ($dashboardMonths as $monthNumber => $monthLabel)
-                                    <option value="{{ $monthNumber }}" {{ (int) $selectedDashboardMonth === $monthNumber ? 'selected' : '' }}>
-                                        {{ $monthLabel }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </label>
-                        <label class="block">
-                            <span class="mb-1.5 block text-sm font-medium text-slate-700">Tahun</span>
-                            <select name="year" class="soft-input w-full px-3 py-2 text-sm">
-                                @foreach ($availableDashboardYears as $year)
-                                    <option value="{{ $year }}" {{ (int) $selectedDashboardYear === (int) $year ? 'selected' : '' }}>
-                                        {{ $year }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </label>
-                    </div>
-                    <button type="submit" class="btn-brand px-4 py-2 text-sm inline-flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-filter"></i> Tampilkan
-                    </button>
-                </form>
+                <div class="mb-4 flex flex-wrap items-center gap-2">
+                    <span class="text-sm text-slate-600">Tanggal pantau:</span>
+                    <span class="text-sm font-semibold text-slate-800">{{ $dashboardTodayLabel }}</span>
+                </div>
 
                 
                 <div class="admin-room-table-wrap overflow-x-auto rounded-xl border border-blue-100">
@@ -463,7 +423,6 @@
                                 <th class="px-3 py-3 text-left">Dosen/Pejabat</th>
                                 <th class="px-3 py-3 text-left">Jenis Layanan</th>
                                 <th class="px-3 py-3 text-center">Status</th>
-                                <th class="px-3 py-3 text-center">Expected Buka</th>
                                 <th class="px-3 py-3 text-center">Perkiraan Tutup</th>
                                 <th class="px-3 py-3 text-center">Jam Buka</th>
                                 <th class="px-3 py-3 text-center">Jam Tutup</th>
@@ -471,7 +430,7 @@
                         </thead>
                         <tbody id="room-sync-body">
                             <tr>
-                                <td colspan="7" class="px-3 py-6 text-center text-gray-500">
+                                <td colspan="6" class="px-3 py-6 text-center text-gray-500">
                                     Memuat sinkronisasi ruang antrean...
                                 </td>
                             </tr>
@@ -1155,20 +1114,7 @@
         // Sinkronisasi ruang membaca ulang status per pejabat dari backend.
         async function syncAdminQueueStatus() {
             try {
-                const periodForm = document.getElementById('roomPeriodForm');
-                const params = new URLSearchParams();
-                if (periodForm) {
-                    const formData = new FormData(periodForm);
-                    const month = formData.get('month');
-                    const year = formData.get('year');
-
-                    if (month) params.set('month', month);
-                    if (year) params.set('year', year);
-                }
-
                 const url = new URL("{{ route('queue.status') }}", window.location.origin);
-                params.forEach((value, key) => url.searchParams.set(key, value));
-
                 const res = await fetch(url.toString());
                 const data = await res.json();
                 renderRoomSyncRows(data?.per_user_statuses ?? []);
@@ -1192,7 +1138,7 @@
             if (!Array.isArray(rows) || rows.length === 0) {
                 roomSyncBody.innerHTML = `
                     <tr>
-                        <td colspan="7" class="px-3 py-6 text-center text-gray-500">
+                        <td colspan="6" class="px-3 py-6 text-center text-gray-500">
                             Belum ada data sinkronisasi ruang antrean.
                         </td>
                     </tr>
@@ -1211,7 +1157,6 @@
                         </span>
                     </td>
                     <td class="px-3 py-3 text-center">${statusBadge(item.queue_status, item.queue_status_label)}</td>
-                    <td class="px-3 py-3 text-center font-medium text-slate-700">${formatTime(item.waktu?.expected_jam_buka)}</td>
                     <td class="px-3 py-3 text-center font-medium text-indigo-700">${formatTime(item.waktu?.expected_jam_tutup)}</td>
                     <td class="px-3 py-3 text-center text-slate-700">${formatTime(item.waktu?.jam_buka)}</td>
                     <td class="px-3 py-3 text-center text-slate-700">${formatTime(item.waktu?.jam_tutup)}</td>

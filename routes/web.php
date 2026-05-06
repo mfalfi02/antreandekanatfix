@@ -33,7 +33,7 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 
 // Dashboard admin: ringkasan sistem, pengaturan lokasi, dan respons JSON saat dibutuhkan.
-Route::get('/admin', function (Request $request) {
+Route::get('/admin', function () {
     $setting = SystemSetting::firstOrCreate(
         ['id' => 1],
         [
@@ -42,66 +42,18 @@ Route::get('/admin', function (Request $request) {
         ]
     );
 
-    $now = Carbon::now('Asia/Jakarta');
-    $selectedMonth = (int) $request->query('month', $now->month);
-    $selectedYear = (int) $request->query('year', $now->year);
-
-    if ($selectedMonth < 1 || $selectedMonth > 12) {
-        $selectedMonth = $now->month;
-    }
-    if ($selectedYear < 2000 || $selectedYear > 2100) {
-        $selectedYear = $now->year;
-    }
-
-    $availableDashboardYears = RuangAntri::query()
-        ->pluck('tanggal_buka_ruang_antri')
-        ->filter()
-        ->map(fn ($date) => Carbon::parse($date, 'Asia/Jakarta')->year)
-        ->unique()
-        ->sortDesc()
-        ->values()
-        ->all();
-
-    if (count($availableDashboardYears) === 0) {
-        $availableDashboardYears = [$now->year];
-    }
-
-    if (!in_array($selectedYear, $availableDashboardYears, true)) {
-        $availableDashboardYears[] = $selectedYear;
-        rsort($availableDashboardYears);
-    }
-
-    $data =[
-                'totalUsers' => User::count(),
-                'activeQueues' => Queue::where('status', 'aktif')->count(),
-                'totalServices' => Service::count(),
-                'completedQueues' => Queue::where('status', 'selesai')->count(),
-                'users' => User::all(),
-                'service' => Service::all(),
-                'queue_status' => $setting->queue_status,
-            ];
-    $dashboardMonthLabel = match ($selectedMonth) {
-        1 => 'Januari',
-        2 => 'Februari',
-        3 => 'Maret',
-        4 => 'April',
-        5 => 'Mei',
-        6 => 'Juni',
-        7 => 'Juli',
-        8 => 'Agustus',
-        9 => 'September',
-        10 => 'Oktober',
-        11 => 'November',
-        12 => 'Desember',
-        default => '-',
-    };
+    $data = [
+        'totalUsers' => User::count(),
+        'activeQueues' => Queue::where('status', 'aktif')->count(),
+        'totalServices' => Service::count(),
+        'completedQueues' => Queue::where('status', 'selesai')->count(),
+        'users' => User::all(),
+        'service' => Service::all(),
+        'queue_status' => $setting->queue_status,
+    ];
 
     return view('admin.dashboard', [
         'data' => $data,
-        'dashboardMonth' => $selectedMonth,
-        'dashboardYear' => $selectedYear,
-        'dashboardPeriodLabel' => $dashboardMonthLabel . ' ' . $selectedYear,
-        'availableDashboardYears' => $availableDashboardYears,
         'locationSetting' => $setting,
     ]);
 })->name('adm');
