@@ -346,7 +346,7 @@
                 <i class="fa-solid fa-users text-3xl text-gray-600"></i>
                 <div>
                     <p id="stat-active-queues" class="text-2xl font-bold">{{ $data['activeQueues'] }}</p>
-                    <p class="text-sm text-gray-500">Menunggu</p>
+                    <p class="text-sm text-gray-500">Dilayani</p>
                 </div>
             </div>
 

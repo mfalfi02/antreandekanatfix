@@ -43,6 +43,12 @@
             min-height: 100vh;
         }
 
+        @media (min-width: 1440px) {
+            body {
+                overflow: hidden;
+            }
+        }
+
         .display-title {
             font-family: 'Space Grotesk', sans-serif;
             letter-spacing: .02em;
@@ -124,8 +130,97 @@
             background: #fff;
         }
 
+        .staff-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: .75rem;
+        }
+
+        @media (min-width: 1024px) {
+            .staff-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (min-width: 1536px) {
+            .staff-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+        }
+
+        @media (min-width: 1920px) {
+            .staff-grid {
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+            }
+        }
+
+        .queue-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: .75rem;
+        }
+
+        @media (min-width: 1280px) {
+            .queue-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (min-width: 1920px) {
+            .queue-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+        }
+
         .queue-card {
             padding: .9rem;
+        }
+
+        @media (min-width: 1440px) {
+            .queue-card {
+                padding: .75rem .8rem;
+            }
+        }
+
+        .staff-hero-panel {
+            background:
+                radial-gradient(circle at top right, rgba(15, 96, 240, .12), transparent 28%),
+                linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+            border: 1px solid #bfd6ff;
+            box-shadow: 0 18px 40px -24px rgba(15, 96, 240, .45);
+        }
+
+        @media (min-width: 1440px) {
+            .staff-hero-panel {
+                padding-top: 1.1rem;
+                padding-bottom: 1.1rem;
+            }
+        }
+
+        .staff-panel-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: .45rem;
+            padding: .28rem .65rem;
+            border-radius: 999px;
+            font-size: .72rem;
+            font-weight: 700;
+            letter-spacing: .03em;
+            color: #1d4ed8;
+            background: #dbeafe;
+            border: 1px solid #bfdbfe;
+        }
+
+        .staff-panel-note {
+            color: #475569;
+            font-size: .88rem;
+            line-height: 1.45;
+        }
+
+        @media (min-width: 1440px) {
+            .staff-panel-note {
+                font-size: .82rem;
+            }
         }
 
         .queue-label {
@@ -179,11 +274,25 @@
         .btn-brand:hover {
             background: var(--primary-hover);
         }
+
+        .btn-ghost {
+            background: rgba(255, 255, 255, .75);
+            color: #0f172a;
+            border: 1px solid #bfdbfe;
+            border-radius: .65rem;
+            font-weight: 600;
+            transition: background-color .18s ease, transform .12s ease, border-color .18s ease;
+        }
+
+        .btn-ghost:hover {
+            background: rgba(255, 255, 255, .96);
+            border-color: #93c5fd;
+        }
     </style>
 </head>
 
 <body class="p-4 md:p-7">
-    <div class="max-w-7xl mx-auto space-y-6">
+    <div class="max-w-[1800px] mx-auto space-y-6">
         {{-- Header display publik yang mengarahkan pengunjung ke informasi antrean utama --}}
         <header class="panel px-5 py-5 md:px-7 md:py-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
@@ -203,47 +312,40 @@
                     <i class="fa-solid fa-arrow-left"></i>
                     <span>Kembali</span>
                 </a>
+                <button type="button" id="fullscreen-toggle"
+                    class="btn-ghost inline-flex items-center justify-center gap-2 px-4 py-2">
+                    <i class="fa-solid fa-expand"></i>
+                    <span>Layar Penuh</span>
+                </button>
             </div>
         </header>
 
-        {{-- Ringkasan utama yang menunjukkan total antrean, dosen aktif, dan antrean berjalan --}}
-        <section class="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
-            <div class="panel metric-card metric-blue p-4 md:p-5">
-                <p class="text-xs text-slate-500">Total Antrean Hari Ini</p>
-                <p id="total-queues" class="text-3xl font-extrabold text-blue-700 mt-2">0</p>
-            </div>
-            <div class="panel metric-card metric-green p-4 md:p-5">
-                <p class="text-xs text-slate-500">Dosen Sedang Buka</p>
-                <p id="available-staff" class="text-3xl font-extrabold text-emerald-700 mt-2">0</p>
-            </div>
-            <div class="panel metric-card metric-orange p-4 md:p-5">
-                <p class="text-xs text-slate-500">Sedang Diproses</p>
-                <p id="serving-queues" class="text-3xl font-extrabold text-amber-700 mt-2">0</p>
-            </div>
-            <div class="panel metric-card metric-slate p-4 md:p-5">
-                <p class="text-xs text-slate-500">Sedang Menunggu</p>
-                <p id="waiting-queues" class="text-3xl font-extrabold text-slate-700 mt-2">0</p>
-            </div>
-        </section>
-
         {{-- Daftar dosen aktif dan status antrean hari ini --}}
-        <section class="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            <div class="panel p-5 md:p-6">
-                <h2 class="text-lg font-bold text-slate-900 flex items-center mb-4">
-                    <i class="fa-solid fa-users mr-2 text-slate-500"></i>
-                    Dosen Aktif & Ringkasan Antrean
-                </h2>
-                <ul id="staff-status" class="space-y-3 max-h-[620px] overflow-y-auto pr-1 custom-scroll">
+        <section class="space-y-6">
+            <div class="panel staff-hero-panel p-6 md:p-7">
+                <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between mb-5">
+                    <div>
+                        <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900 flex items-center gap-2">
+                            <i class="fa-solid fa-users text-blue-500"></i>
+                            Dosen Aktif & Ringkasan Antrean
+                        </h2>
+                    </div>
+                    <div class="inline-flex items-center gap-2 self-start md:self-auto px-3 py-2 rounded-xl bg-white/80 border border-blue-100 text-sm font-semibold text-slate-700">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        Pantauan Aktif
+                    </div>
+                </div>
+                <ul id="staff-status" class="staff-grid">
                     <li class="text-slate-500 text-sm">Memuat data...</li>
                 </ul>
             </div>
 
-            <div class="panel p-5 md:p-6">
+            <div class="panel p-4 md:p-5">
                 <h2 class="text-lg font-bold text-slate-900 flex items-center mb-4">
                     <i class="fa-solid fa-list-check mr-2 text-slate-500"></i>
                     Status Antrean Hari Ini
                 </h2>
-                <ul id="queue-list" class="space-y-3 max-h-[620px] overflow-y-auto pr-1 custom-scroll">
+                <ul id="queue-list" class="queue-grid max-h-[620px] overflow-y-auto pr-1 custom-scroll">
                     <li class="text-slate-500 text-sm">Memuat data...</li>
                 </ul>
             </div>
@@ -327,28 +429,45 @@
             }
 
             ulStaff.innerHTML = activeStaff.map((d) => {
-                const statusClass = d.queue_status === 'occupied' ? 'status-pill status-occupied' : 'status-pill status-open';
-                const statusIcon = d.queue_status === 'occupied' ? 'fa-hourglass-half' : 'fa-door-open';
+                const isClosed = d.queue_status === 'closed';
+                const statusClass = isClosed
+                    ? 'status-pill status-closed'
+                    : d.queue_status === 'occupied'
+                        ? 'status-pill status-occupied'
+                        : 'status-pill status-open';
+                const statusIcon = isClosed
+                    ? 'fa-door-closed'
+                    : d.queue_status === 'occupied'
+                        ? 'fa-hourglass-half'
+                        : 'fa-door-open';
                 const summary = summaryMap[d.kode] ?? {};
+                const serviceLabel = isClosed ? 'Layanan Terakhir' : 'Layanan';
+                const timeLabel = isClosed ? 'Tutup' : 'Perkiraan Tutup';
+                const serviceText = escapeHtml(d.service?.nama_layanan ?? (isClosed ? 'Antrean Ditutup' : '-'));
+                const timeText = escapeHtml(
+                    d.waktu?.jam_tutup
+                    ?? d.waktu?.expected_jam_tutup
+                    ?? '-'
+                );
 
                 return `
-                    <li class="summary-card p-4 bg-gradient-to-br from-white to-slate-50">
-                        <div class="flex items-start justify-between gap-3">
-                            <div class="flex items-center gap-3 min-w-0">
-                                <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 flex-shrink-0">
+                    <li class="summary-card p-3 bg-gradient-to-br from-white to-slate-50">
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 flex-shrink-0">
                                     <i class="fa-solid fa-user"></i>
                                 </div>
-                                <div class="min-w-0 space-y-1.5">
-                                    <p class="font-semibold text-slate-900 truncate">${escapeHtml(d.name ?? '-')}</p>
-                                    <p class="text-xs text-slate-600 font-semibold flex items-center gap-1.5 leading-relaxed">
+                                <div class="min-w-0 space-y-1">
+                                    <p class="font-semibold text-slate-900 text-[13px] leading-snug break-words">${escapeHtml(d.name ?? '-')}</p>
+                                    <p class="text-[10px] text-slate-600 font-semibold flex items-center gap-1.5 leading-relaxed">
                                         <i class="fa-solid fa-id-card text-slate-400"></i>
                                         ${escapeHtml(d.kode ?? '-')}
                                     </p>
-                                    <p class="text-xs text-slate-600 flex items-center gap-1.5 leading-relaxed">
+                                    <p class="text-[10px] text-slate-600 flex items-center gap-1.5 leading-relaxed">
                                         <i class="fa-solid fa-briefcase text-slate-400"></i>
                                         ${escapeHtml(d.jabatan ?? '-')}
                                     </p>
-                                    <p class="text-xs text-slate-600 flex items-center gap-1.5 leading-relaxed">
+                                    <p class="text-[10px] text-slate-600 flex items-center gap-1.5 leading-relaxed">
                                         <i class="fa-solid fa-location-dot text-slate-400"></i>
                                         ${escapeHtml(d.ruangan ?? '-')}
                                     </p>
@@ -360,33 +479,33 @@
                             </span>
                         </div>
 
-                        <div class="mt-3 space-y-1.5">
-                            <p class="text-xs text-slate-600 flex items-center gap-1.5 leading-relaxed">
+                        <div class="mt-1.5 space-y-0.5">
+                            <p class="text-[10px] text-slate-600 flex items-center gap-1.5 leading-relaxed">
                                 <i class="fa-solid fa-screwdriver-wrench text-slate-400"></i>
-                                ${escapeHtml(d.service?.nama_layanan ?? '-')}
+                                ${serviceLabel}: ${serviceText}
                             </p>
-                            <p class="text-xs text-slate-600 flex items-center gap-1.5 leading-relaxed">
+                            <p class="text-[10px] text-slate-600 flex items-center gap-1.5 leading-relaxed">
                                 <i class="fa-solid fa-clock text-slate-400"></i>
-                                ${escapeHtml(d.waktu?.expected_jam_tutup ?? '-')}
+                                ${timeLabel}: ${timeText}
                             </p>
                         </div>
 
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5 mt-4 text-center">
-                            <div class="rounded-md bg-indigo-50 px-2 py-2">
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-3 text-center">
+                            <div class="rounded-md bg-indigo-50 px-2 py-1.5">
                                 <p class="text-[11px] text-slate-500">Saat Ini</p>
                                 <p class="text-sm font-extrabold text-indigo-700">${summary.nomor_saat_ini ? '#' + summary.nomor_saat_ini : '-'}</p>
                             </div>
-                            <div class="rounded-md bg-blue-50 px-2 py-2">
+                            <div class="rounded-md bg-blue-50 px-2 py-1.5">
                                 <p class="text-[11px] text-slate-500">Terakhir</p>
                                 <p class="text-sm font-extrabold text-blue-700">${summary.nomor_terakhir ? '#' + summary.nomor_terakhir : '-'}</p>
                             </div>
-                            <div class="rounded-md bg-amber-50 px-2 py-2">
+                            <div class="rounded-md bg-amber-50 px-2 py-1.5">
                                 <p class="text-[11px] text-slate-500 flex items-center justify-center gap-1">
                                     <i class="fa-solid fa-hourglass-half"></i> Menunggu
                                 </p>
                                 <p class="text-sm font-extrabold text-amber-700">${summary.menunggu ?? 0}</p>
                             </div>
-                            <div class="rounded-md bg-emerald-50 px-2 py-2">
+                            <div class="rounded-md bg-emerald-50 px-2 py-1.5">
                                 <p class="text-[11px] text-slate-500 flex items-center justify-center gap-1">
                                     <i class="fa-solid fa-users"></i> Total Hari Ini
                                 </p>
@@ -408,14 +527,6 @@
                 const dosenSummary = Array.isArray(payload?.dosen_queue_summary) ? payload.dosen_queue_summary : [];
                 const summaryMap = Object.fromEntries(dosenSummary.map((item) => [item.kode, item]));
 
-                const serving = queues.filter(q => (q.status || '').toLowerCase() === 'diproses').length;
-                const waiting = queues.filter(q => (q.status || '').toLowerCase() === 'menunggu').length;
-
-                document.getElementById('total-queues').textContent = queues.length;
-                document.getElementById('available-staff').textContent = activeStaff.length;
-                document.getElementById('serving-queues').textContent = serving;
-                document.getElementById('waiting-queues').textContent = waiting;
-
                 renderQueueItems(queues);
                 renderStaffItems(activeStaff, summaryMap);
             } catch (error) {
@@ -426,6 +537,30 @@
         async function refreshDisplayRealtime() {
             await fetchDisplayData();
         }
+        async function toggleFullscreen() {
+            const button = document.getElementById('fullscreen-toggle');
+
+            try {
+                if (!document.fullscreenElement) {
+                    await document.documentElement.requestFullscreen();
+                } else {
+                    await document.exitFullscreen();
+                }
+            } catch (error) {
+                console.error(error);
+            }
+
+            updateFullscreenButton();
+        }
+        function updateFullscreenButton() {
+            const button = document.getElementById('fullscreen-toggle');
+            if (!button) return;
+
+            const isFullscreen = Boolean(document.fullscreenElement);
+            button.innerHTML = isFullscreen
+                ? '<i class="fa-solid fa-compress"></i><span>Keluar Fullscreen</span>'
+                : '<i class="fa-solid fa-expand"></i><span>Layar Penuh</span>';
+        }
         setInterval(updateClock, 1000);
         updateClock();
         refreshDisplayRealtime();
@@ -435,6 +570,12 @@
                     refreshDisplayRealtime();
                 });
         }
+        const fullscreenToggle = document.getElementById('fullscreen-toggle');
+        if (fullscreenToggle) {
+            fullscreenToggle.addEventListener('click', toggleFullscreen);
+        }
+        document.addEventListener('fullscreenchange', updateFullscreenButton);
+        updateFullscreenButton();
     </script>
 
     @include('partials.pwa-scripts')

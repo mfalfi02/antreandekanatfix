@@ -53,61 +53,79 @@ class DisplayController extends Controller
         // Nama layanan di-cache dulu supaya payload aktif staff bisa disusun tanpa query berulang.
         $serviceNameMap = Service::query()->pluck('nama_layanan', 'id');
 
-        // Bagian ini mengarahkan status ruang aktif ke card display yang tampil di layar publik.
-        $activeStaff = RuangAntri::with(['dosen', 'service'])
+        // Semua pejabat aktif tetap tampil di layar, lalu statusnya mengikuti sesi ruang terbaru hari ini.
+        $todayRooms = RuangAntri::with(['dosen', 'service'])
             ->whereDate('tanggal_buka_ruang_antri', $todayJakarta)
-            ->whereIn('status_ruang', ['open', 'occupied'])
             ->orderByDesc('updated_at')
             ->get()
-            ->unique('kode_dosen')
-            ->values()
-            ->map(function ($item) use ($serviceNameMap) {
-                $serviceIds = is_array($item->service_ids) ? $item->service_ids : [];
-                $serviceIds = array_values(array_unique(array_map('intval', array_filter(
-                    $serviceIds,
-                    fn ($id) => $id !== null && $id !== ''
-                ))));
+            ->groupBy('kode_dosen');
 
-                if (count($serviceIds) === 0 && $item->service_id) {
-                    $serviceIds = [(int) $item->service_id];
-                }
+        $activeStaff = User::query()
+            ->where('role', 'pejabat')
+            ->where('status', 'aktif')
+            ->get(['kode', 'name', 'jabatan', 'ruangan'])
+            ->map(function ($dosen) use ($todayRooms, $serviceNameMap) {
+                $item = $todayRooms->get($dosen->kode)?->first();
 
-                if (count($serviceIds) > 0) {
-                    $serviceNames = collect($serviceIds)
-                        ->map(fn (int $id) => $serviceNameMap->get($id))
-                        ->filter()
-                        ->values();
+                $servicePayload = [
+                    'id' => null,
+                    'ids' => [],
+                    'nama_layanan' => 'Antrean Ditutup',
+                ];
 
-                    $servicePayload = [
-                        'id' => count($serviceIds) === 1 ? $serviceIds[0] : null,
-                        'ids' => $serviceIds,
-                        'nama_layanan' => $serviceNames->implode(', '),
-                    ];
-                } else {
-                    $servicePayload = [
-                        'id' => null,
-                        'ids' => [],
-                        'nama_layanan' => 'Semua Jenis Layanan',
-                    ];
+                if ($item) {
+                    $serviceIds = is_array($item->service_ids) ? $item->service_ids : [];
+                    $serviceIds = array_values(array_unique(array_map('intval', array_filter(
+                        $serviceIds,
+                        fn ($id) => $id !== null && $id !== ''
+                    ))));
+
+                    if (count($serviceIds) === 0 && $item->service_id) {
+                        $serviceIds = [(int) $item->service_id];
+                    }
+
+                    if (count($serviceIds) > 0) {
+                        $serviceNames = collect($serviceIds)
+                            ->map(fn (int $id) => $serviceNameMap->get($id))
+                            ->filter()
+                            ->values();
+
+                        $servicePayload = [
+                            'id' => count($serviceIds) === 1 ? $serviceIds[0] : null,
+                            'ids' => $serviceIds,
+                            'nama_layanan' => $serviceNames->implode(', '),
+                        ];
+                    } else {
+                        $servicePayload = [
+                            'id' => null,
+                            'ids' => [],
+                            'nama_layanan' => 'Semua Jenis Layanan',
+                        ];
+                    }
                 }
 
                 return [
-                    'kode' => $item->kode_dosen,
-                    'name' => $item->dosen->name ?? '-',
-                    'jabatan' => $item->dosen->jabatan ?? '-',
-                    'ruangan' => $item->dosen->ruangan ?? '-',
+                    'kode' => $dosen->kode,
+                    'name' => $dosen->name ?? '-',
+                    'jabatan' => $dosen->jabatan ?? '-',
+                    'ruangan' => $dosen->ruangan ?? '-',
                     'service' => $servicePayload,
                     'waktu' => [
-                        'expected_jam_tutup' => $item->expected_jam_tutup_ruang_antri,
+                        'expected_jam_buka' => $item?->expected_jam_buka_ruang_antri,
+                        'expected_jam_tutup' => $item?->expected_jam_tutup_ruang_antri,
+                        'jam_buka' => $item?->jam_buka_ruang_antri,
+                        'jam_tutup' => $item?->jam_tutup_ruang_antri,
                     ],
-                    'queue_status' => $item->status_ruang,
-                    'queue_status_label' => match ($item->status_ruang) {
+                    'queue_status' => $item?->status_ruang ?? 'closed',
+                    'queue_status_label' => match ($item?->status_ruang ?? 'closed') {
                         'open' => 'Antrean Dibuka',
                         'occupied' => 'Melayani',
                         default => 'Antrean Ditutup',
                     },
                 ];
-            });
+            })
+            ->sortBy('name')
+            ->values();
 
         // Ringkasan per pejabat dipakai untuk panel statistik di display publik.
         $dosenQueueSummary = User::query()
