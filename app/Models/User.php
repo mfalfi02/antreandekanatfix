@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Notifications\ResetPasswordNotification;
 
 class User extends Authenticatable
 {
@@ -50,5 +51,13 @@ class User extends Authenticatable
     public function queues()
     {
         return $this->hasMany(Queue::class, 'kode_user', 'kode');
+    }
+
+    /**
+     * Mengarahkan notifikasi reset password ke email user dengan template yang lebih rapi.
+     */
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new ResetPasswordNotification($token, $this->email));
     }
 }

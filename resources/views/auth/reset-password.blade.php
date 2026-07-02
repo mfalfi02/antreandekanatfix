@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Antrean Dekanat - Login</title>
+    <title>Reset Password - Sistem Antrean Dekanat</title>
     @vite('resources/css/app.css')
     @include('partials.pwa-head')
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
@@ -61,33 +61,41 @@
             <div class="text-center mb-6">
                 <img src="{{ asset('images/logosistem.jpeg') }}" alt="Logo Sistem"
                     class="mx-auto mb-3 w-16 h-16 object-contain">
-                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-100">Login Sistem</p>
-                <h1 class="mt-2 text-2xl md:text-3xl font-extrabold">Sistem Antrean Dekanat</h1>
-                <p class="mt-1 text-sm text-cyan-50/90">Silahkan Masuk Sesuai Role Anda.</p>
+                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-100">Reset Password</p>
+                <h1 class="mt-2 text-2xl md:text-3xl font-extrabold">Atur Password Baru</h1>
+                <p class="mt-1 text-sm text-cyan-50/90">Buat password baru untuk akun Anda.</p>
             </div>
 
-            <form action="{{ route('login.submit') }}" method="POST" class="space-y-4">
+            @if ($errors->any())
+                <div class="mb-4 rounded-lg border border-rose-200/70 bg-rose-100/90 px-3 py-2 text-sm text-rose-700">
+                    {{ $errors->first() }}
+                </div>
+            @endif
+
+            <form action="{{ route('password.update') }}" method="POST" class="space-y-4">
                 @csrf
 
+                <input type="hidden" name="token" value="{{ $token }}">
+
                 <div class="space-y-1.5">
-                    <label for="kode" class="text-sm font-medium text-cyan-50">Kode Pengguna</label>
+                    <label for="email" class="text-sm font-medium text-cyan-50">Email</label>
                     <div class="relative">
                         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-white/80">
-                            <i class="fa-solid fa-id-card"></i>
+                            <i class="fa-solid fa-envelope"></i>
                         </span>
-                        <input type="text" name="kode" id="kode" value="{{ old('kode') }}" placeholder="Contoh: DSN001"
-                            required autocomplete="off" class="soft-input">
+                        <input type="email" name="email" id="email" value="{{ old('email', $email) }}"
+                            placeholder="nama@kampus.ac.id" required autocomplete="email" class="soft-input">
                     </div>
                 </div>
 
                 <div class="space-y-1.5">
-                    <label for="password" class="text-sm font-medium text-cyan-50">Password</label>
+                    <label for="password" class="text-sm font-medium text-cyan-50">Password Baru</label>
                     <div class="relative">
                         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-white/80">
                             <i class="fa-solid fa-lock"></i>
                         </span>
-                        <input type="password" name="password" id="password" placeholder="Masukkan password" required
-                            autocomplete="off" class="soft-input pr-11">
+                        <input type="password" name="password" id="password" placeholder="Masukkan password baru"
+                            required autocomplete="new-password" class="soft-input pr-11">
                         <button type="button" id="togglePassword"
                             class="absolute right-3 top-1/2 -translate-y-1/2 text-white/90 hover:text-cyan-100">
                             <i class="fa-solid fa-eye" id="eyeIcon"></i>
@@ -95,46 +103,31 @@
                     </div>
                 </div>
 
-                @if (session('error'))
-                    <div class="rounded-lg border border-rose-200/70 bg-rose-100/90 px-3 py-2 text-sm text-rose-700">
-                        {{ session('error') }}
+                <div class="space-y-1.5">
+                    <label for="password_confirmation" class="text-sm font-medium text-cyan-50">Konfirmasi Password</label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-white/80">
+                            <i class="fa-solid fa-shield-halved"></i>
+                        </span>
+                        <input type="password" name="password_confirmation" id="password_confirmation"
+                            placeholder="Ulangi password baru" required autocomplete="new-password" class="soft-input">
                     </div>
-                @endif
-
-                @if ($errors->any())
-                    <div class="rounded-lg border border-rose-200/70 bg-rose-100/90 px-3 py-2 text-sm text-rose-700">
-                        {{ $errors->first() }}
-                    </div>
-                @endif
+                </div>
 
                 <button type="submit"
                     class="w-full py-2.5 rounded-xl bg-white text-indigo-700 font-bold hover:bg-indigo-50 transition">
-                    Masuk
+                    Simpan Password Baru
                 </button>
 
-                @if (session('success'))
-                    <div class="rounded-lg border border-emerald-200/70 bg-emerald-100/90 px-3 py-2 text-sm text-emerald-700">
-                        {{ session('success') }}
-                    </div>
-                @endif
-
-                <div class="text-center">
-                    <a href="{{ route('password.request') }}"
-                        class="text-sm font-semibold text-cyan-100 hover:text-white transition">
-                        Lupa password?
-                    </a>
-                </div>
-
-                <a href="{{ url('/') }}"
+                <a href="{{ route('login') }}"
                     class="block w-full py-2.5 rounded-xl border border-white/35 bg-white/15 text-white text-center font-semibold hover:bg-white/25 transition">
-                    Kembali
+                    Kembali ke Login
                 </a>
             </form>
         </div>
     </div>
 
     <script>
-        // Tombol ini hanya mengubah visibilitas password tanpa mempengaruhi alur login ke backend.
         const togglePassword = document.getElementById('togglePassword');
         const passwordInput = document.getElementById('password');
         const eyeIcon = document.getElementById('eyeIcon');
