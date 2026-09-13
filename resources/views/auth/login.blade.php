@@ -27,6 +27,7 @@
             background: rgba(255, 255, 255, .16);
             border: 1px solid rgba(255, 255, 255, .32);
             box-shadow: 0 24px 45px -30px rgba(15, 23, 42, .65);
+            -webkit-backdrop-filter: blur(14px);
             backdrop-filter: blur(14px);
             border-radius: 1.35rem;
         }
@@ -52,17 +53,52 @@
             box-shadow: 0 0 0 3px rgba(59, 130, 246, .2);
             background: rgba(255, 255, 255, .26);
         }
+
+        @media (max-width: 640px) {
+            body {
+                padding: .75rem;
+            }
+
+            .glass-panel {
+                border-radius: 1rem;
+            }
+
+            .glass-panel,
+            .glass-panel * {
+                -webkit-transform: translateZ(0);
+                transform: translateZ(0);
+            }
+
+            .glass-panel img {
+                width: 3rem !important;
+                height: 3rem !important;
+            }
+
+            .glass-panel h1 {
+                font-size: 1.4rem;
+                line-height: 1.15;
+            }
+
+            .glass-panel p {
+                word-break: break-word;
+            }
+
+            .soft-input {
+                padding: .7rem .9rem .7rem 2.4rem;
+                font-size: .95rem;
+            }
+        }
     </style>
 </head>
 
-<body class="p-4 md:p-8">
-    <div class="min-h-[calc(100vh-2rem)] grid place-items-center">
-        <div class="w-full max-w-md glass-panel p-6 md:p-8 text-white">
-            <div class="text-center mb-6">
+<body class="p-3 md:p-8">
+    <div class="min-h-[calc(100vh-1.5rem)] grid place-items-center">
+        <div class="w-full max-w-md glass-panel p-5 md:p-8 text-white">
+            <div class="text-center mb-4 md:mb-5">
                 <img src="{{ asset('images/logosistem.jpeg') }}" alt="Logo Sistem"
-                    class="mx-auto mb-3 w-16 h-16 object-contain">
+                    class="mx-auto mb-3 w-12 h-12 md:w-16 md:h-16 object-contain shrink-0">
                 <p class="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-100">Login Sistem</p>
-                <h1 class="mt-2 text-2xl md:text-3xl font-extrabold">Sistem Antrean Dekanat</h1>
+                <h1 class="mt-2 text-xl md:text-3xl font-extrabold">Sistem Antrean Dekanat</h1>
                 <p class="mt-1 text-sm text-cyan-50/90">Silahkan Masuk Sesuai Role Anda.</p>
             </div>
 
@@ -108,7 +144,7 @@
                 @endif
 
                 <button type="submit"
-                    class="w-full py-2.5 rounded-xl bg-white text-indigo-700 font-bold hover:bg-indigo-50 transition">
+                    class="w-full py-2.5 rounded-xl bg-white text-indigo-700 font-bold hover:bg-indigo-50 transition text-sm sm:text-base">
                     Masuk
                 </button>
 
@@ -126,7 +162,7 @@
                 </div>
 
                 <a href="{{ url('/') }}"
-                    class="block w-full py-2.5 rounded-xl border border-white/35 bg-white/15 text-white text-center font-semibold hover:bg-white/25 transition">
+                    class="block w-full py-2.5 rounded-xl border border-white/35 bg-white/15 text-white text-center font-semibold hover:bg-white/25 transition text-sm sm:text-base">
                     Kembali
                 </a>
             </form>

@@ -12,6 +12,11 @@
 
 <body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100">
     <div class="min-h-screen flex flex-col">
+        @php
+            $dashboardRoute = auth()->check()
+                ? (auth()->user()->role === 'pejabat' ? route('dsn') : route('adm'))
+                : route('login');
+        @endphp
         
         <header class="bg-white dark:bg-gray-800 shadow p-4 flex justify-between items-center">
             <h1 class="font-bold text-xl">Antrean Dekanat</h1>
@@ -19,7 +24,7 @@
                 <ul class="flex gap-4 items-center">
                     
                     <li>
-                        <a href="{{ route('adm') }}"
+                        <a href="{{ $dashboardRoute }}"
                             class="px-4 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition duration-200 flex items-center gap-2">
                             <i class="fa-solid fa-arrow-left"></i> Kembali ke Dashboard
                         </a>

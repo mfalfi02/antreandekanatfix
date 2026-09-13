@@ -39,16 +39,27 @@ class DisplayController extends Controller
 
         $queues = Queue::with(['user', 'service', 'dosen'])
             ->whereDate('created_at', $todayJakarta)
+            ->orderBy('created_at')
+            ->orderBy('id')
             ->get()
             ->map(function ($q) {
             return [
                 'id' => $q->id,
                 'status' => $q->status,
+                'nomor_antrian' => $q->nomor_antrian,
+                'created_at' => optional($q->created_at)->toDateTimeString(),
+                'updated_at' => optional($q->updated_at)->toDateTimeString(),
                 'dosen' => $q->dosen ? ['kode' => $q->dosen->kode, 'name' => $q->dosen->name] : null,
                 'user' => $q->user ? ['kode' => $q->user->kode, 'name' => $q->user->name] : null,
-                'service' => $q->service ? ['id' => $q->service->id, 'nama_layanan' => $q->service->nama_layanan] : null,
+                'service' => $q->service ? [
+                    'id' => $q->service->id,
+                    'nama_layanan' => $q->service->nama_layanan,
+                    'est' => $q->service->est,
+                ] : null,
             ];
         });
+
+        $queuesByDosen = $queues->groupBy(fn (array $queue) => $queue['dosen']['kode'] ?? '__unknown__');
 
         // Nama layanan di-cache dulu supaya payload aktif staff bisa disusun tanpa query berulang.
         $serviceNameMap = Service::query()->pluck('nama_layanan', 'id');
@@ -64,8 +75,30 @@ class DisplayController extends Controller
             ->where('role', 'pejabat')
             ->where('status', 'aktif')
             ->get(['kode', 'name', 'jabatan', 'ruangan'])
-            ->map(function ($dosen) use ($todayRooms, $serviceNameMap) {
+            ->map(function ($dosen) use ($todayRooms, $serviceNameMap, $queuesByDosen) {
                 $item = $todayRooms->get($dosen->kode)?->first();
+                $roomQueues = $queuesByDosen->get($dosen->kode, collect())
+                    ->map(function (array $queue) {
+                        $statusLabel = match ($queue['status'] ?? 'menunggu') {
+                            'diproses' => 'Diproses',
+                            'selesai' => 'Selesai',
+                            'batal' => 'Batal',
+                            default => 'Menunggu',
+                        };
+
+                        return [
+                            'id' => $queue['id'],
+                            'nomor_antrian' => $queue['nomor_antrian'] ?? null,
+                            'status' => $queue['status'] ?? 'menunggu',
+                            'status_label' => $statusLabel,
+                            'created_at' => $queue['created_at'] ?? null,
+                            'updated_at' => $queue['updated_at'] ?? null,
+                            'user' => $queue['user'] ?? null,
+                            'service' => $queue['service'] ?? null,
+                            'dosen' => $queue['dosen'] ?? null,
+                        ];
+                    })
+                    ->values();
 
                 $servicePayload = [
                     'id' => null,
@@ -110,6 +143,7 @@ class DisplayController extends Controller
                     'jabatan' => $dosen->jabatan ?? '-',
                     'ruangan' => $dosen->ruangan ?? '-',
                     'service' => $servicePayload,
+                    'today_queues' => $roomQueues,
                     'waktu' => [
                         'expected_jam_buka' => $item?->expected_jam_buka_ruang_antri,
                         'expected_jam_tutup' => $item?->expected_jam_tutup_ruang_antri,
@@ -176,6 +210,7 @@ class DisplayController extends Controller
             'queues' => $queues,
             'active_staff' => $activeStaff,
             'dosen_queue_summary' => $dosenQueueSummary,
+            'staff_slides' => $activeStaff,
         ]);
     }
 

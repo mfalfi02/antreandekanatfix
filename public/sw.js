@@ -1,4 +1,4 @@
-const VERSION = 'v2';
+const VERSION = 'v3';
 const CACHE_PREFIX = 'antrean-dekanat-pwa';
 const PAGE_CACHE = `${CACHE_PREFIX}-pages-${VERSION}`;
 const ASSET_CACHE = `${CACHE_PREFIX}-assets-${VERSION}`;

@@ -12,3 +12,61 @@
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
+
+/* Perbaikan responsif global supaya UI tidak terasa terlalu besar di layar HP. */
+html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
+body {
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
+
+img,
+video,
+canvas,
+svg {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+
+@media (max-width: 640px) {
+    html {
+        font-size: 14px;
+    }
+
+    .glass-panel,
+    .panel {
+        border-radius: 1rem;
+    }
+
+    .glass-card,
+    .queue-card,
+    .summary-card,
+    .staff-card {
+        border-radius: .9rem;
+    }
+
+    .display-title {
+        font-size: 1.65rem !important;
+        line-height: 1.12 !important;
+    }
+}
+
+@supports (-webkit-touch-callout: none) {
+    .glass-panel,
+    .glass-card,
+    .panel {
+        -webkit-backdrop-filter: blur(14px);
+        backdrop-filter: blur(14px);
+    }
+
+    body {
+        -webkit-text-size-adjust: 100%;
+    }
+}

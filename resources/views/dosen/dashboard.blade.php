@@ -197,6 +197,16 @@
                 border-radius: .85rem;
             }
 
+            .panel h1 {
+                font-size: 1.35rem;
+                line-height: 1.15;
+            }
+
+            .panel h2 {
+                font-size: 1.05rem;
+                line-height: 1.2;
+            }
+
             .dosen-header-actions {
                 width: 100%;
                 justify-content: space-between;
@@ -211,6 +221,24 @@
             .dosen-header-actions .btn-danger {
                 width: 100%;
                 justify-content: center;
+            }
+
+            .grid.grid-cols-1.md\:grid-cols-4.gap-6 {
+                gap: .75rem;
+            }
+
+            .grid.grid-cols-1.lg\:grid-cols-2.gap-6 {
+                gap: .75rem;
+            }
+
+            .text-3xl {
+                font-size: 1.6rem;
+                line-height: 1.1;
+            }
+
+            .text-2xl {
+                font-size: 1.2rem;
+                line-height: 1.15;
             }
 
             #active-queue-list > div > div {
@@ -237,14 +265,14 @@
     </style>
 </head>
 
-<body class="p-4 md:p-7">
+<body class="p-3 md:p-7">
     {{-- Header dashboard pejabat yang mengarah ke ringkasan status ruang dan aksi logout --}}
     <div class="max-w-7xl mx-auto space-y-6">
 
         {{-- Ringkasan status ruang dan kontrol logout sebagai titik awal pemantauan --}}
-        <div class="panel p-5 md:p-6 flex flex-col gap-3 md:flex-row md:justify-between md:items-center">
+        <div class="panel p-4 md:p-6 flex flex-col gap-3 md:flex-row md:justify-between md:items-center">
             <div>
-                <h1 class="text-3xl font-bold text-gray-900">Dashboard Pejabat</h1>
+                <h1 class="text-2xl md:text-3xl font-bold text-gray-900">Dashboard Pejabat</h1>
                 <p class="text-gray-600">Selamat datang, {{ $data['user']->name }}</p>
             </div>
             <div class="dosen-header-actions flex items-center gap-4">
@@ -276,7 +304,7 @@
         </div>
 
         {{-- Kontrol antrean utama yang mengarah ke buka, tutup, dan pilihan layanan --}}
-        <div class="panel p-6 relative z-30 overflow-visible">
+        <div class="panel p-4 md:p-6 relative z-30 overflow-visible">
             <h2 class="text-xl font-semibold text-gray-900 flex items-center gap-2 mb-4">
                 <i class="fa-solid fa-play-circle text-gray-600"></i> Kontrol Antrean
             </h2>
@@ -341,8 +369,8 @@
         </div>
 
         
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div class="panel metric-card metric-blue p-6 flex items-center gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-6">
+            <div class="panel metric-card metric-blue p-4 md:p-6 flex items-center gap-4">
                 <i class="fa-solid fa-users text-3xl text-gray-600"></i>
                 <div>
                     <p id="stat-active-queues" class="text-2xl font-bold">{{ $data['activeQueues'] }}</p>
@@ -350,7 +378,7 @@
                 </div>
             </div>
 
-            <div class="panel metric-card metric-green p-6 flex items-center gap-4">
+            <div class="panel metric-card metric-green p-4 md:p-6 flex items-center gap-4">
                 <i class="fa-solid fa-check-circle text-3xl text-green-600"></i>
                 <div>
                     <p id="stat-completed-queues" class="text-2xl font-bold">{{ $data['completedQueues'] }}</p>
@@ -358,7 +386,7 @@
                 </div>
             </div>
 
-            <div class="panel metric-card metric-amber p-6 flex items-center gap-4">
+            <div class="panel metric-card metric-amber p-4 md:p-6 flex items-center gap-4">
                 <i class="fa-solid fa-clock text-3xl text-yellow-600"></i>
                 <div>
                     <p id="stat-current-queue" class="text-2xl font-bold">{{ $data['currentQueueNumber'] ? '#' . $data['currentQueueNumber'] : '-' }}</p>
@@ -366,7 +394,7 @@
                 </div>
             </div>
 
-            <div class="panel metric-card metric-slate p-6 flex items-center gap-4">
+            <div class="panel metric-card metric-slate p-4 md:p-6 flex items-center gap-4">
                 <i class="fa-solid fa-hourglass-half text-3xl text-gray-600"></i>
                 <div>
                     <p id="stat-service-estimate" class="text-lg font-bold">{{ $data['currentServiceEstimate'] ? $data['currentServiceEstimate'] . ' menit' : '-' }}</p>
@@ -376,20 +404,34 @@
         </div>
 
         
-        {{-- Daftar antrean aktif, selesai, dan riwayat untuk melihat alur layanan hari ini --}}
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            
-            <div class="panel p-6">
-                <div class="flex justify-between mb-4">
-                    <h2 class="text-xl font-semibold text-gray-900">Antrean Aktif</h2>
+        {{-- Daftar antrean aktif, prioritas, dan selesai untuk melihat alur layanan hari ini --}}
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+            <div class="panel p-4 md:p-6">
+                <div class="flex items-start justify-between gap-3 mb-4">
+                    <div>
+                        <h2 class="text-xl font-semibold text-gray-900">Antrean Aktif</h2>
+                        <p class="text-sm text-gray-500 mt-1">Urutan masuk dijaga FIFO, jadi antrean baru selalu turun ke bawah.</p>
+                    </div>
                     <button id="complete-service-btn"
                         class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition hidden">
                         <i class="fa-solid fa-check-circle mr-2"></i> Selesai Layani
                     </button>
                 </div>
                 <div id="active-queue-list" class="space-y-3 max-h-96 overflow-y-auto">
+                    @php
+                        $priorityQueueIds = collect($data['priorityQueues'] ?? [])->pluck('id')->map(fn ($id) => (string) $id)->all();
+                    @endphp
                     @forelse ($data['myQueues'] as $queue)
-                        @if (in_array($queue->status, ['menunggu', 'diproses']))
+                        @if (in_array($queue->status, ['menunggu', 'diproses']) && !in_array((string) $queue->id, $priorityQueueIds, true))
+                            @php
+                                $queueRoleLabel = match ($queue?->user?->role ?? null) {
+                                    'mahasiswa' => 'Mahasiswa',
+                                    'dosen' => 'Dosen',
+                                    'pejabat' => 'Pejabat',
+                                    'admin' => 'Admin',
+                                    default => ucfirst($queue?->user?->role ?? '-'),
+                                };
+                            @endphp
                             <div id="queue-item-{{ $queue->id }}"
                                 class="p-3 border rounded-lg transition-all duration-300">
                                 <div class="flex items-center justify-between">
@@ -399,10 +441,21 @@
                                             <div class="text-[10px] text-gray-400">ID {{ $queue->id }}</div>
                                         </div>
                                         <div>
-                                            <p class="font-semibold text-gray-900">{{ $queue->user->name ?? '-' }}
+                                            <p class="font-semibold text-gray-900">{{ $queue?->user?->name ?? '-' }}</p>
+                                            <p class="mt-1">
+                                                <span class="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-full bg-slate-100 text-slate-700 ring-1 ring-slate-200">
+                                                    <i class="fa-solid fa-user-tag"></i>
+                                                    Role: {{ $queueRoleLabel }}
+                                                </span>
+                                            </p>
+                                            <p class="mt-1">
+                                                <span class="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-full bg-blue-50 text-blue-700 ring-1 ring-blue-100">
+                                                    <i class="fa-solid fa-hourglass-half"></i>
+                                                    Estimasi {{ (int) ($queue->estimated_wait_minutes ?? 0) }} menit
+                                                </span>
                                             </p>
                                             <p class="text-sm text-gray-500 queue-service">
-                                                {{ $queue->service->nama_layanan ?? '-' }}
+                                                {{ $queue?->service?->nama_layanan ?? '-' }}
                                             </p>
                                             <p class="text-xs text-gray-400">
                                                 Dosen: {{ $data['user']->name ?? '-' }}
@@ -431,8 +484,72 @@
                 </div>
             </div>
 
-            
-            <div class="panel p-6">
+            <div class="panel p-4 md:p-6">
+                <div class="flex items-start justify-between gap-3 mb-4">
+                    <div>
+                        <h2 class="text-xl font-semibold text-gray-900">Antrean Prioritas</h2>
+                        <p class="text-sm text-gray-500 mt-1">Menyaring antrean dari role dosen dan estimasi tunggu yang lebih pendek.</p>
+                    </div>
+                    <span id="priority-queue-count"
+                        class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                        {{ count($data['priorityQueues'] ?? []) }} data
+                    </span>
+                </div>
+                <div id="priority-queue-list" class="space-y-3 max-h-96 overflow-y-auto">
+                    @forelse ($data['priorityQueues'] ?? [] as $queue)
+                        @if (in_array($queue->status, ['menunggu', 'diproses']))
+                            <div id="priority-queue-item-{{ $queue->id }}" class="p-3 border border-blue-200 bg-blue-50/60 rounded-lg transition-all duration-300">
+                                <div class="flex items-center justify-between gap-3">
+                                    <div class="flex-1 flex items-center gap-3">
+                                        <div class="text-center min-w-[64px]">
+                                            <div class="text-2xl font-bold text-blue-700">#{{ $queue->nomor_antrian }}</div>
+                                            <div class="text-[10px] text-blue-400">ID {{ $queue->id }}</div>
+                                        </div>
+                                        <div>
+                                            <p class="font-semibold text-gray-900">{{ $queue?->user?->name ?? '-' }}</p>
+                                            <p class="mt-1 flex flex-wrap gap-1.5">
+                                                @if (($queue?->user?->role ?? null) === 'dosen')
+                                                    <span class="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-full bg-indigo-100 text-indigo-700 ring-1 ring-indigo-200">
+                                                        <i class="fa-solid fa-user-graduate"></i>
+                                                        Role Dosen
+                                                    </span>
+                                                @endif
+                                                <span class="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200">
+                                                    <i class="fa-solid fa-clock"></i>
+                                                    Estimasi {{ (int) ($queue->estimated_wait_minutes ?? 0) }} menit
+                                                </span>
+                                            </p>
+                                            <p class="text-sm text-gray-500 queue-service">
+                                                {{ $queue?->service?->nama_layanan ?? '-' }}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="flex flex-col gap-1 items-end">
+                                        <span class="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-blue-100 text-blue-700">
+                                            Prioritas
+                                        </span>
+                                        @if ($queue->status === 'menunggu')
+                                            <button data-id="{{ $queue->id }}"
+                                                class="call-btn bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 mb-1">
+                                                Panggil / Layani
+                                            </button>
+                                        @else
+                                            <button data-id="{{ $queue->id }}"
+                                                class="complete-btn bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700 mb-1">
+                                                Selesai
+                                            </button>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+                    @empty
+                        <p class="text-gray-500 text-sm">Belum ada antrean prioritas.</p>
+                    @endforelse
+                </div>
+            </div>
+
+            <div class="panel p-4 md:p-6 lg:col-span-2">
                 <h2 class="text-xl font-semibold text-gray-900 mb-4">Selesai</h2>
                 <div id="completed-queue-list" class="space-y-3 max-h-96 overflow-y-auto">
                     @forelse ($data['myQueues'] as $queue)
@@ -442,8 +559,8 @@
                                     <i class="fa-solid fa-check-circle text-2xl text-green-600"></i>
                                     <div>
                                         <p class="font-semibold text-gray-900">#{{ $queue->nomor_antrian }} -
-                                            {{ $queue->user->name ?? '-' }}</p>
-                                        <p class="text-sm text-gray-500">{{ $queue->service->nama_layanan ?? '-' }}</p>
+                                            {{ $queue?->user?->name ?? '-' }}</p>
+                                        <p class="text-sm text-gray-500">{{ $queue?->service?->nama_layanan ?? '-' }}</p>
                                         <p class="text-xs text-gray-400">
                                             Dosen: {{ $data['user']->name ?? '-' }}
                                         </p>
@@ -451,7 +568,7 @@
                                 </div>
                                 <span
                                     class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-green-100 text-green-800">
-                                    {{ $queue->updated_at->format('H:i') }}
+                                    {{ optional($queue->updated_at)->format('H:i') ?? '-' }}
                                 </span>
                             </div>
                         @endif
@@ -462,7 +579,54 @@
             </div>
         </div>
 
-        <div class="panel p-6 mt-6">
+        {{-- Panel layanan yang memberi pejabat akses edit dan tambah langsung dari dashboard --}}
+        <div class="panel p-4 md:p-6">
+            <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-4">
+                <div>
+                    <h2 class="text-xl font-semibold text-gray-900">Kelola Pelayanan</h2>
+                    <p class="text-sm text-gray-500 mt-1">Perbarui nama layanan, estimasi waktu, dan status langsung dari dashboard pejabat.</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-100 text-indigo-700">
+                        {{ count($data['services'] ?? []) }} layanan
+                    </span>
+                    <a href="{{ route('services.create') }}"
+                        class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition">
+                        <i class="fa-solid fa-plus"></i> Tambah Pelayanan
+                    </a>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                @foreach ($data['services'] ?? [] as $service)
+                    @php
+                        $isAktif = $service->status === 'aktif';
+                    @endphp
+                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-4 flex flex-col gap-3">
+                        <div class="flex items-start justify-between gap-3">
+                            <div>
+                                <p class="font-semibold text-gray-900">{{ $service->nama_layanan }}</p>
+                                <p class="text-sm text-gray-500 mt-1">{{ $service->deskripsi ?: 'Tanpa deskripsi' }}</p>
+                            </div>
+                            <span class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full {{ $isAktif ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700' }}">
+                                <i class="fa-solid {{ $isAktif ? 'fa-circle-check' : 'fa-circle-xmark' }}"></i>
+                                {{ $isAktif ? 'Aktif' : 'Nonaktif' }}
+                            </span>
+                        </div>
+                        <div class="flex items-center justify-between gap-3">
+                            <span class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-700">
+                                <i class="fa-regular fa-clock"></i> {{ (int) $service->est }} menit
+                            </span>
+                            <a href="{{ route('services.edit', $service->id) }}"
+                                class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition">
+                                <i class="fa-solid fa-pen"></i> Edit
+                            </a>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+
+        <div class="panel p-4 md:p-6 mt-6">
             <div class="flex items-center justify-between mb-4">
                 <h2 class="text-xl font-semibold text-gray-900">Riwayat Hari Sebelumnya</h2>
                 <span id="history-queue-count"
@@ -485,8 +649,8 @@
                             <i class="fa-solid fa-clock-rotate-left text-xl text-slate-500"></i>
                             <div>
                                 <p class="font-semibold text-gray-900">#{{ $queue->nomor_antrian }} -
-                                    {{ $queue->user->name ?? '-' }}</p>
-                                <p class="text-sm text-gray-500">{{ $queue->service->nama_layanan ?? '-' }}</p>
+                                    {{ $queue?->user?->name ?? '-' }}</p>
+                                <p class="text-sm text-gray-500">{{ $queue?->service?->nama_layanan ?? '-' }}</p>
                                 <p class="text-xs text-gray-400">
                                     {{ ucfirst($queue->status ?? '-') }} •
                                     {{ optional($queue->created_at)->format('d-m-Y H:i') ?? '-' }} WIB
@@ -531,7 +695,10 @@
 
         const token = "{{ csrf_token() }}";
         const myKode = "{{ $data['user']->kode }}";
+        const dosenName = @json($data['user']->name);
         const activeQueueList = document.getElementById('active-queue-list');
+        const priorityQueueList = document.getElementById('priority-queue-list');
+        const priorityQueueCount = document.getElementById('priority-queue-count');
         const completedQueueList = document.getElementById('completed-queue-list');
         const historyQueueList = document.getElementById('history-queue-list');
         const historyQueueCount = document.getElementById('history-queue-count');
@@ -844,16 +1011,50 @@
                 osc.stop(end + 0.01);
             });
         }
-        function renderDosenQueues(queues = []) {
+        function formatRoleLabel(role) {
+            switch (String(role ?? '').toLowerCase()) {
+                case 'mahasiswa':
+                    return 'Mahasiswa';
+                case 'dosen':
+                    return 'Dosen';
+                case 'pejabat':
+                    return 'Pejabat';
+                case 'admin':
+                    return 'Admin';
+                default:
+                    return role ? String(role) : '-';
+            }
+        }
+        function sortQueueRows(queues = []) {
+            return [...queues].sort((left, right) => {
+                const leftTime = left?.created_at ? new Date(left.created_at).getTime() : 0;
+                const rightTime = right?.created_at ? new Date(right.created_at).getTime() : 0;
+                if (leftTime !== rightTime) return leftTime - rightTime;
+
+                const leftId = Number(left?.id ?? 0);
+                const rightId = Number(right?.id ?? 0);
+                return leftId - rightId;
+            });
+        }
+        function renderDosenQueues(queues = [], priorityQueues = []) {
             if (!activeQueueList || !completedQueueList) return;
 
-            const activeRows = queues.filter(q => ['menunggu', 'diproses'].includes(q.status));
-            const completedRows = queues.filter(q => q.status === 'selesai');
+            const activeRows = sortQueueRows(queues.filter(q => ['menunggu', 'diproses'].includes(q.status)));
+            const completedRows = sortQueueRows(queues.filter(q => q.status === 'selesai'));
+            const priorityRows = Array.isArray(priorityQueues)
+                ? priorityQueues.filter(q => ['menunggu', 'diproses'].includes(q.status))
+                : [];
+            const priorityIdSet = new Set(priorityRows.map((q) => String(q.id ?? '')));
+            const nonPriorityActiveRows = activeRows.filter((q) => !priorityIdSet.has(String(q.id ?? '')));
 
-            if (activeRows.length === 0) {
+            if (priorityQueueCount) {
+                priorityQueueCount.textContent = `${priorityRows.length} data`;
+            }
+
+            if (nonPriorityActiveRows.length === 0) {
                 activeQueueList.innerHTML = '<p class="text-gray-500 text-sm">Belum ada antrean.</p>';
             } else {
-                activeQueueList.innerHTML = activeRows.map((q) => `
+                activeQueueList.innerHTML = nonPriorityActiveRows.map((q) => `
                     <div id="queue-item-${q.id}" class="p-3 border rounded-lg transition-all duration-300">
                         <div class="flex items-center justify-between">
                             <div class="flex-1 flex items-center gap-3">
@@ -863,11 +1064,23 @@
                                 </div>
                                 <div>
                                     <p class="font-semibold text-gray-900">${escapeHtml(q.user?.name ?? '-')}</p>
+                                    <p class="mt-1">
+                                        <span class="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-full bg-slate-100 text-slate-700 ring-1 ring-slate-200">
+                                            <i class="fa-solid fa-user-tag"></i>
+                                            Role: ${escapeHtml(formatRoleLabel(q.user?.role))}
+                                        </span>
+                                    </p>
+                                    <p class="mt-1">
+                                        <span class="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-full bg-blue-50 text-blue-700 ring-1 ring-blue-100">
+                                            <i class="fa-solid fa-hourglass-half"></i>
+                                            Estimasi ${Number(q.estimated_wait_minutes ?? 0)} menit
+                                        </span>
+                                    </p>
                                     <p class="text-sm text-gray-500 queue-service">
                                         ${escapeHtml(q.service?.nama_layanan ?? '-')}
                                     </p>
                                     <p class="text-xs text-gray-400">
-                                        Dosen: ${escapeHtml("{{ $data['user']->name }}")}
+                                        Dosen: ${escapeHtml(dosenName)}
                                     </p>
                                 </div>
                             </div>
@@ -908,6 +1121,48 @@
                         </div>
                     `;
                 }).join('');
+            }
+
+            if (priorityQueueList) {
+                if (priorityRows.length === 0) {
+                    priorityQueueList.innerHTML = '<p class="text-gray-500 text-sm">Belum ada antrean prioritas.</p>';
+                } else {
+                    priorityQueueList.innerHTML = priorityRows.map((q) => `
+                        <div id="priority-queue-item-${q.id}" class="p-3 border border-blue-200 bg-blue-50/60 rounded-lg transition-all duration-300">
+                            <div class="flex items-center justify-between gap-3">
+                                <div class="flex-1 flex items-center gap-3">
+                                    <div class="text-center min-w-[64px]">
+                                        <div class="text-2xl font-bold text-blue-700">#${q.nomor_antrian ?? '-'}</div>
+                                        <div class="text-[10px] text-blue-400">ID ${q.id}</div>
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold text-gray-900">${escapeHtml(q.user?.name ?? '-')}</p>
+                                        <p class="mt-1 flex flex-wrap gap-1.5">
+                                            ${String(q.user?.role ?? '').toLowerCase() === 'dosen'
+                                                ? `<span class="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-full bg-indigo-100 text-indigo-700 ring-1 ring-indigo-200"><i class="fa-solid fa-user-graduate"></i>Role Dosen</span>`
+                                                : ''
+                                            }
+                                            <span class="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200">
+                                                <i class="fa-solid fa-clock"></i>
+                                                Estimasi ${Number(q.estimated_wait_minutes ?? 0)} menit
+                                            </span>
+                                        </p>
+                                        <p class="text-sm text-gray-500 queue-service">
+                                            ${escapeHtml(q.service?.nama_layanan ?? '-')}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col gap-1 items-end">
+                                    <span class="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-blue-100 text-blue-700">Prioritas</span>
+                                    ${q.status === 'menunggu'
+                                        ? `<button data-id="${q.id}" class="call-btn bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 mb-1">Panggil / Layani</button>`
+                                        : `<button data-id="${q.id}" class="complete-btn bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700 mb-1">Selesai</button>`
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                }
             }
         }
         function renderDosenStats(stats = {}) {
@@ -1130,7 +1385,7 @@
                     });
                 }
 
-                renderDosenQueues(rows);
+                renderDosenQueues(rows, Array.isArray(data.priority_queues) ? data.priority_queues : []);
                 renderDosenHistoryQueues(Array.isArray(data.history_queues) ? data.history_queues : []);
                 renderDosenStats(data.stats ?? {});
             } catch (e) {
@@ -1167,21 +1422,27 @@
             }
         }
 
-        if (activeQueueList) {
-            activeQueueList.addEventListener('click', (event) => {
-                const callBtn = event.target.closest('.call-btn');
-                if (callBtn) {
-                    const queueId = callBtn.dataset.id;
-                    if (queueId) updateQueueStatus(queueId, 'call');
-                    return;
-                }
+        function handleQueueActionClick(event) {
+            const callBtn = event.target.closest('.call-btn');
+            if (callBtn) {
+                const queueId = callBtn.dataset.id;
+                if (queueId) updateQueueStatus(queueId, 'call');
+                return;
+            }
 
-                const completeBtn = event.target.closest('.complete-btn');
-                if (completeBtn) {
-                    const queueId = completeBtn.dataset.id;
-                    if (queueId) updateQueueStatus(queueId, 'complete');
-                }
-            });
+            const completeBtn = event.target.closest('.complete-btn');
+            if (completeBtn) {
+                const queueId = completeBtn.dataset.id;
+                if (queueId) updateQueueStatus(queueId, 'complete');
+            }
+        }
+
+        if (activeQueueList) {
+            activeQueueList.addEventListener('click', handleQueueActionClick);
+        }
+
+        if (priorityQueueList) {
+            priorityQueueList.addEventListener('click', handleQueueActionClick);
         }
 
         openBtns.forEach(b => b.addEventListener('click', () => toggleQueue('open')));

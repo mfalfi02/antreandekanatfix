@@ -114,16 +114,25 @@ Route::post('/admin/location', function (Request $request) {
 })->name('adm.location.update');
 
 // Alur yang harus login terlebih dahulu sebelum mengakses dashboard dan operasi antrean.
-Route::middleware(['ceklogin'])->group(function () {
-    Route::get('/dashboard', [AuthController::class, 'dosen'])->name('dsn');
-    Route::get('/mahasiswa',[AuthController::class, 'mahasiswa'])->name('mhs');
+Route::middleware(['auth'])->group(function () {
+    Route::get('/mahasiswa', [AuthController::class, 'mahasiswa'])
+        ->name('mhs');
 
-    Route::post('/queue/join', [DashboardController::class, 'joinQueue'])->name('queue.join');
-    Route::post('/queue/toggle', [QueueController::class, 'toggleQueue'])->name('queue.toggle');
-    Route::post('/queue/{queue}/call', [QueueController::class, 'callQueue'])->name('queue.call');
-    Route::post('/queue/{queue}/complete', [QueueController::class, 'completeQueue'])->name('queue.complete');
-    Route::get('/queue/status', [QueueController::class, 'status'])->name('queue.status');
-    Route::get('/queue/my', [QueueController::class, 'myQueues'])->name('queue.my');
+    Route::get('/dashboard', [AuthController::class, 'dosen'])
+        ->name('dsn');
+
+    Route::post('/queue/join', [DashboardController::class, 'joinQueue'])
+        ->name('queue.join');
+    Route::post('/queue/toggle', [QueueController::class, 'toggleQueue'])
+        ->name('queue.toggle');
+    Route::post('/queue/{queue}/call', [QueueController::class, 'callQueue'])
+        ->name('queue.call');
+    Route::post('/queue/{queue}/complete', [QueueController::class, 'completeQueue'])
+        ->name('queue.complete');
+    Route::get('/queue/status', [QueueController::class, 'status'])
+        ->name('queue.status');
+    Route::get('/queue/my', [QueueController::class, 'myQueues'])
+        ->name('queue.my');
 });
 
 // Master data pengguna untuk admin.
@@ -138,12 +147,17 @@ Route::put('/users/{kode}', [UserController::class, 'update'])->name('users.upda
 Route::delete('/users/{kode}', [UserController::class, 'destroy'])->name('users.destroy');
 
 // Master data layanan yang dipakai di antrean, dashboard, dan laporan.
-Route::get('/services', [ServiceController::class, 'index'])->name('services.index');
-Route::get('/services/create', [ServiceController::class, 'create'])->name('services.create');
-Route::post('/services', [ServiceController::class, 'store'])->name('services.store');
-Route::get('/services/{service}/edit', [ServiceController::class, 'edit'])->name('services.edit');
-Route::put('/services/{service}', [ServiceController::class, 'update'])->name('services.update');
-Route::delete('/services/{service}', [ServiceController::class, 'destroy'])->name('services.destroy');
+Route::middleware(['auth', 'cekrole:admin,pejabat'])->group(function () {
+    Route::get('/services', [ServiceController::class, 'index'])->name('services.index');
+    Route::get('/services/create', [ServiceController::class, 'create'])->name('services.create');
+    Route::post('/services', [ServiceController::class, 'store'])->name('services.store');
+    Route::get('/services/{service}/edit', [ServiceController::class, 'edit'])->name('services.edit');
+    Route::put('/services/{service}', [ServiceController::class, 'update'])->name('services.update');
+});
+
+Route::middleware(['auth', 'cekrole:admin'])->group(function () {
+    Route::delete('/services/{service}', [ServiceController::class, 'destroy'])->name('services.destroy');
+});
 
 // Laporan layanan untuk ringkasan statistik dan distribusi data.
 Route::get('/reports/services', [ServiceController::class, 'serviceStats'])->name('services.stats');

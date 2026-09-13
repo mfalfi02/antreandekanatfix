@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Models\Service;
 use App\Models\Queue;
 use App\Services\GeofenceService;
+use App\Services\QueueDashboardService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Carbon;
 
@@ -346,32 +347,18 @@ class QueueController extends Controller
         $today = Carbon::now('Asia/Jakarta')->toDateString();
 
         if ($user->role === 'pejabat') {
-            $queues = Queue::query()
-                ->with(['user', 'service'])
-                ->where('kode_dosen', $user->kode)
-                ->whereDate('created_at', $today)
-                ->latest('created_at')
-                ->get();
-            $historyQueues = Queue::query()
-                ->with(['user', 'service'])
-                ->where('kode_dosen', $user->kode)
-                ->whereDate('created_at', '<', $today)
-                ->latest('created_at')
-                ->get();
-
-            $currentServing = $queues->firstWhere('status', 'diproses');
+            $dashboardService = app(QueueDashboardService::class);
+            $payload = $dashboardService->pejabatDashboardPayload($user, $today);
+            $queues = $payload['queues'];
+            $historyQueues = $payload['history_queues'];
 
             return response()->json([
                 'success' => true,
                 'role' => 'pejabat',
                 'queues' => $queues,
+                'priority_queues' => $payload['priority_queues'],
                 'history_queues' => $historyQueues,
-                'stats' => [
-                    'active' => $queues->whereIn('status', ['menunggu', 'diproses'])->count(),
-                    'completed' => $queues->where('status', 'selesai')->count(),
-                    'current_queue_number' => $currentServing?->nomor_antrian,
-                    'current_service_estimate' => $currentServing?->service?->est,
-                ],
+                'stats' => $payload['stats'],
             ]);
         }
 

@@ -157,6 +157,16 @@
                 border-radius: .85rem;
             }
 
+            .panel h1 {
+                font-size: 1.35rem;
+                line-height: 1.15;
+            }
+
+            .panel h2 {
+                font-size: 1.05rem;
+                line-height: 1.2;
+            }
+
             .mhs-header-actions {
                 width: 100%;
                 justify-content: space-between;
@@ -177,6 +187,24 @@
                 padding: .85rem;
             }
 
+            .grid.grid-cols-1.md\:grid-cols-4.gap-6 {
+                gap: .75rem;
+            }
+
+            .grid.grid-cols-1.lg\:grid-cols-2.gap-6 {
+                gap: .75rem;
+            }
+
+            .text-3xl {
+                font-size: 1.6rem;
+                line-height: 1.1;
+            }
+
+            .text-2xl {
+                font-size: 1.2rem;
+                line-height: 1.15;
+            }
+
             #my-queue-list > div {
                 align-items: flex-start;
             }
@@ -193,14 +221,14 @@
     </style>
 </head>
 
-<body class="p-4 md:p-7">
+<body class="p-3 md:p-7">
     {{-- Header dashboard mahasiswa dan dosen yang mengarah ke ringkasan akun dan jam lokal --}}
     <div class="max-w-7xl mx-auto space-y-6">
 
         {{-- Ringkasan akun dan jam lokal yang jadi titik awal navigasi user --}}
-        <div class="panel p-5 md:p-6 flex flex-col gap-3 md:flex-row md:justify-between md:items-center">
+        <div class="panel p-4 md:p-6 flex flex-col gap-3 md:flex-row md:justify-between md:items-center">
             <div>
-                <h1 class="text-3xl font-bold text-gray-900">
+                <h1 class="text-2xl md:text-3xl font-bold text-gray-900">
                     Dashboard {{ ucfirst($data['user']->role) }}
                 </h1>
                 <p class="text-gray-600">
@@ -223,7 +251,7 @@
         </div>
 
         {{-- Status pejabat yang sedang membuka antrean agar user tahu tujuan pilihannya --}}
-        <div class="panel p-6 mt-6">
+        <div class="panel p-4 md:p-6 mt-6">
             <div class="mb-4">
                 <h2 class="text-xl font-semibold text-gray-900">Status Dosen Dekanat</h2>
                 <p class="text-sm text-gray-500">Lihat dosen yang sedang buka antrean beserta layanan yang aktif.</p>
@@ -280,11 +308,13 @@
                             </div>
                         </div>
                         <div class="mt-3 space-y-1.5">
-                            <p id="service-pejabat-{{ $pejabat->kode }}" class="text-xs text-slate-600 flex items-center gap-1.5 leading-relaxed">
+                            <p id="service-pejabat-{{ $pejabat->kode }}"
+                                class="text-xs text-slate-600 flex items-center gap-1.5 leading-relaxed {{ $statusPejabat === 'closed' ? 'hidden' : '' }}">
                                 <i class="fa-solid fa-screwdriver-wrench text-slate-400"></i>
                                 {{ $servicePejabat ?: '-' }}
                             </p>
-                            <p id="expected-close-pejabat-{{ $pejabat->kode }}" class="text-xs text-slate-600 flex items-center gap-1.5 leading-relaxed">
+                            <p id="expected-close-pejabat-{{ $pejabat->kode }}"
+                                class="text-xs text-slate-600 flex items-center gap-1.5 leading-relaxed {{ $statusPejabat === 'closed' ? 'hidden' : '' }}">
                                 <i class="fa-solid fa-clock text-slate-400"></i>
                                 {{ $expectedClosePejabat ?: '-' }}
                             </p>
@@ -296,7 +326,7 @@
 
         
         @if ($data['user']->role === 'pejabat')
-            <div class="panel p-6">
+            <div class="panel p-4 md:p-6">
                 <h2 class="text-xl font-semibold text-gray-900 flex items-center gap-2 mb-4">
                     <i class="fa-solid fa-play-circle text-gray-600"></i> Kontrol Antrean
                 </h2>
@@ -326,8 +356,8 @@
             </div>
 
             
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div class="panel p-6 flex items-center gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-6">
+                <div class="panel p-4 md:p-6 flex items-center gap-4">
                     <i class="fa-solid fa-users text-3xl text-gray-600"></i>
                     <div>
                         <p class="text-2xl font-bold">{{ $data['activeQueues'] }}</p>
@@ -335,7 +365,7 @@
                     </div>
                 </div>
 
-                <div class="panel p-6 flex items-center gap-4">
+                <div class="panel p-4 md:p-6 flex items-center gap-4">
                     <i class="fa-solid fa-check-circle text-3xl text-green-600"></i>
                     <div>
                         <p class="text-2xl font-bold">{{ $data['completedQueues'] }}</p>
@@ -349,56 +379,66 @@
         @if (in_array($data['user']->role, ['mahasiswa', 'dosen']))
             @if (in_array($data['user']->role, ['mahasiswa', 'dosen']))
                 @php
-                    $currentQueue = collect($data['myQueues'] ?? [])->first(function ($queue) {
-                        return in_array($queue->status ?? '', ['menunggu', 'diproses'], true);
-                    });
-                    $currentQueueStatus = match ($currentQueue->status ?? null) {
-                        'diproses' => 'Melayani',
-                        'menunggu' => 'Menunggu',
-                        default => 'Tidak ada antrean aktif',
-                    };
+                    $currentQueues = collect($data['myQueues'] ?? [])
+                        ->filter(function ($queue) {
+                            return in_array($queue->status ?? '', ['menunggu', 'diproses'], true);
+                        })
+                        ->values();
                 @endphp
-                <div class="panel p-6">
+                <div class="panel p-4 md:p-6">
                     <h2 class="text-xl font-semibold text-gray-900 mb-4">Nomor Antrean Anda Saat Ini</h2>
-                    <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
-                        <div class="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
-                            <p class="text-xs uppercase tracking-wide text-blue-700 font-semibold">Nomor</p>
-                            <p id="current-queue-number" class="mt-1 text-2xl font-extrabold text-blue-800">
-                                {{ $currentQueue ? '#' . $currentQueue->nomor_antrian : '-' }}
-                            </p>
-                        </div>
-                        <div class="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3">
-                            <p class="text-xs uppercase tracking-wide text-amber-700 font-semibold">Status</p>
-                            <p id="current-queue-status" class="mt-1 text-base font-bold text-amber-800">
-                                {{ $currentQueueStatus }}
-                            </p>
-                        </div>
-                        <div class="rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3">
-                            <p class="text-xs uppercase tracking-wide text-indigo-700 font-semibold">Layanan</p>
-                            <p id="current-queue-service" class="mt-1 text-sm font-semibold text-indigo-800">
-                                {{ $currentQueue->service->nama_layanan ?? '-' }}
-                            </p>
-                        </div>
-                        <div class="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3">
-                            <p class="text-xs uppercase tracking-wide text-emerald-700 font-semibold">Dosen</p>
-                            <p id="current-queue-dosen" class="mt-1 text-sm font-semibold text-emerald-800">
-                                {{ $currentQueue->dosen->name ?? '-' }}
-                            </p>
-                        </div>
-                        <div class="rounded-xl border border-fuchsia-100 bg-fuchsia-50 px-4 py-3">
-                            <p class="text-xs uppercase tracking-wide text-fuchsia-700 font-semibold">Estimasi Tunggu</p>
-                            <p id="current-queue-estimate" class="mt-1 text-sm font-semibold text-fuchsia-800">
-                                -
-                            </p>
-                        </div>
+                    <div id="current-queue-list" class="space-y-3">
+                        @forelse ($currentQueues as $queue)
+                            @php
+                                $queueStatus = match ($queue->status ?? null) {
+                                    'diproses' => 'Melayani',
+                                    'menunggu' => 'Menunggu',
+                                    default => ucfirst($queue->status ?? '-'),
+                                };
+                            @endphp
+                            <div class="rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-4 md:p-5 shadow-sm">
+                                <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                                    <div class="min-w-0">
+                                        <p class="text-xs uppercase tracking-wide text-slate-500 font-semibold">Antrean</p>
+                                        <p class="mt-1 text-2xl font-extrabold text-blue-800">
+                                            #{{ $queue->nomor_antrian }}
+                                        </p>
+                                        <p class="mt-1 text-sm font-semibold text-slate-700">
+                                            {{ $queue->service?->nama_layanan ?? '-' }}
+                                        </p>
+                                        <p class="text-xs text-slate-500 mt-1">
+                                            Dosen: {{ $queue->dosen?->name ?? '-' }}
+                                        </p>
+                                        <p class="text-xs text-slate-400 mt-1">
+                                            Waktu ambil: {{ optional($queue->created_at)->format('d-m-Y H:i') ?? '-' }} WIB
+                                        </p>
+                                    </div>
+                                    <div class="flex flex-wrap gap-2">
+                                        <span class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full
+                                            {{ $queue->status === 'diproses' ? 'bg-amber-100 text-amber-800 ring-1 ring-amber-200' : 'bg-blue-100 text-blue-800 ring-1 ring-blue-200' }}">
+                                            <i class="fa-solid {{ $queue->status === 'diproses' ? 'fa-hourglass-half' : 'fa-user-clock' }}"></i>
+                                            {{ $queueStatus }}
+                                        </span>
+                                        <span class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-fuchsia-100 text-fuchsia-800 ring-1 ring-fuchsia-200">
+                                            <i class="fa-solid fa-clock"></i>
+                                            Estimasi {{ (int) ($queue->estimated_wait_minutes ?? 0) }} menit
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        @empty
+                            <div class="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-slate-500">
+                                Belum ada antrean aktif.
+                            </div>
+                        @endforelse
                     </div>
                 </div>
             @endif
 
         {{-- Form ambil antrean dan daftar antrean aktif sebagai jalur utama mengambil nomor --}}
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
                 
-                <div class="panel p-6">
+                <div class="panel p-4 md:p-6">
                     <h2 class="text-xl font-semibold text-gray-900 mb-4">Ambil Nomor Antrean</h2>
                     <div class="space-y-4">
                         <label class="block text-sm font-medium text-gray-700">Pilih Dosen Tujuan</label>
@@ -433,7 +473,7 @@
                 </div>
 
                 
-                <div class="panel p-6">
+                <div class="panel p-4 md:p-6">
                     <div class="flex items-center justify-between mb-4">
                         <h2 class="text-xl font-semibold text-gray-900">Antrean Hari Ini</h2>
                         <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-700">
@@ -443,11 +483,11 @@
                     <div id="my-queue-list" class="space-y-3 max-h-96 overflow-y-auto">
                         @forelse($data['myQueues'] as $queue)
                             <div class="p-3 border rounded-lg flex justify-between items-center">
-                                <div>
-                                    <p class="font-semibold text-gray-900">#{{ $queue->nomor_antrian }} -
-                                        {{ $queue->service->nama_layanan ?? '-' }}</p>
-                                    <p class="text-sm text-gray-500">{{ ucfirst($queue->status) }}</p>
-                                    <p class="text-xs text-gray-500">Dosen: {{ $queue->dosen->name ?? '-' }}</p>
+                                    <div>
+                                        <p class="font-semibold text-gray-900">#{{ $queue->nomor_antrian }} -
+                                            {{ $queue?->service?->nama_layanan ?? '-' }}</p>
+                                        <p class="text-sm text-gray-500">{{ ucfirst($queue->status) }}</p>
+                                        <p class="text-xs text-gray-500">Dosen: {{ $queue?->dosen?->name ?? '-' }}</p>
                                     <p class="text-xs text-gray-400">
                                         Tanggal: {{ optional($queue->created_at)->format('d-m-Y') ?? '-' }} |
                                         Jam: {{ optional($queue->created_at)->format('H:i') ?? '-' }} WIB
@@ -481,9 +521,9 @@
                                     <div class="p-3 border rounded-lg flex justify-between items-center bg-slate-50/60">
                                         <div>
                                             <p class="font-semibold text-gray-900">#{{ $queue->nomor_antrian }} -
-                                                {{ $queue->service->nama_layanan ?? '-' }}</p>
+                                                {{ $queue?->service?->nama_layanan ?? '-' }}</p>
                                             <p class="text-sm text-gray-500">{{ ucfirst($queue->status) }}</p>
-                                            <p class="text-xs text-gray-500">Dosen: {{ $queue->dosen->name ?? '-' }}</p>
+                                            <p class="text-xs text-gray-500">Dosen: {{ $queue?->dosen?->name ?? '-' }}</p>
                                             <p class="text-xs text-gray-400">
                                                 Tanggal: {{ optional($queue->created_at)->format('d-m-Y') ?? '-' }} |
                                                 Jam: {{ optional($queue->created_at)->format('H:i') ?? '-' }} WIB
@@ -547,11 +587,7 @@
         const previousQueueDateFilter = document.getElementById('previous-queue-date-filter');
         const previousQueueDateReset = document.getElementById('previous-queue-date-reset');
         const serviceFilterHint = document.getElementById('service-filter-hint');
-        const currentQueueNumberEl = document.getElementById('current-queue-number');
-        const currentQueueStatusEl = document.getElementById('current-queue-status');
-        const currentQueueServiceEl = document.getElementById('current-queue-service');
-        const currentQueueDosenEl = document.getElementById('current-queue-dosen');
-        const currentQueueEstimateEl = document.getElementById('current-queue-estimate');
+        const currentQueueList = document.getElementById('current-queue-list');
         const csrfToken = "{{ csrf_token() }}";
         const currentUserKode = "{{ $data['user']->kode }}";
         const currentUserRole = "{{ $data['user']->role }}";
@@ -655,11 +691,14 @@
                             item.service.ids.map((id) => Number(id)) :
                             (item.service?.id ? [Number(item.service.id)] : []);
                         deanServiceIdsMap[item.kode] = serviceIds;
+                        const isClosed = item.queue_status === 'closed';
                         if (serviceLine) {
+                            serviceLine.classList.toggle('hidden', isClosed);
                             serviceLine.innerHTML =
                                 `<i class="fa-solid fa-screwdriver-wrench text-slate-400"></i> ${escapeHtml(item.service?.nama_layanan ?? '-')}`;
                         }
                         if (expectedCloseLine) {
+                            expectedCloseLine.classList.toggle('hidden', isClosed);
                             expectedCloseLine.innerHTML =
                                 `<i class="fa-solid fa-clock text-slate-400"></i> ${escapeHtml(item.waktu?.expected_jam_tutup ?? '-')}`;
                         }
@@ -909,25 +948,75 @@
                 `;
             }).join('');
         }
-        function renderCurrentQueueInfo(rows = []) {
-            if (!currentQueueNumberEl || !currentQueueStatusEl || !currentQueueServiceEl || !currentQueueDosenEl || !currentQueueEstimateEl) return;
+        function formatJakartaDateTime(value) {
+            if (!value) return '-';
 
-            const activeQueue = rows.find((q) => ['menunggu', 'diproses'].includes((q.status ?? '').toLowerCase()));
-            if (!activeQueue) {
-                currentQueueNumberEl.textContent = '-';
-                currentQueueStatusEl.textContent = 'Tidak ada antrean aktif';
-                currentQueueServiceEl.textContent = '-';
-                currentQueueDosenEl.textContent = '-';
-                currentQueueEstimateEl.textContent = '-';
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return '-';
+
+            return date.toLocaleString('id-ID', {
+                timeZone: 'Asia/Jakarta',
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false,
+            });
+        }
+        function renderCurrentQueueInfo(rows = []) {
+            if (!currentQueueList) return;
+
+            const activeQueues = rows.filter((q) => ['menunggu', 'diproses'].includes((q.status ?? '').toLowerCase()));
+            if (activeQueues.length === 0) {
+                currentQueueList.innerHTML = `
+                    <div class="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-slate-500">
+                        Belum ada antrean aktif.
+                    </div>
+                `;
                 return;
             }
 
-            const status = (activeQueue.status ?? '').toLowerCase();
-            currentQueueNumberEl.textContent = activeQueue.nomor_antrian ? `#${activeQueue.nomor_antrian}` : '-';
-            currentQueueStatusEl.textContent = status === 'diproses' ? 'Melayani' : 'Menunggu';
-            currentQueueServiceEl.textContent = activeQueue.service?.nama_layanan ?? '-';
-            currentQueueDosenEl.textContent = activeQueue.dosen?.name ?? '-';
-            currentQueueEstimateEl.textContent = `${Number(activeQueue.estimated_wait_minutes ?? 0)} menit`;
+            currentQueueList.innerHTML = activeQueues.map((queue) => {
+                const status = (queue.status ?? '').toLowerCase();
+                const statusLabel = status === 'diproses' ? 'Melayani' : 'Menunggu';
+                const statusClass = status === 'diproses'
+                    ? 'bg-amber-100 text-amber-800 ring-1 ring-amber-200'
+                    : 'bg-blue-100 text-blue-800 ring-1 ring-blue-200';
+                const statusIcon = status === 'diproses' ? 'fa-hourglass-half' : 'fa-user-clock';
+
+                return `
+                    <div class="rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-4 md:p-5 shadow-sm">
+                        <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                            <div class="min-w-0">
+                                <p class="text-xs uppercase tracking-wide text-slate-500 font-semibold">Antrean</p>
+                                <p class="mt-1 text-2xl font-extrabold text-blue-800">
+                                    #${queue.nomor_antrian ?? '-'}
+                                </p>
+                                <p class="mt-1 text-sm font-semibold text-slate-700">
+                                    ${escapeHtml(queue.service?.nama_layanan ?? '-')}
+                                </p>
+                                <p class="text-xs text-slate-500 mt-1">
+                                    Dosen: ${escapeHtml(queue.dosen?.name ?? '-')}
+                                </p>
+                                <p class="text-xs text-slate-400 mt-1">
+                                    Waktu ambil: ${escapeHtml(formatJakartaDateTime(queue.created_at))} WIB
+                                </p>
+                            </div>
+                            <div class="flex flex-wrap gap-2">
+                                <span class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${statusClass}">
+                                    <i class="fa-solid ${statusIcon}"></i>
+                                    ${statusLabel}
+                                </span>
+                                <span class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-fuchsia-100 text-fuchsia-800 ring-1 ring-fuchsia-200">
+                                    <i class="fa-solid fa-clock"></i>
+                                    Estimasi ${Number(queue.estimated_wait_minutes ?? 0)} menit
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
         }
         function detectQueueCalledFromPolling(rows = []) {
             if (!['mahasiswa', 'dosen'].includes(currentUserRole)) return;

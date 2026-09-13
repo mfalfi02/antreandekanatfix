@@ -4,6 +4,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use App\Http\Middleware\CekLogin;
+use App\Http\Middleware\CekRole;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -18,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // ✅ Daftarkan alias middleware
         $middleware->alias([
             'ceklogin' => CekLogin::class,
+            'cekrole' => CekRole::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

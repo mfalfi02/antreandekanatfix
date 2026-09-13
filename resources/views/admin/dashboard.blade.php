@@ -626,7 +626,7 @@
             {{-- Laporan dan analitik --}}
             <div class="panel p-6 mt-8">
                 <h2 class="text-xl font-semibold text-gray-900 mb-4">Laporan & Analitik</h2>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <a href="{{ route('reports.daily') }}"
                         class="bg-gray-100 p-6 rounded-xl shadow-sm hover:bg-gray-200 transition-colors text-center font-medium text-gray-700">
                         <i class="fa-solid fa-file-alt text-3xl mb-2"></i>
@@ -637,12 +637,6 @@
                         class="bg-gray-100 p-6 rounded-xl shadow-sm hover:bg-gray-200 transition-colors text-center font-medium text-gray-700">
                         <i class="fa-solid fa-chart-bar text-3xl mb-2"></i>
                         <p>Statistik Layanan</p>
-                    </a>
-
-                    <a href="{{ route('reports.rekap') }}"
-                        class="bg-gray-100 p-6 rounded-xl shadow-sm hover:bg-gray-200 transition-colors text-center font-medium text-gray-700">
-                        <i class="fa-solid fa-file-invoice text-3xl mb-2"></i>
-                        <p>Rekap Laporan</p>
                     </a>
                 </div>
             </div>

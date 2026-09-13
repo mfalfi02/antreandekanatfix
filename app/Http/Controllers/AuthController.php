@@ -11,6 +11,7 @@ use App\Models\Queue;
 use App\Models\RuangAntri;
 use App\Models\Service;
 use App\Services\GeofenceService;
+use App\Services\QueueDashboardService;
 use Illuminate\Support\Carbon;
 
 use Illuminate\Support\Facades\Hash;
@@ -137,6 +138,14 @@ class AuthController extends Controller
             return redirect()->route('adm');
         }
 
+        if ($user->role === 'pejabat') {
+            return redirect()->route('dsn');
+        }
+
+        if (!in_array($user->role, ['mahasiswa', 'dosen'], true)) {
+            return redirect()->route('login')->with('error', 'Role tidak dikenali.');
+        }
+
         // Data yang diambil di sini mengarah ke view mahasiswa/dashboard untuk menampilkan antrean hari ini dan histori.
         $today = Carbon::now('Asia/Jakarta')->toDateString();
         $myQueues = Queue::with(['user', 'service', 'dosen'])
@@ -196,23 +205,16 @@ class AuthController extends Controller
         }
 
         if ($user->role !== 'pejabat') {
-            return $this->mahasiswa();
+            return redirect()
+                ->route('mhs')
+                ->with('error', 'Dashboard pejabat hanya untuk role pejabat.');
         }
         // Data ini mengarah ke view dosen/dashboard untuk menampilkan antrean aktif dan riwayat hari ini.
-        $today = Carbon::now('Asia/Jakarta')->toDateString();
-        $myQueues = Queue::with(['user', 'service'])
-            ->where('kode_dosen', $user->kode)
-            ->whereDate('created_at', $today)
-            ->latest('created_at')
-            ->get();
-        $historyQueues = Queue::with(['user', 'service'])
-            ->where('kode_dosen', $user->kode)
-            ->whereDate('created_at', '<', $today)
-            ->latest('created_at')
-            ->get();
+        $dashboardService = app(QueueDashboardService::class);
+        $queuePayload = $dashboardService->pejabatDashboardPayload($user);
 
         // Dashboard dosen butuh antrean yang sedang diproses agar kartu nomor aktif bisa ditampilkan.
-        $currentServingQueue = $myQueues->firstWhere('status', 'diproses');
+        $currentServingQueue = $queuePayload['queues']->firstWhere('status', 'diproses');
         $currentQueueNumber = $currentServingQueue?->nomor_antrian;
         $currentServiceEstimate = $currentServingQueue?->service?->est;
 
@@ -220,10 +222,11 @@ class AuthController extends Controller
         $data = [
             'user' => $user,
             'services' => Service::all(),
-            'myQueues' => $myQueues,
-            'historyQueues' => $historyQueues,
-            'activeQueues' => $myQueues->whereIn('status', ['menunggu', 'diproses'])->count(),
-            'completedQueues' => $myQueues->where('status', 'selesai')->count(),
+            'myQueues' => $queuePayload['queues'],
+            'priorityQueues' => $queuePayload['priority_queues'],
+            'historyQueues' => $queuePayload['history_queues'],
+            'activeQueues' => $queuePayload['stats']['active'],
+            'completedQueues' => $queuePayload['stats']['completed'],
             'queue_status' => $this->statusDetailForUser($user->kode)['queue_status'],
             'currentQueueNumber' => $currentQueueNumber,
             'currentServiceEstimate' => $currentServiceEstimate,

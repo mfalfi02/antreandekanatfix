@@ -3,9 +3,14 @@
 @section('title', 'Edit Layanan')
 
 @section('content')
+@php
+    $backRoute = auth()->check() && auth()->user()->role === 'pejabat'
+        ? route('dsn')
+        : route('services.index');
+@endphp
 <div class="max-w-3xl mx-auto mt-10">
     {{-- Link kembali ini mengarah ke daftar layanan jika admin membatalkan perubahan --}}
-    <a href="{{ route('services.index') }}" class="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium transition-colors mb-6">
+    <a href="{{ $backRoute }}" class="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium transition-colors mb-6">
         <i class="fa-solid fa-arrow-left mr-2"></i> Kembali
     </a>
 
@@ -71,7 +76,7 @@
 
             {{-- Tombol submit mengarah ke controller update, batal kembali ke daftar layanan --}}
             <div class="pt-2 flex justify-end gap-2">
-                <a href="{{ route('services.index') }}"
+                <a href="{{ $backRoute }}"
                     class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition">
                     Batal
                 </a>

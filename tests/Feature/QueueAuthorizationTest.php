@@ -143,6 +143,65 @@ class QueueAuthorizationTest extends TestCase
     }
 
     /**
+     * Memastikan pejabat bisa membuka dan memperbarui layanan dari dashboard akses yang baru.
+     */
+    public function test_pejabat_can_access_and_update_service_routes(): void
+    {
+        $pejabat = $this->makeUser('PJB002', 'pejabat');
+
+        $service = Service::create([
+            'nama_layanan' => 'Konsultasi Akademik',
+            'deskripsi' => 'Layanan konsultasi awal',
+            'status' => 'aktif',
+            'est' => 15,
+        ]);
+
+        $this->actingAs($pejabat)
+            ->get(route('services.index'))
+            ->assertOk()
+            ->assertSee('Daftar Layanan');
+
+        $this->actingAs($pejabat)
+            ->get(route('services.edit', $service->id))
+            ->assertOk()
+            ->assertSee('Edit Layanan');
+
+        $this->actingAs($pejabat)
+            ->get(route('services.create'))
+            ->assertOk()
+            ->assertSee('Tambah Layanan');
+
+        $this->actingAs($pejabat)
+            ->post(route('services.store'), [
+                'nama_layanan' => 'Layanan Baru Pejabat',
+                'deskripsi' => 'Layanan yang ditambahkan dari dashboard pejabat',
+                'est' => 12,
+                'status' => 'aktif',
+            ])
+            ->assertRedirect(route('services.index'));
+
+        $this->actingAs($pejabat)
+            ->put(route('services.update', $service->id), [
+                'nama_layanan' => 'Konsultasi Akademik Updated',
+                'deskripsi' => 'Layanan konsultasi yang diperbarui',
+                'est' => 20,
+                'status' => 'aktif',
+            ])
+            ->assertRedirect(route('services.index'));
+
+        $this->assertDatabaseHas('services', [
+            'id' => $service->id,
+            'nama_layanan' => 'Konsultasi Akademik Updated',
+            'est' => 20,
+        ]);
+
+        $this->assertDatabaseHas('services', [
+            'nama_layanan' => 'Layanan Baru Pejabat',
+            'est' => 12,
+        ]);
+    }
+
+    /**
      * Menyiapkan user uji untuk pengujian otorisasi antrean.
      */
     private function makeUser(string $kode, string $role): User

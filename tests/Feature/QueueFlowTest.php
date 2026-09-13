@@ -146,6 +146,67 @@ class QueueFlowTest extends TestCase
     }
 
     /**
+     * Memastikan dashboard antrean pejabat mengurutkan FIFO dan menandai antrean prioritas dengan benar.
+     */
+    public function test_pejabat_queue_endpoint_orders_fifo_and_returns_priority_queues(): void
+    {
+        [$pejabat, $serviceFast] = $this->seedOpenRoomWithGeofence();
+        $serviceSlow = $this->makeService('Administrasi');
+        $mahasiswa = $this->makeUser('MHS010', 'mahasiswa');
+        $dosenPengantre = $this->makeUser('DSN010', 'dosen');
+
+        $oldestQueue = Queue::create([
+            'kode_user' => $mahasiswa->kode,
+            'kode_dosen' => $pejabat->kode,
+            'service_id' => $serviceFast->id,
+            'nomor_antrian' => 1,
+            'status' => 'menunggu',
+        ]);
+        $oldestQueue->forceFill([
+            'created_at' => now('Asia/Jakarta')->subMinutes(30),
+            'updated_at' => now('Asia/Jakarta')->subMinutes(30),
+        ])->saveQuietly();
+
+        $priorityQueue = Queue::create([
+            'kode_user' => $dosenPengantre->kode,
+            'kode_dosen' => $pejabat->kode,
+            'service_id' => $serviceSlow->id,
+            'nomor_antrian' => 2,
+            'status' => 'menunggu',
+        ]);
+        $priorityQueue->forceFill([
+            'created_at' => now('Asia/Jakarta')->subMinutes(10),
+            'updated_at' => now('Asia/Jakarta')->subMinutes(10),
+        ])->saveQuietly();
+
+        $completedQueue = Queue::create([
+            'kode_user' => $dosenPengantre->kode,
+            'kode_dosen' => $pejabat->kode,
+            'service_id' => $serviceFast->id,
+            'nomor_antrian' => 3,
+            'status' => 'selesai',
+        ]);
+        $completedQueue->forceFill([
+            'created_at' => now('Asia/Jakarta')->subMinutes(5),
+            'updated_at' => now('Asia/Jakarta')->subMinutes(5),
+        ])->saveQuietly();
+
+        $this->actingAs($pejabat)
+            ->getJson(route('queue.my'))
+            ->assertOk()
+            ->assertJsonPath('role', 'pejabat')
+            ->assertJsonPath('queues.0.id', $oldestQueue->id)
+            ->assertJsonPath('priority_queues.0.user.role', 'dosen');
+
+        $response = $this->actingAs($pejabat)->getJson(route('queue.my'));
+        $response->assertOk();
+
+        $payload = $response->json();
+        $this->assertCount(3, $payload['queues'] ?? []);
+        $this->assertCount(2, $payload['priority_queues'] ?? []);
+    }
+
+    /**
      * Memastikan guest dialihkan ke login saat mencoba akses queue flow.
      */
     public function test_guest_is_redirected_from_queue_routes(): void

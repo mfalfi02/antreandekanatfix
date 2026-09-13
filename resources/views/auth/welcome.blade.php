@@ -27,6 +27,7 @@
             background: rgba(255, 255, 255, .14);
             border: 1px solid rgba(255, 255, 255, .3);
             box-shadow: 0 24px 45px -30px rgba(15, 23, 42, .65);
+            -webkit-backdrop-filter: blur(14px);
             backdrop-filter: blur(14px);
             border-radius: 1.4rem;
         }
@@ -43,29 +44,75 @@
             border-color: rgba(255, 255, 255, .52);
             box-shadow: 0 20px 36px -26px rgba(15, 23, 42, .75);
         }
+
+        @media (max-width: 640px) {
+            body {
+                padding: 12px;
+            }
+
+            .glass-panel {
+                border-radius: 1.1rem;
+            }
+
+            .glass-panel,
+            .glass-panel * {
+                -webkit-transform: translateZ(0);
+                transform: translateZ(0);
+            }
+
+            .glass-panel img {
+                width: 3.2rem !important;
+                height: 3.2rem !important;
+            }
+
+            .glass-panel .text-center {
+                max-width: 100%;
+            }
+
+            .glass-panel h1 {
+                font-size: 1.55rem;
+                line-height: 1.1;
+            }
+
+            .glass-panel p {
+                word-break: break-word;
+            }
+
+            .glass-card {
+                padding: 1rem;
+            }
+
+            .glass-card p.font-semibold {
+                font-size: .98rem;
+            }
+
+            .glass-card .text-sm {
+                font-size: .88rem;
+            }
+        }
     </style>
 </head>
 
-<body class="p-4 md:p-8">
-    <div class="min-h-[calc(100vh-2rem)] max-w-5xl mx-auto grid place-items-center">
+<body class="p-3 md:p-8">
+    <div class="min-h-[calc(100vh-1.5rem)] max-w-5xl mx-auto grid place-items-center">
         {{-- Halaman ini mengarahkan pengunjung ke display publik atau form login --}}
-        <div class="glass-panel w-full p-6 md:p-10 text-white">
+        <div class="glass-panel w-full p-5 md:p-10 text-white">
             <div class="text-center max-w-2xl mx-auto">
                 <img src="{{ asset('images/logosistem.jpeg') }}" alt="Logo Sistem"
-                    class="mx-auto mb-4 w-20 h-20 md:w-24 md:h-24 object-contain">
+                    class="mx-auto mb-4 w-14 h-14 md:w-24 md:h-24 object-contain shrink-0">
 
                 <p class="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-100">Sistem Antrean</p>
-                <h1 class="mt-2 text-3xl md:text-5xl font-extrabold leading-tight">Dekanat Fakultas Teknologi Informasi</h1>
+                <h1 class="mt-2 text-xl md:text-5xl font-extrabold leading-tight">Dekanat Fakultas Teknologi Informasi</h1>
                 <p class="mt-3 text-cyan-50/90">Universitas Widya Dharma Pontianak</p>
-                <p class="mt-2 text-sm text-cyan-50/80">Pantau antrean realtime atau masuk ke sistem untuk pengelolaan layanan.</p>
+                <p class="mt-2 text-sm text-cyan-50/80 leading-relaxed">Pantau antrean realtime atau masuk ke sistem untuk pengelolaan layanan.</p>
             </div>
 
             {{-- Dua jalur utama: buka layar display atau masuk ke sistem --}}
-            <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="mt-6 md:mt-8 grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                 
-                <a href="{{ route('display') }}" class="glass-card p-5">
+                <a href="{{ route('display') }}" class="glass-card p-4 md:p-5">
                     <div class="flex items-start gap-3">
-                        <span class="h-10 w-10 rounded-full bg-white/30 text-white flex items-center justify-center">
+                        <span class="h-9 w-9 md:h-10 md:w-10 rounded-full bg-white/30 text-white flex items-center justify-center">
                             <i class="fa-solid fa-desktop"></i>
                         </span>
                         <div>
@@ -76,9 +123,9 @@
                     <p class="mt-4 text-sm font-semibold text-white">Buka Display <i class="fa-solid fa-arrow-right ml-1"></i></p>
                 </a>
 
-                <a href="{{ route('login') }}" class="glass-card p-5">
+                <a href="{{ route('login') }}" class="glass-card p-4 md:p-5">
                     <div class="flex items-start gap-3">
-                        <span class="h-10 w-10 rounded-full bg-white/30 text-white flex items-center justify-center">
+                        <span class="h-9 w-9 md:h-10 md:w-10 rounded-full bg-white/30 text-white flex items-center justify-center">
                             <i class="fa-solid fa-right-to-bracket"></i>
                         </span>
                         <div>
